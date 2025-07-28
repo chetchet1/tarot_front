@@ -130,7 +130,7 @@ const goBack = () => {
 };
 
 const goHome = () => {
-  router.push('/');
+  router.push('/app');
 };
 
 const newReading = () => {
@@ -144,7 +144,7 @@ onMounted(() => {
   
   if (!reading.value && !readingId.value) {
     console.warn('점괘 데이터가 없습니다. 홈으로 리다이렉트');
-    router.push('/');
+    router.push('/app');
   }
 });
 </script>

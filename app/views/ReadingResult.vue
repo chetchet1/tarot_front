@@ -165,12 +165,12 @@ const newReading = () => {
 };
 
 const goHome = () => {
-  router.push({ name: 'home' });
+  router.push({ name: 'MainApp' });
 };
 
 onMounted(() => {
   if (!reading.value) {
-    router.push({ name: 'home' });
+    router.push({ name: 'MainApp' });
   }
 });
 </script>
