@@ -193,6 +193,8 @@ const drawCards = async () => {
   
   console.log('뽑힌 카드들:', selectedCards);
 
+  tarotStore.setTempDrawnCards(selectedCards);
+
   drawnCards.value = selectedCards.map(card => ({
     card,
     orientation: card.orientation,
@@ -218,7 +220,8 @@ const goToResult = async () => {
     const reading = await tarotStore.createReading(
       tarotStore.selectedSpread?.spreadId || 'one_card',
       tarotStore.selectedTopic?.id || 'general',
-      undefined // 질문은 선택사항
+      undefined, // 질문은 선택사항
+      tarotStore.getTempDrawnCards() || undefined
     );
     
     // 점괴 결과 화면으로 이동

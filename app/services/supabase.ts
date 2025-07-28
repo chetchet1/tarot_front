@@ -492,3 +492,62 @@ export const readingService = {
 
 // 나머지 기존 서비스들 (readingService, subscriptionService 등) 유지...
 export * from './supabase';
+
+// 구독 서비스
+export const subscriptionService = {
+  // 구독 생성
+  async createSubscription(subscription: {
+    user_id?: string;
+    plan: string;
+    status: string;
+    price: number;
+    currency: string;
+    platform_order_id?: string;
+    payment_method?: string;
+    start_date: Date;
+    end_date?: Date;
+  }) {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .insert({
+        ...subscription,
+        start_date: subscription.start_date.toISOString(),
+        end_date: subscription.end_date?.toISOString() ?? null
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // 사용자 현재 구독 조회
+  async getCurrentSubscription(userId: string) {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('start_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // 구독 취소 처리
+  async cancelSubscription(subscriptionId: string) {
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .update({
+        status: 'cancelled',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', subscriptionId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+};

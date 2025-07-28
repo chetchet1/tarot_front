@@ -31,6 +31,7 @@ export const useTarotStore = defineStore('tarot', () => {
   const spreads = ref<TarotSpread[]>([]);
   const selectedTopic = ref<any>(null);
   const selectedSpread = ref<any>(null);
+  const tempDrawnCards = ref<DrawnCard[] | null>(null);
 
   // 로컬 스토리지 관련 함수들
   const saveReadingsToStorage = () => {
@@ -73,6 +74,11 @@ export const useTarotStore = defineStore('tarot', () => {
     }
   };
 
+  const setTempDrawnCards = (cards: DrawnCard[] | null) => {
+    tempDrawnCards.value = cards;
+  };
+
+  const getTempDrawnCards = () => tempDrawnCards.value;
   // Supabase에서 타로카드 데이터 로드
   const loadTarotCards = async () => {
     try {
@@ -393,7 +399,8 @@ export const useTarotStore = defineStore('tarot', () => {
   const createReading = async (
     spreadId: string, 
     topic: Topic, 
-    question?: string
+    question?: string,
+    overrideCards?: DrawnCard[]
   ): Promise<Reading> => {
     try {
       isLoading.value = true;
@@ -407,7 +414,11 @@ export const useTarotStore = defineStore('tarot', () => {
       console.log('선택된 스프레드:', spread);
       console.log('사용 가능한 카드 수:', tarotCards.value.length);
 
-      const cards = drawCards(spread.cardCount);
+      const cards = overrideCards && overrideCards.length > 0
+        ? overrideCards
+        : (tempDrawnCards.value && tempDrawnCards.value.length === spread.cardCount
+            ? tempDrawnCards.value
+            : drawCards(spread.cardCount));
       console.log('뽑은 카드들:', cards);
       
       // 각 카드에 포지션 할당
@@ -440,6 +451,8 @@ export const useTarotStore = defineStore('tarot', () => {
       // 로컬 저장
       saveReading(reading);
       currentReading.value = reading;
+
+      tempDrawnCards.value = null;
       
       return reading;
     } catch (error) {
@@ -657,6 +670,8 @@ export const useTarotStore = defineStore('tarot', () => {
     getCurrentReading,
     getReadingById,
     setSelectedTopic,
-    setSelectedSpread
+    setSelectedSpread,
+    setTempDrawnCards,
+    getTempDrawnCards
   };
 });
