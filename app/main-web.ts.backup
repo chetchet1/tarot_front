@@ -1,0 +1,22 @@
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
+import App from './AppWeb.vue';
+import router from './router';
+import './styles/main.scss';
+import { NativeUtils } from './utils/capacitor';
+
+// Capacitor 초기화
+NativeUtils.initializeApp();
+
+// Pinia store 생성
+const pinia = createPinia();
+
+// Vue 앱 생성
+const app = createApp(App);
+
+// 플러그인 사용
+app.use(pinia);
+app.use(router);
+
+// DOM에 마운트
+app.mount('#app');

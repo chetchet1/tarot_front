@@ -1,0 +1,206 @@
+import { defineStore } from 'pinia';
+import { ref, computed, watch } from 'vue';
+
+export interface User {
+  id: string;
+  email: string;
+  isPremium: boolean;
+  createdAt: Date;
+  dailyReadingCount: number;
+  lastReadingDate: Date | null;
+}
+
+export const useUserStore = defineStore('user', () => {
+  // State
+  const user = ref<User | null>(null);
+  const isAuthenticated = ref(false);
+  const freeReadingsToday = ref(0);
+  const maxFreeReadingsPerDay = 3;
+
+  // Getters
+  const isPremium = computed(() => user.value?.isPremium || false);
+  const canUseFreeReading = computed(() => {
+    if (isPremium.value) return true;
+    return freeReadingsToday.value < maxFreeReadingsPerDay;
+  });
+
+  // LocalStorage 키
+  const STORAGE_KEYS = {
+    USER: 'tarot_user',
+    FREE_READINGS: 'tarot_free_readings',
+    LAST_READING_DATE: 'tarot_last_reading_date'
+  };
+
+  // LocalStorage에서 데이터 로드
+  const loadFromStorage = () => {
+    try {
+      const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
+      if (savedUser) {
+        const userData = JSON.parse(savedUser);
+        userData.createdAt = new Date(userData.createdAt);
+        userData.lastReadingDate = userData.lastReadingDate ? new Date(userData.lastReadingDate) : null;
+        user.value = userData;
+        isAuthenticated.value = true;
+      }
+
+      // 오늘 날짜 확인
+      const today = new Date().toDateString();
+      const lastDate = localStorage.getItem(STORAGE_KEYS.LAST_READING_DATE);
+      
+      if (lastDate !== today) {
+        // 새로운 날이면 무료 점괘 횟수 리셋
+        freeReadingsToday.value = 0;
+        localStorage.setItem(STORAGE_KEYS.LAST_READING_DATE, today);
+      } else {
+        // 같은 날이면 저장된 횟수 로드
+        const savedReadings = localStorage.getItem(STORAGE_KEYS.FREE_READINGS);
+        freeReadingsToday.value = savedReadings ? parseInt(savedReadings) : 0;
+      }
+    } catch (error) {
+      console.error('LocalStorage 로드 실패:', error);
+    }
+  };
+
+  // LocalStorage에 데이터 저장
+  const saveToStorage = () => {
+    try {
+      if (user.value) {
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user.value));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.USER);
+      }
+      localStorage.setItem(STORAGE_KEYS.FREE_READINGS, freeReadingsToday.value.toString());
+    } catch (error) {
+      console.error('LocalStorage 저장 실패:', error);
+    }
+  };
+
+  // 상태 변경시 자동 저장
+  watch([user, freeReadingsToday], saveToStorage, { deep: true });
+
+  // Actions
+  const setUser = (userData: User | null) => {
+    user.value = userData;
+    isAuthenticated.value = !!userData;
+  };
+
+  const incrementFreeReading = () => {
+    if (!isPremium.value) {
+      freeReadingsToday.value++;
+    }
+  };
+
+  const resetDailyReadings = () => {
+    freeReadingsToday.value = 0;
+  };
+
+  const upgradeToPremium = () => {
+    if (user.value) {
+      user.value.isPremium = true;
+    }
+  };
+
+  // 실제 회원가입 (LocalStorage 기반)
+  const signup = (email: string, password: string) => {
+    // 간단한 유효성 검사
+    if (!email || !password) {
+      throw new Error('이메일과 비밀번호를 입력해주세요.');
+    }
+
+    // 이미 존재하는 사용자 확인
+    const existingUsers = getStoredUsers();
+    if (existingUsers.find(u => u.email === email)) {
+      throw new Error('이미 존재하는 이메일입니다.');
+    }
+
+    // 새 사용자 생성
+    const newUser: User = {
+      id: `user_${Date.now()}`,
+      email,
+      isPremium: false,
+      createdAt: new Date(),
+      dailyReadingCount: 0,
+      lastReadingDate: null,
+    };
+
+    // 사용자 목록에 추가
+    existingUsers.push({ ...newUser, password });
+    localStorage.setItem('tarot_users', JSON.stringify(existingUsers));
+
+    // 로그인 상태로 설정
+    setUser(newUser);
+  };
+
+  // 실제 로그인 (LocalStorage 기반)
+  const login = (email: string, password: string) => {
+    const existingUsers = getStoredUsers();
+    const foundUser = existingUsers.find(u => u.email === email && u.password === password);
+
+    if (!foundUser) {
+      throw new Error('이메일 또는 비밀번호가 틀렸습니다.');
+    }
+
+    // 로그인 성공
+    const { password: _, ...userWithoutPassword } = foundUser;
+    setUser({
+      ...userWithoutPassword,
+      createdAt: new Date(userWithoutPassword.createdAt),
+      lastReadingDate: userWithoutPassword.lastReadingDate ? new Date(userWithoutPassword.lastReadingDate) : null
+    });
+  };
+
+  // Mock 로그인 (개발용 - 유지)
+  const mockLogin = (email: string, premium: boolean = false) => {
+    setUser({
+      id: 'mock-user-123',
+      email,
+      isPremium: premium,
+      createdAt: new Date(),
+      dailyReadingCount: 0,
+      lastReadingDate: null,
+    });
+  };
+
+  const logout = () => {
+    setUser(null);
+    freeReadingsToday.value = 0;
+  };
+
+  // 헬퍼 함수
+  const getStoredUsers = () => {
+    try {
+      const users = localStorage.getItem('tarot_users');
+      return users ? JSON.parse(users) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  // 초기화 시 데이터 로드
+  loadFromStorage();
+
+  return {
+    // State
+    user,
+    isAuthenticated,
+    freeReadingsToday,
+    maxFreeReadingsPerDay,
+    
+    // Getters
+    isPremium,
+    canUseFreeReading,
+    
+    // Actions
+    setUser,
+    incrementFreeReading,
+    resetDailyReadings,
+    upgradeToPremium,
+    signup,
+    login,
+    mockLogin,
+    logout,
+    
+    // Utils
+    loadFromStorage,
+  };
+});

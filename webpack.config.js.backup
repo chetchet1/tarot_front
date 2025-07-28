@@ -1,0 +1,24 @@
+const webpack = require("@nativescript/webpack");
+
+module.exports = (env) => {
+  webpack.init(env);
+
+  // 웹 빌드 지원 설정
+  if (env.platform === 'web') {
+    webpack.chainWebpack(config => {
+      // 웹 전용 설정
+      config.resolve.alias.set('~', webpack.Utils.project.getProjectFilePath('app'));
+      
+      // HTML 템플릿 설정
+      config.plugin('html').tap(args => {
+        args[0].template = webpack.Utils.project.getProjectFilePath('app/index.html');
+        return args;
+      });
+    });
+  }
+
+  // Learn how to customize:
+  // https://docs.nativescript.org/webpack
+
+  return webpack.resolveConfig();
+};

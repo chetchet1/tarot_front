@@ -1,0 +1,115 @@
+import { Device } from '@nativescript/core';
+
+/**
+ * 플랫폼 감지 유틸리티
+ */
+export const Platform = {
+  /**
+   * 웹 플랫폼 여부
+   */
+  get isWeb(): boolean {
+    try {
+      return typeof window !== 'undefined' && typeof document !== 'undefined' && (!Device || !Device.os);
+    } catch {
+      return typeof window !== 'undefined' && typeof document !== 'undefined';
+    }
+  },
+
+  /**
+   * iOS 플랫폼 여부
+   */
+  get isIOS(): boolean {
+    try {
+      return Device && Device.os === 'iOS';
+    } catch {
+      return false;
+    }
+  },
+
+  /**
+   * Android 플랫폼 여부
+   */
+  get isAndroid(): boolean {
+    try {
+      return Device && Device.os === 'Android';
+    } catch {
+      return false;
+    }
+  },
+
+  /**
+   * 모바일 플랫폼 여부 (iOS 또는 Android)
+   */
+  get isMobile(): boolean {
+    return this.isIOS || this.isAndroid;
+  },
+
+  /**
+   * 현재 플랫폼 이름
+   */
+  get name(): 'web' | 'ios' | 'android' {
+    if (this.isWeb) return 'web';
+    if (this.isIOS) return 'ios';
+    if (this.isAndroid) return 'android';
+    return 'web'; // fallback
+  }
+};
+
+/**
+ * 플랫폼별 코드 실행 헬퍼
+ */
+export const platformSwitch = <T>(cases: {
+  web?: () => T;
+  ios?: () => T;
+  android?: () => T;
+  mobile?: () => T;
+  default?: () => T;
+}): T | undefined => {
+  if (Platform.isWeb && cases.web) {
+    return cases.web();
+  }
+  
+  if (Platform.isIOS && cases.ios) {
+    return cases.ios();
+  }
+  
+  if (Platform.isAndroid && cases.android) {
+    return cases.android();
+  }
+  
+  if (Platform.isMobile && cases.mobile) {
+    return cases.mobile();
+  }
+  
+  if (cases.default) {
+    return cases.default();
+  }
+  
+  return undefined;
+};
+
+/**
+ * 플랫폼별 클래스명 생성
+ */
+export const platformClass = (baseClass: string, platformClasses?: {
+  web?: string;
+  ios?: string;
+  android?: string;
+  mobile?: string;
+}): string => {
+  let classes = [baseClass];
+  
+  if (platformClasses) {
+    if (Platform.isWeb && platformClasses.web) {
+      classes.push(platformClasses.web);
+    } else if (Platform.isIOS && platformClasses.ios) {
+      classes.push(platformClasses.ios);
+    } else if (Platform.isAndroid && platformClasses.android) {
+      classes.push(platformClasses.android);
+    } else if (Platform.isMobile && platformClasses.mobile) {
+      classes.push(platformClasses.mobile);
+    }
+  }
+  
+  return classes.join(' ');
+};

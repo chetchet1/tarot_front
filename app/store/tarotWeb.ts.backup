@@ -1,0 +1,83 @@
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
+
+export interface TarotSpread {
+  id: string;
+  name: string;
+  description: string;
+  cardCount: number;
+  positions: string[];
+}
+
+export const useTarotStore = defineStore('tarot', () => {
+  // State
+  const selectedSpread = ref<TarotSpread | null>(null);
+  const selectedTopic = ref<string>('general');
+  const isLoading = ref(false);
+  const showAdModal = ref(false);
+
+  // Sample spreads data
+  const availableSpreads = ref<TarotSpread[]>([
+    {
+      id: 'one-card',
+      name: '한 장 뽑기',
+      description: '간단한 질문을 위한 카드',
+      cardCount: 1,
+      positions: ['현재 상황']
+    },
+    {
+      id: 'three-card',
+      name: '세 장 뽑기',
+      description: '과거, 현재, 미래',
+      cardCount: 3,
+      positions: ['과거', '현재', '미래']
+    },
+    {
+      id: 'celtic-cross',
+      name: '켈틱 크로스',
+      description: '종합적인 인생 상담',
+      cardCount: 10,
+      positions: ['현재 상황', '장애', '과거', '미래', '가능한 결과', '즉시 미래', '자신', '외부 영향', '내적 감정', '최종 결과']
+    }
+  ]);
+
+  // Actions
+  const setSelectedSpread = (spread: TarotSpread) => {
+    selectedSpread.value = spread;
+  };
+
+  const setSelectedTopic = (topic: string) => {
+    selectedTopic.value = topic;
+  };
+
+  const setLoading = (loading: boolean) => {
+    isLoading.value = loading;
+  };
+
+  const setShowAdModal = (show: boolean) => {
+    showAdModal.value = show;
+  };
+
+  const startReading = async () => {
+    setLoading(true);
+    // 시뮬레이션을 위한 지연
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setLoading(false);
+  };
+
+  return {
+    // State
+    selectedSpread,
+    selectedTopic,
+    isLoading,
+    showAdModal,
+    availableSpreads,
+
+    // Actions
+    setSelectedSpread,
+    setSelectedTopic,
+    setLoading,
+    setShowAdModal,
+    startReading,
+  };
+});
