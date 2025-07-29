@@ -15,7 +15,109 @@
       <!-- 카드 해석 -->
       <section class="cards-section">
         <h2>📜 카드 해석</h2>
-        <div class="cards-grid">
+        
+        <!-- 켈틱 크로스 특별 레이아웃 -->
+        <div v-if="reading.spreadId === 'celtic_cross'" class="celtic-cross-layout">
+          <div class="celtic-cross-container">
+            <!-- 중앙 크로스 -->
+            <div class="celtic-center">
+              <div class="celtic-card position-1" @click="showCardDetail(0)">
+                <div class="card-mini" :class="reading.cards[0].orientation">
+                  <span class="position-label">1</span>
+                  <span class="card-name">{{ reading.cards[0].nameKr }}</span>
+                </div>
+              </div>
+              <div class="celtic-card position-2 cross-card" @click="showCardDetail(1)">
+                <div class="card-mini" :class="reading.cards[1].orientation">
+                  <span class="position-label">2</span>
+                  <span class="card-name">{{ reading.cards[1].nameKr }}</span>
+                </div>
+              </div>
+              <div class="celtic-card position-3" @click="showCardDetail(2)">
+                <div class="card-mini" :class="reading.cards[2].orientation">
+                  <span class="position-label">3</span>
+                  <span class="card-name">{{ reading.cards[2].nameKr }}</span>
+                </div>
+              </div>
+              <div class="celtic-card position-4" @click="showCardDetail(3)">
+                <div class="card-mini" :class="reading.cards[3].orientation">
+                  <span class="position-label">4</span>
+                  <span class="card-name">{{ reading.cards[3].nameKr }}</span>
+                </div>
+              </div>
+              <div class="celtic-card position-5" @click="showCardDetail(4)">
+                <div class="card-mini" :class="reading.cards[4].orientation">
+                  <span class="position-label">5</span>
+                  <span class="card-name">{{ reading.cards[4].nameKr }}</span>
+                </div>
+              </div>
+              <div class="celtic-card position-6" @click="showCardDetail(5)">
+                <div class="card-mini" :class="reading.cards[5].orientation">
+                  <span class="position-label">6</span>
+                  <span class="card-name">{{ reading.cards[5].nameKr }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 오른쪽 직선 -->
+            <div class="celtic-staff">
+              <div class="celtic-card position-7" @click="showCardDetail(6)">
+                <div class="card-mini" :class="reading.cards[6].orientation">
+                  <span class="position-label">7</span>
+                  <span class="card-name">{{ reading.cards[6].nameKr }}</span>
+                </div>
+              </div>
+              <div class="celtic-card position-8" @click="showCardDetail(7)">
+                <div class="card-mini" :class="reading.cards[7].orientation">
+                  <span class="position-label">8</span>
+                  <span class="card-name">{{ reading.cards[7].nameKr }}</span>
+                </div>
+              </div>
+              <div class="celtic-card position-9" @click="showCardDetail(8)">
+                <div class="card-mini" :class="reading.cards[8].orientation">
+                  <span class="position-label">9</span>
+                  <span class="card-name">{{ reading.cards[8].nameKr }}</span>
+                </div>
+              </div>
+              <div class="celtic-card position-10" @click="showCardDetail(9)">
+                <div class="card-mini" :class="reading.cards[9].orientation">
+                  <span class="position-label">10</span>
+                  <span class="card-name">{{ reading.cards[9].nameKr }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 선택된 카드 상세 정보 -->
+          <div v-if="selectedCardIndex !== null" class="selected-card-detail">
+            <div class="card-detail-header">
+              <h3>{{ reading.cards[selectedCardIndex].position.name }}</h3>
+              <button @click="selectedCardIndex = null" class="close-detail">×</button>
+            </div>
+            <div class="card-detail-content">
+              <div class="card-image">
+                <img :src="getCardImageUrl(reading.cards[selectedCardIndex])" 
+                     :alt="reading.cards[selectedCardIndex].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[selectedCardIndex].orientation === 'reversed' }" />
+              </div>
+              <h4>{{ reading.cards[selectedCardIndex].nameKr || reading.cards[selectedCardIndex].name }}</h4>
+              <span class="card-orientation" :class="reading.cards[selectedCardIndex].orientation">
+                {{ reading.cards[selectedCardIndex].orientation === 'upright' ? '정방향' : '역방향' }}
+              </span>
+              <p class="position-meaning">
+                <strong>포지션 의미:</strong> {{ reading.cards[selectedCardIndex].position.description }}
+              </p>
+              <p class="card-meaning">{{ getCardMeaning(reading.cards[selectedCardIndex]) }}</p>
+              <p class="card-advice" v-if="reading.cards[selectedCardIndex].interpretation?.advice">
+                <strong>조언:</strong> {{ reading.cards[selectedCardIndex].interpretation.advice }}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 기존 카드 그리드 (다른 스프레드) -->
+        <div v-else class="cards-grid">
           <div 
             v-for="(card, index) in reading.cards" 
             :key="index"
@@ -46,6 +148,94 @@
         </div>
       </section>
 
+      <!-- 프리미엄 인사이트 (프리미엄 사용자만) -->
+      <section v-if="reading.premiumInsights" class="premium-insights">
+        <h2>✨ 프리미엄 인사이트</h2>
+        
+        <!-- 영혼의 교훈 -->
+        <div v-if="reading.premiumInsights.soulLesson" class="insight-card">
+          <h3>🌟 영혼의 교훈</h3>
+          <p>{{ reading.premiumInsights.soulLesson }}</p>
+        </div>
+        
+        <!-- 카르마적 부채 -->
+        <div v-if="reading.premiumInsights.karmicDebt" class="insight-card">
+          <h3>♾️ 카르마적 과제</h3>
+          <p>{{ reading.premiumInsights.karmicDebt }}</p>
+        </div>
+        
+        <!-- 영적 선물 -->
+        <div v-if="reading.premiumInsights.spiritualGifts" class="insight-card">
+          <h3>🎁 영적 선물</h3>
+          <p>{{ reading.premiumInsights.spiritualGifts }}</p>
+        </div>
+        
+        <!-- 그림자 작업 -->
+        <div v-if="reading.premiumInsights.shadowWork" class="insight-card">
+          <h3>🌙 그림자 작업</h3>
+          <p>{{ reading.premiumInsights.shadowWork }}</p>
+        </div>
+        
+        <!-- 타임라인 -->
+        <div v-if="reading.premiumInsights.timeline" class="insight-card">
+          <h3>⏰ 예상 타임라인</h3>
+          <p>{{ reading.premiumInsights.timeline }}</p>
+        </div>
+        
+        <!-- 행동 단계 -->
+        <div v-if="reading.premiumInsights.actionSteps" class="insight-card">
+          <h3>🚩 구체적인 행동 단계</h3>
+          <ul>
+            <li v-for="(step, index) in reading.premiumInsights.actionSteps" :key="index">
+              {{ step }}
+            </li>
+          </ul>
+        </div>
+        
+        <!-- 우주적 지침 (세븐 스타) -->
+        <div v-if="reading.premiumInsights.stellarAlignment" class="insight-card cosmic-guidance">
+          <h3>🌌 우주의 정렬</h3>
+          <p>{{ reading.premiumInsights.stellarAlignment }}</p>
+        </div>
+        
+        <div v-if="reading.premiumInsights.cosmicTiming" class="insight-card cosmic-guidance">
+          <h3>✨ 우주적 타이밍</h3>
+          <p>{{ reading.premiumInsights.cosmicTiming }}</p>
+        </div>
+        
+        <!-- 관계 조언 (컵 오브 릴레이션십) -->
+        <div v-if="reading.premiumInsights.communicationTips" class="insight-card love-guidance">
+          <h3>💬 소통 팁</h3>
+          <p>{{ reading.premiumInsights.communicationTips }}</p>
+        </div>
+        
+        <div v-if="reading.premiumInsights.intimacyGuidance" class="insight-card love-guidance">
+          <h3>💕 친밀감 가이드</h3>
+          <p>{{ reading.premiumInsights.intimacyGuidance }}</p>
+        </div>
+        
+        <div v-if="reading.premiumInsights.soulContractInsights" class="insight-card love-guidance">
+          <h3>🔗 영혼의 계약</h3>
+          <p>{{ reading.premiumInsights.soulContractInsights }}</p>
+        </div>
+      </section>
+      
+      <!-- 무료 사용자를 위한 프리미엄 홍보 -->
+      <section v-else-if="!userStore.isPremium && (reading.spreadId === 'celtic_cross' || reading.spreadId === 'seven_star' || reading.spreadId === 'cup_of_relationship')" class="premium-cta">
+        <h3>🌟 더 깊은 통찰을 원하시나요?</h3>
+        <p>프리미엄 회원이 되시면 다음과 같은 특별한 해석을 받으실 수 있습니다:</p>
+        <ul>
+          <li>✨ 영혼의 교훈과 카르마적 통찰</li>
+          <li>🌌 우주적 타이밍과 에너지 분석</li>
+          <li>🔮 크리스탈 추천과 차크라 밸런싱</li>
+          <li>🌙 그림자 작업과 영적 성장 가이드</li>
+          <li>⏰ 구체적인 타임라인과 행동 단계</li>
+        </ul>
+        <button class="btn btn-premium" @click="router.push('/premium')">
+          프리미엄으로 업그레이드
+        </button>
+      </section>
+
       <!-- 액션 버튼 -->
       <section class="actions">
         <button class="btn btn-primary" @click="newReading">
@@ -74,10 +264,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useTarotStore } from '../store/tarot';
+import { useUserStore } from '../store/user';
 
 const router = useRouter();
 const route = useRoute();
 const tarotStore = useTarotStore();
+const userStore = useUserStore();
 
 const readingId = computed(() => {
   return route.query.readingId as string || route.params.readingId as string;
@@ -87,6 +279,14 @@ const reading = computed(() => {
   if (!readingId.value) return null;
   return tarotStore.getReadingById(readingId.value) || tarotStore.getCurrentReading();
 });
+
+// 켈틱 크로스에서 선택된 카드 인덱스
+const selectedCardIndex = ref<number | null>(null);
+
+// 카드 상세 정보 표시
+const showCardDetail = (index: number) => {
+  selectedCardIndex.value = index;
+};
 
 // 카드 의미 가져오기
 const getCardMeaning = (card: any): string => {
@@ -503,6 +703,364 @@ onMounted(() => {
   font-size: 16px;
 }
 
+/* 켈틱 크로스 레이아웃 스타일 */
+.celtic-cross-layout {
+  position: relative;
+  min-height: 500px;
+}
+
+.celtic-cross-container {
+  display: flex;
+  justify-content: center;
+  gap: 80px;
+  margin: 40px 0;
+}
+
+.celtic-center {
+  position: relative;
+  width: 300px;
+  height: 400px;
+}
+
+.celtic-staff {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 400px;
+}
+
+.celtic-card {
+  position: absolute;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.celtic-card:hover {
+  transform: scale(1.1);
+  z-index: 10;
+}
+
+/* 켈틱 크로스 카드 위치 */
+.celtic-card.position-1 {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.celtic-card.position-2 {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  z-index: 3;
+}
+
+.celtic-card.position-3 {
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.celtic-card.position-4 {
+  top: 50%;
+  left: 10%;
+  transform: translateY(-50%);
+}
+
+.celtic-card.position-5 {
+  top: 50%;
+  right: 10%;
+  transform: translateY(-50%);
+}
+
+.celtic-card.position-6 {
+  bottom: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.celtic-staff .celtic-card {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.card-mini {
+  width: 60px;
+  height: 90px;
+  background: linear-gradient(135deg, #4C1D95 0%, #7C3AED 100%);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 11px;
+  text-align: center;
+  padding: 5px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.card-mini.reversed {
+  background: linear-gradient(135deg, #DC2626 0%, #991B1B 100%);
+}
+
+.position-label {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: #FFD700;
+}
+
+.card-name {
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+/* 선택된 카드 상세 정보 */
+.selected-card-detail {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(168, 85, 247, 0.5);
+  border-radius: 16px;
+  padding: 25px;
+  margin-top: 40px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.card-detail-header h3 {
+  color: #FFD700;
+  font-size: 22px;
+  margin: 0;
+}
+
+.close-detail {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 28px;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.close-detail:hover {
+  color: white;
+}
+
+.card-detail-content {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.card-detail-content .card-image {
+  width: 120px;
+  height: 180px;
+}
+
+.card-detail-content .card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.card-detail-content h4 {
+  color: white;
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.position-meaning {
+  background: rgba(168, 85, 247, 0.1);
+  border-left: 3px solid #A855F7;
+  padding: 10px 15px;
+  margin: 15px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 프리미엄 인사이트 섹션 */
+.premium-insights {
+  margin: 40px 0;
+  padding: 30px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
+  border: 2px solid rgba(168, 85, 247, 0.3);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.premium-insights::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(255, 215, 0, 0.1) 0%, transparent 70%);
+  animation: rotate 30s linear infinite;
+}
+
+@keyframes rotate {
+  to { transform: rotate(360deg); }
+}
+
+.premium-insights h2 {
+  text-align: center;
+  color: #FFD700;
+  font-size: 28px;
+  margin-bottom: 30px;
+  position: relative;
+  z-index: 1;
+}
+
+.insight-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.insight-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.insight-card h3 {
+  color: #A855F7;
+  font-size: 20px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.insight-card p {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.8;
+  font-size: 16px;
+}
+
+.insight-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.insight-card ul li {
+  color: rgba(255, 255, 255, 0.9);
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  padding-left: 25px;
+}
+
+.insight-card ul li:last-child {
+  border-bottom: none;
+}
+
+.insight-card ul li::before {
+  content: '★';
+  position: absolute;
+  left: 0;
+  color: #FFD700;
+}
+
+/* 특별한 인사이트 카드 스타일 */
+.cosmic-guidance {
+  background: linear-gradient(135deg, rgba(25, 25, 112, 0.2) 0%, rgba(0, 0, 0, 0.3) 100%);
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.cosmic-guidance h3 {
+  color: #FFD700;
+}
+
+.love-guidance {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(0, 0, 0, 0.3) 100%);
+  border-color: rgba(236, 72, 153, 0.3);
+}
+
+.love-guidance h3 {
+  color: #EC4899;
+}
+
+/* 프리미엄 없을 때 CTA */
+.premium-cta {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #1E1B4B;
+  text-align: center;
+  padding: 30px;
+  border-radius: 20px;
+  margin: 40px 0;
+}
+
+.premium-cta h3 {
+  font-size: 24px;
+  margin-bottom: 15px;
+}
+
+.premium-cta p {
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+.premium-cta .btn {
+  background: #1E1B4B;
+  color: #FFD700;
+  font-weight: 700;
+}
+
+.premium-cta ul {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+  text-align: left;
+  display: inline-block;
+}
+
+.premium-cta ul li {
+  padding: 8px 0;
+  position: relative;
+  padding-left: 30px;
+}
+
+.premium-cta ul li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle, #FFD700 0%, #FFA500 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
 @media (max-width: 768px) {
   .card-content {
     grid-template-columns: 1fr;
@@ -517,6 +1075,41 @@ onMounted(() => {
   
   .btn {
     width: 200px;
+  }
+  
+  /* 켈틱 크로스 모바일 스타일 */
+  .celtic-cross-container {
+    flex-direction: column;
+    gap: 40px;
+    align-items: center;
+  }
+  
+  .celtic-center {
+    transform: scale(0.8);
+  }
+  
+  .celtic-staff {
+    flex-direction: row;
+    width: 100%;
+    height: auto;
+    justify-content: space-around;
+  }
+  
+  .card-detail-content {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  
+  .premium-insights {
+    padding: 20px;
+  }
+  
+  .insight-card h3 {
+    font-size: 18px;
+  }
+  
+  .insight-card p {
+    font-size: 14px;
   }
 }
 </style>

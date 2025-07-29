@@ -1,5 +1,10 @@
 <template>
-  <div class="card-drawing">
+  <div class="card-drawing" :class="{ 
+  'celtic-cross-mode': isCelticCross,
+  'seven-star-mode': isSevenStar,
+  'cup-relationship-mode': isCupOfRelationship,
+  'special-layout-mode': hasSpecialLayout
+}">
     <header class="page-header">
       <button class="back-button" @click="goBack">← 뒤로</button>
       <h1>카드 뽑기</h1>
@@ -119,28 +124,64 @@
 
       <!-- 뽑힌 카드들 -->
       <div class="cards-container" v-if="isComplete && drawnCards.length > 0">
-        <p class="instruction">당신의 카드입니다</p>
-        <div class="drawn-cards">
-          <div 
-            v-for="(card, index) in drawnCards" 
-            :key="index"
-            class="drawn-card"
-            :class="{ revealed: card.revealed }"
-            @click="revealCard(index)"
-          >
-            <div class="card-front" v-if="card.revealed">
-              <div class="card-image">
-                <img :src="getCardImageUrl(card.card)" :alt="card.card.nameKr" @error="onImageError" />
+        <!-- 캘틱 크로스 전용 레이아웃 -->
+        <div v-if="isCelticCross" class="celtic-cross-container">
+          <p class="instruction premium-instruction">🔮 켈틱 크로스 - 10장의 카드가 당신의 운명을 밝혀드립니다</p>
+          <CelticCrossLayout 
+            :cards="drawnCards"
+            :isDrawing="false"
+            :drawProgress="100"
+            @card-click="revealCard"
+          />
+        </div>
+        
+        <!-- 세븐 스타 전용 레이아웃 -->
+        <div v-else-if="isSevenStar" class="seven-star-container">
+          <p class="instruction premium-instruction">⭐ 세븐 스타 - 7개의 별이 당신의 운명을 비춥니다</p>
+          <SevenStarLayout 
+            :cards="drawnCards"
+            :isDrawing="false"
+            :drawProgress="100"
+            @card-click="revealCard"
+          />
+        </div>
+        
+        <!-- 컵 오브 릴레이션십 전용 레이아웃 -->
+        <div v-else-if="isCupOfRelationship" class="cup-relationship-container">
+          <p class="instruction premium-instruction">💕 컵 오브 릴레이션십 - 사랑의 깊이를 탐구합니다</p>
+          <CupOfRelationshipLayout 
+            :cards="drawnCards"
+            :isDrawing="false"
+            :drawProgress="100"
+            @card-click="revealCard"
+          />  
+        </div>
+        
+        <!-- 일반 카드 레이아웃 -->
+        <div v-else>
+          <p class="instruction">당신의 카드입니다</p>
+          <div class="drawn-cards">
+            <div 
+              v-for="(card, index) in drawnCards" 
+              :key="index"
+              class="drawn-card"
+              :class="{ revealed: card.revealed }"
+              @click="revealCard(index)"
+            >
+              <div class="card-front" v-if="card.revealed">
+                <div class="card-image">
+                  <img :src="getCardImageUrl(card.card)" :alt="card.card.nameKr" @error="onImageError" />
+                </div>
+                <h3>{{ card.card.nameKr }}</h3>
+                <p class="card-number">{{ card.card.name }}</p>
+                <div class="card-orientation" :class="card.orientation">
+                  {{ card.orientation === 'upright' ? '정방향' : '역방향' }}
+                </div>
               </div>
-              <h3>{{ card.card.nameKr }}</h3>
-              <p class="card-number">{{ card.card.name }}</p>
-              <div class="card-orientation" :class="card.orientation">
-                {{ card.orientation === 'upright' ? '정방향' : '역방향' }}
+              <div class="card-back" v-else>
+                🃏
+                <p>클릭하여 공개</p>
               </div>
-            </div>
-            <div class="card-back" v-else>
-              🃏
-              <p>클릭하여 공개</p>
             </div>
           </div>
         </div>
@@ -169,6 +210,10 @@ import { nativeUtils } from '@/utils/capacitor';
 
 // AdModal을 동적 import로 변경
 const AdModal = defineAsyncComponent(() => import('@/components/AdModal.vue'));
+// 스프레드 레이아웃 컴포넌트들 import
+const CelticCrossLayout = defineAsyncComponent(() => import('@/components/spreads/CelticCrossLayout.vue'));
+const SevenStarLayout = defineAsyncComponent(() => import('@/components/spreads/SevenStarLayout.vue'));
+const CupOfRelationshipLayout = defineAsyncComponent(() => import('@/components/spreads/CupOfRelationshipLayout.vue'));
 
 interface DrawnCardData {
   card: any; // TarotCard type
@@ -191,6 +236,23 @@ const shuffledDeck = ref<any[]>([]);
 
 const allCardsRevealed = computed(() => {
   return drawnCards.value.length > 0 && drawnCards.value.every(card => card.revealed);
+});
+
+// 특별 레이아웃 스프레드인지 확인
+const isCelticCross = computed(() => {
+  return tarotStore.selectedSpread?.spreadId === 'celtic_cross';
+});
+
+const isSevenStar = computed(() => {
+  return tarotStore.selectedSpread?.spreadId === 'seven_star';
+});
+
+const isCupOfRelationship = computed(() => {
+  return tarotStore.selectedSpread?.spreadId === 'cup_of_relationship';
+});
+
+const hasSpecialLayout = computed(() => {
+  return isCelticCross.value || isSevenStar.value || isCupOfRelationship.value;
 });
 
 // 카드 뽑기 버튼 텍스트
@@ -1219,5 +1281,76 @@ const onImageError = (event: Event) => {
   .card-back-small {
     font-size: 12px;
   }
+}
+
+/* 캘틱 크로스 모드 스타일 */
+.card-drawing.celtic-cross-mode {
+  background: radial-gradient(ellipse at center, rgba(88, 28, 135, 0.2) 0%, transparent 70%),
+              linear-gradient(180deg, #0F0C29 0%, #24243e 100%);
+}
+
+.celtic-cross-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.premium-instruction {
+  font-size: 20px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  margin-bottom: 30px;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+/* 특별 레이아웃 컨테이너 */
+.seven-star-container,
+.cup-relationship-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* 세븐 스타 모드 스타일 */
+.card-drawing.seven-star-mode {
+  background: radial-gradient(ellipse at center, rgba(25, 25, 112, 0.3) 0%, transparent 70%),
+              linear-gradient(180deg, #000428 0%, #004e92 100%);
+}
+
+/* 컵 오브 릴레이션십 모드 스타일 */
+.card-drawing.cup-relationship-mode {
+  background: radial-gradient(ellipse at center, rgba(236, 72, 153, 0.2) 0%, transparent 70%),
+              linear-gradient(180deg, #2D1B69 0%, #0F3443 100%);
+}
+
+/* 캘틱 크로스 모드에서 결과 버튼 스타일 */
+.celtic-cross-mode .result-button,
+.seven-star-mode .result-button,
+.cup-relationship-mode .result-button {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #1E1B4B;
+  font-weight: 700;
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+  margin-top: 40px;
+}
+
+.celtic-cross-mode .result-button:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(255, 215, 0, 0.6);
+}
+
+.celtic-cross-mode .result-button:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  box-shadow: none;
 }
 </style>

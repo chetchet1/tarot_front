@@ -64,8 +64,8 @@
               
               <div class="cards-preview">
                 <div 
-                  v-for="card in reading.cards.slice(0, 3)" 
-                  :key="card.id"
+                  v-for="(card, idx) in reading.cards.slice(0, 3)" 
+                  :key="idx"
                   class="mini-card"
                   :class="card.orientation"
                 >
@@ -81,6 +81,9 @@
               <span class="card-count">{{ reading.cards.length }}장</span>
               <span class="accuracy" v-if="reading.accuracy">
                 정확도: {{ reading.accuracy }}%
+              </span>
+              <span v-if="reading.spreadName === '켈틱 크로스'" class="premium-badge">
+                👑 프리미엄
               </span>
             </div>
           </div>
@@ -203,6 +206,88 @@ const itemsPerPage = 6;
 
 // 임시 점괘 기록 데이터 (실제로는 백엔드에서 가져옴)
 const readings = ref<Reading[]>([
+  {
+    id: '3',
+    date: new Date('2024-07-28'),
+    topic: 'general',
+    spreadName: '켈틱 크로스',
+    question: '나의 전반적인 운세는?',
+    cards: [
+      {
+        id: 1,
+        nameKr: '마법사',
+        orientation: 'upright',
+        position: '현재 상황',
+        interpretation: '당신은 모든 도구를 갖추고 있으며 새로운 시작을 할 준비가 되어 있습니다.'
+      },
+      {
+        id: 2,
+        nameKr: '컵의 2',
+        orientation: 'reversed',
+        position: '도전/십자가',
+        interpretation: '관계에서의 불균형이 현재 당신의 주요 도전과제입니다.'
+      },
+      {
+        id: 3,
+        nameKr: '여사제',
+        orientation: 'upright',
+        position: '먼 과거',
+        interpretation: '직관과 내면의 지혜가 당신을 여기까지 이끌었습니다.'
+      },
+      {
+        id: 4,
+        nameKr: '검의 3',
+        orientation: 'upright',
+        position: '가까운 과거',
+        interpretation: '최근의 상처나 배신이 아직 치유되지 않았습니다.'
+      },
+      {
+        id: 5,
+        nameKr: '태양',
+        orientation: 'upright',
+        position: '가능한 미래',
+        interpretation: '성공과 행복, 긍정적인 에너지가 다가오고 있습니다.'
+      },
+      {
+        id: 6,
+        nameKr: '완드의 에이스',
+        orientation: 'upright',
+        position: '가까운 미래',
+        interpretation: '새로운 창의적 프로젝트나 열정적인 시작이 곧 찾아옵니다.'
+      },
+      {
+        id: 7,
+        nameKr: '은둔자',
+        orientation: 'reversed',
+        position: '당신의 접근',
+        interpretation: '혼자서 해결하려 하지 말고 도움을 구하세요.'
+      },
+      {
+        id: 8,
+        nameKr: '펜타클의 10',
+        orientation: 'upright',
+        position: '외부 영향',
+        interpretation: '가족이나 전통이 당신에게 중요한 영향을 미치고 있습니다.'
+      },
+      {
+        id: 9,
+        nameKr: '달',
+        orientation: 'reversed',
+        position: '희망과 두려움',
+        interpretation: '두려움과 환상에서 벗어나 진실을 보기 시작했습니다.'
+      },
+      {
+        id: 10,
+        nameKr: '세계',
+        orientation: 'upright',
+        position: '최종 결과',
+        interpretation: '완성과 성취, 새로운 주기의 시작을 의미합니다.'
+      }
+    ],
+    summary: '현재 새로운 시작의 문턱에 있으며, 과거의 상처를 극복하고 밝은 미래로 나아갈 준비가 되어 있습니다.',
+    fullInterpretation: '켈틱 크로스 스프레드가 보여주는 당신의 운명은 매우 긍정적입니다. 마법사 카드는 당신이 필요한 모든 능력과 도구를 갖추고 있음을 보여주며, 비록 관계에서의 어려움(컵의 2 역방향)이 도전으로 나타나지만, 태양 카드가 암시하는 밝은 미래가 기다리고 있습니다. 세계 카드는 최종적으로 완전한 성취와 새로운 시작을 약속합니다.',
+    accuracy: 95
+  },
   {
     id: '1',
     date: new Date('2024-07-25'),
@@ -535,6 +620,18 @@ const changePage = (page: number) => {
   align-items: center;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.6);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.premium-badge {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #1E1B4B;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
 }
 
 .pagination {

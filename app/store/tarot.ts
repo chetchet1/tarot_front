@@ -11,6 +11,7 @@ import {
 import { useUserStore } from './user';
 import { tarotService, spreadService } from '../services/supabase';
 import { tarotSpreads } from '../data/spreads';
+import { generateEnhancedInterpretation } from '../services/premiumInterpretation';
 
 interface DailyCard {
   date: string;
@@ -423,15 +424,19 @@ export const useTarotStore = defineStore('tarot', () => {
       
       // 각 카드에 포지션 할당
       const cardsWithPositions = cards.map((card, index) => {
-        const interpretation = generateInterpretation(card, spread.positions[index], topic);
-        console.log(`카드 ${index + 1} 해석:`, interpretation);
-        
         return {
           ...card,
-          position: spread.positions[index],
-          interpretation
+          position: spread.positions[index]
         };
       });
+
+      // 프리미엄 해석 생성
+      const interpretation = generateEnhancedInterpretation(
+        cardsWithPositions,
+        spread,
+        topic,
+        userStore.isPremium
+      );
 
       const reading: Reading = {
         id: `reading_${Date.now()}`,
@@ -439,11 +444,12 @@ export const useTarotStore = defineStore('tarot', () => {
         spreadId,
         topic,
         question,
-        cards: cardsWithPositions,
-        overallMessage: generateOverallMessage(cardsWithPositions, spread, topic),
+        cards: interpretation.cards || cardsWithPositions,
+        overallMessage: interpretation.overallMessage || generateOverallMessage(cardsWithPositions, spread, topic),
         createdAt: new Date(),
         isPremium: spread.isPremium,
-        shared: false
+        shared: false,
+        premiumInsights: interpretation.premiumInsights
       };
       
       console.log('생성된 점괘:', reading);
@@ -451,6 +457,11 @@ export const useTarotStore = defineStore('tarot', () => {
       // 로컬 저장
       saveReading(reading);
       currentReading.value = reading;
+
+      // 무료 사용자 카운트 증가
+      if (!userStore.isPremium) {
+        userStore.incrementFreeReadingCount();
+      }
 
       tempDrawnCards.value = null;
       
@@ -499,25 +510,323 @@ export const useTarotStore = defineStore('tarot', () => {
     return templates[Math.floor(Math.random() * templates.length)];
   };
 
-  // 전체 메시지 생성
+  // 캘틱 크로스 전체 메시지 생성
+  const generateCelticCrossMessage = (
+    cards: DrawnCard[],
+    topic: Topic
+  ): string => {
+    // 10장의 카드 해석
+    const present = cards[0]; // 현재 상황
+    const challenge = cards[1]; // 도전/십자가
+    const distantPast = cards[2]; // 먼 과거
+    const recentPast = cards[3]; // 가까운 과거
+    const possibleFuture = cards[4]; // 가능한 미래
+    const nearFuture = cards[5]; // 가까운 미래
+    const yourApproach = cards[6]; // 당신의 접근
+    const externalInfluences = cards[7]; // 외부 영향
+    const hopesAndFears = cards[8]; // 희망과 두려움
+    const finalOutcome = cards[9]; // 최종 결과
+
+    let message = [];
+    
+    // 현재 상황과 도전 분석
+    if (present.arcana === 'major') {
+      message.push(`현재 당신은 ${present.nameKr} 카드가 나타내는 중요한 인생의 전환점에 서 있습니다`);
+    } else {
+      message.push(`현재 당신의 상황은 ${present.orientation === 'upright' ? '긍정적이고 안정적' : '약간의 불균형과 도전이 있는'}입니다`);
+    }
+    
+    // 도전 분석
+    if (challenge.orientation === 'reversed') {
+      message.push(`하지만 ${challenge.nameKr} 카드가 나타내듯 내면의 갈등이나 어려움을 극복해야 합니다`);
+    } else {
+      message.push(`${challenge.nameKr} 카드가 보여주는 도전을 긍정적으로 받아들이면 성장의 기회가 될 것입니다`);
+    }
+    
+    // 과거와 현재의 연결
+    if (distantPast.arcana === 'major' || recentPast.arcana === 'major') {
+      message.push(`과거의 중요한 사건들이 현재까지 영향을 미치고 있습니다`);
+    }
+    
+    // 미래 전망
+    if (possibleFuture.orientation === 'upright' && nearFuture.orientation === 'upright') {
+      message.push(`미래는 매우 밝고 희망적입니다`);
+    } else if (possibleFuture.orientation === 'reversed' && nearFuture.orientation === 'reversed') {
+      message.push(`미래에 주의가 필요하지만, 이는 성장의 기회가 될 것입니다`);
+    } else {
+      message.push(`미래는 변화와 기회로 가득할 것입니다`);
+    }
+    
+    // 접근 방법 조언
+    if (yourApproach.orientation === 'upright') {
+      message.push(`당신의 접근 방법은 올바른 방향으로 가고 있습니다`);
+    } else {
+      message.push(`접근 방식을 다시 고려해볼 필요가 있습니다`);
+    }
+    
+    // 최종 결과 강조
+    if (finalOutcome.arcana === 'major') {
+      message.push(`최종적으로 ${finalOutcome.nameKr} 카드가 예시하는 중요한 변화가 기다리고 있습니다`);
+    } else if (finalOutcome.orientation === 'upright') {
+      message.push(`최종적으로 긍정적인 결과를 얻게 될 것입니다`);
+    } else {
+      message.push(`결과는 예상과 다를 수 있지만, 이 또한 학습과 성장의 기회가 될 것입니다`);
+    }
+    
+    // 주제별 추가 메시지
+    switch (topic) {
+      case 'love':
+        message.push(`사랑과 관계에서 ${hopesAndFears.nameKr} 카드가 나타내는 감정을 잘 다루는 것이 중요합니다`);
+        break;
+      case 'career':
+        message.push(`경력에서 ${externalInfluences.nameKr} 카드가 보여주는 외부 요인들을 잘 활용하세요`);
+        break;
+      case 'money':
+        message.push(`재정적으로 안정을 위해서는 신중한 계획과 실행이 필요합니다`);
+        break;
+      case 'health':
+        message.push(`건강과 웰빙을 위해 내면과 외면의 균형을 유지하세요`);
+        break;
+      default:
+        message.push(`전반적인 삶의 흐름을 이해하고 받아들이세요`);
+    }
+    
+    return message.join('. ') + '.';
+  };
+
+  // 세븐 스타 전체 메시지 생성
+  const generateSevenStarMessage = (
+    cards: DrawnCard[],
+    topic: Topic
+  ): string => {
+    // 7장의 카드 해석
+    const pastInfluence = cards[0]; // 과거의 영향
+    const currentSituation = cards[1]; // 현재 상황
+    const hiddenInfluence = cards[2]; // 숨겨진 영향
+    const consciousDesire = cards[3]; // 의식적 욕구
+    const unconsciousNeed = cards[4]; // 무의식적 욕구
+    const advice = cards[5]; // 조언
+    const outcome = cards[6]; // 최종 결과
+
+    let message = [];
+    
+    // 현재 상황 분석
+    if (currentSituation.arcana === 'major') {
+      message.push(`현재 당신은 ${currentSituation.nameKr} 카드가 나타내는 중요한 시기에 있습니다`);
+    } else {
+      message.push(`현재 ${currentSituation.orientation === 'upright' ? '안정적이고 조화로운' : '도전이 필요한'} 상황에 놓여 있습니다`);
+    }
+    
+    // 과거와 숨겨진 영향
+    if (pastInfluence.orientation === 'reversed' || hiddenInfluence.orientation === 'reversed') {
+      message.push(`과거의 미해결된 문제나 숨겨진 요인들이 영향을 미치고 있습니다`);
+    }
+    
+    // 욕구의 불일치 확인
+    if (consciousDesire.suit !== unconsciousNeed.suit && consciousDesire.arcana === 'minor' && unconsciousNeed.arcana === 'minor') {
+      message.push(`의식적으로 원하는 것과 진정으로 필요한 것 사이에 차이가 있습니다`);
+    }
+    
+    // 조언 강조
+    if (advice.arcana === 'major') {
+      message.push(`${advice.nameKr} 카드가 제시하는 중요한 교훈을 따르세요`);
+    } else {
+      message.push(`${advice.orientation === 'upright' ? '긍정적이고 적극적인' : '신중하고 조심스러운'} 접근이 필요합니다`);
+    }
+    
+    // 최종 결과
+    if (outcome.orientation === 'upright') {
+      message.push(`최종적으로 긍정적인 결과와 성장을 경험하게 될 것입니다`);
+    } else {
+      message.push(`예상과 다른 결과일 수 있지만, 이는 더 큰 깨달음으로 이어질 것입니다`);
+    }
+    
+    // 주제별 추가 메시지
+    switch (topic) {
+      case 'love':
+        message.push(`사랑에서는 진정한 마음의 소리에 귀 기울이는 것이 중요합니다`);
+        break;
+      case 'career':
+        message.push(`경력에서는 숨겨진 재능과 기회를 발견할 수 있습니다`);
+        break;
+      case 'money':
+        message.push(`재정적으로는 균형잡힌 관점과 장기적 계획이 필요합니다`);
+        break;
+      default:
+        message.push(`별들이 당신의 길을 밝게 비추고 있습니다`);
+    }
+    
+    return message.join('. ') + '.';
+  };
+
+  // 컵 오브 릴레이션십 전체 메시지 생성
+  const generateCupOfRelationshipMessage = (
+    cards: DrawnCard[],
+    topic: Topic
+  ): string => {
+    // 7장의 카드 해석
+    const yourFeelings = cards[0]; // 당신의 감정
+    const theirFeelings = cards[1]; // 상대의 감정
+    const foundation = cards[2]; // 관계의 기반
+    const communication = cards[3]; // 소통의 상태
+    const intimacy = cards[4]; // 친밀감
+    const obstacles = cards[5]; // 장애물
+    const future = cards[6]; // 관계의 미래
+
+    let message = [];
+    
+    // 감정 상태 분석
+    if (yourFeelings.orientation === theirFeelings.orientation) {
+      message.push(`두 사람의 감정이 ${yourFeelings.orientation === 'upright' ? '서로 조화롭게 흐르고' : '비슷한 어려움을 겪고'} 있습니다`);
+    } else {
+      message.push(`두 사람의 감정 상태에 차이가 있어 이해와 소통이 필요합니다`);
+    }
+    
+    // 관계의 기반
+    if (foundation.arcana === 'major') {
+      message.push(`이 관계는 ${foundation.nameKr} 카드가 나타내는 깊은 의미와 운명적 연결을 가지고 있습니다`);
+    }
+    
+    // 소통과 친밀감
+    if (communication.orientation === 'upright' && intimacy.orientation === 'upright') {
+      message.push(`소통과 친밀감이 잘 유지되고 있어 관계가 건강합니다`);
+    } else {
+      message.push(`소통이나 친밀감에서 개선이 필요한 부분이 있습니다`);
+    }
+    
+    // 장애물 분석
+    if (obstacles.arcana === 'major') {
+      message.push(`${obstacles.nameKr} 카드가 나타내는 중요한 도전을 함께 극복해야 합니다`);
+    } else if (obstacles.orientation === 'reversed') {
+      message.push(`내면의 두려움이나 과거의 상처가 관계에 영향을 미치고 있습니다`);
+    }
+    
+    // 미래 전망
+    if (future.orientation === 'upright') {
+      message.push(`이 관계는 밝고 희망적인 미래로 나아가고 있습니다`);
+    } else {
+      message.push(`관계의 미래를 위해 현재의 문제들을 진지하게 다루어야 합니다`);
+    }
+    
+    // 사랑 주제이므로 추가 메시지
+    message.push(`사랑은 두 사람이 함께 만들어가는 여정임을 기억하세요`);
+    
+    return message.join('. ') + '.';
+  };
+
+  // 전체 메시지 생성 (개선된 버전)
   const generateOverallMessage = (
     cards: DrawnCard[], 
     spread: TarotSpread, 
     topic: Topic
   ): string => {
+    // 캘틱 크로스 스프레드인 경우 특별한 메시지 생성
+    if (spread.spreadId === 'celtic_cross') {
+      return generateCelticCrossMessage(cards, topic);
+    }
     // 긍정적인 카드 수 계산
     const positiveCount = cards.filter(c => c.orientation === 'upright').length;
     const ratio = positiveCount / cards.length;
-
-    if (ratio > 0.7) {
-      return "전반적으로 매우 긍정적인 에너지가 흐르고 있습니다. 자신감을 가지고 목표를 향해 나아가세요.";
-    } else if (ratio > 0.5) {
-      return "균형 잡힌 에너지가 나타나고 있습니다. 신중하면서도 적극적인 자세가 필요합니다.";
-    } else if (ratio > 0.3) {
-      return "도전이 있지만 극복할 수 있는 힘이 있습니다. 인내심을 가지고 노력하세요.";
-    } else {
-      return "어려운 시기일 수 있지만, 이는 성장의 기회입니다. 내면의 힘을 믿으세요.";
+    
+    // 메이저 아르카나 카드 확인
+    const majorCards = cards.filter(c => c.arcana === 'major');
+    const hasMajorCards = majorCards.length > 0;
+    
+    // 각 포지션별 카드 해석
+    let positionAnalysis = [];
+    
+    // 3장 스프레드의 경우 (과거-현재-미래)
+    if (spread.cardCount === 3) {
+      const past = cards[0];
+      const present = cards[1];
+      const future = cards[2];
+      
+      // 과거 카드 분석
+      if (past.orientation === 'reversed') {
+        positionAnalysis.push("과거에 어려움이 있었지만");
+      } else {
+        positionAnalysis.push("과거의 경험이 현재에 긍정적인 영향을 주고 있으며");
+      }
+      
+      // 현재 카드 분석
+      if (present.arcana === 'major') {
+        positionAnalysis.push("현재 중요한 전환점에 있습니다");
+      } else if (present.orientation === 'upright') {
+        positionAnalysis.push("현재 상황은 안정적이고 긍정적입니다");
+      } else {
+        positionAnalysis.push("현재 약간의 도전에 직면해 있습니다");
+      }
+      
+      // 미래 카드 분석
+      if (future.orientation === 'upright') {
+        if (future.arcana === 'major') {
+          positionAnalysis.push("앞으로 큰 변화와 발전이 기다리고 있습니다");
+        } else {
+          positionAnalysis.push("미래는 밝고 희망적입니다");
+        }
+      } else {
+        positionAnalysis.push("미래에 주의가 필요한 부분이 있으니 신중하게 접근하세요");
+      }
     }
+    
+    // 주제별 메시지
+    let topicMessage = "";
+    switch (topic) {
+      case 'love':
+        if (ratio > 0.6) {
+          topicMessage = " 사랑과 관계에서 긍정적인 에너지가 흐르고 있습니다.";
+        } else {
+          topicMessage = " 관계에서 조금 더 소통과 이해가 필요합니다.";
+        }
+        break;
+      case 'career':
+        if (ratio > 0.6) {
+          topicMessage = " 경력과 직업에서 성공의 기회가 다가오고 있습니다.";
+        } else {
+          topicMessage = " 직업적 성장을 위해 노력과 인내가 필요한 시기입니다.";
+        }
+        break;
+      case 'money':
+        if (hasMajorCards) {
+          topicMessage = " 재정적으로 중요한 변화가 예상됩니다.";
+        } else if (ratio > 0.5) {
+          topicMessage = " 재정 상태가 개선될 것으로 보입니다.";
+        } else {
+          topicMessage = " 재정 관리에 더 신경을 써야 할 때입니다.";
+        }
+        break;
+      case 'health':
+        if (ratio > 0.7) {
+          topicMessage = " 건강과 활력이 좋은 상태입니다.";
+        } else {
+          topicMessage = " 건강 관리에 더 주의를 기울이세요.";
+        }
+        break;
+      default:
+        topicMessage = "";
+    }
+    
+    // 메시지 조합
+    let finalMessage = positionAnalysis.join(", ");
+    if (finalMessage) {
+      finalMessage += ".";
+    }
+    
+    finalMessage += topicMessage;
+    
+    // 메이저 카드가 많은 경우 추가 메시지
+    if (majorCards.length >= 2) {
+      finalMessage += " 인생의 중요한 전환점에 와 있으니 신중하게 결정하세요.";
+    }
+    
+    // 마무리 메시지
+    if (ratio > 0.7) {
+      finalMessage += " 전반적으로 매우 긍정적인 흐름이 보입니다.";
+    } else if (ratio < 0.3) {
+      finalMessage += " 어려움이 있더라도 이것은 성장의 기회임을 기억하세요.";
+    }
+    
+    return finalMessage;
   };
 
   // 점괘 저장 (로컬)

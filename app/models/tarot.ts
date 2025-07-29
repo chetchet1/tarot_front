@@ -82,6 +82,7 @@ export interface Reading {
   isPremium: boolean;
   shared: boolean;
   tags?: string[];
+  premiumInsights?: any; // 프리미엄 사용자를 위한 추가 인사이트
 }
 
 export interface UserStats {

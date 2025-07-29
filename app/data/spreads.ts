@@ -57,7 +57,67 @@ export const tarotSpreads: TarotSpread[] = [
     isPremium: false,
     topics: ["general", "love", "career", "money"]
   },
-
+  {
+    id: "seven_star",
+    spreadId: "seven_star",
+    name: "Seven Star",
+    nameKr: "세븐 스타",
+    description: "7개의 별이 당신의 운명을 밝혀주는 신비로운 배열",
+    cardCount: 7,
+    positions: [
+      {
+        position: 1,
+        name: "과거의 영향",
+        description: "현재에 영향을 미치는 과거의 요소",
+        x: 50,
+        y: 20
+      },
+      {
+        position: 2,
+        name: "현재 상황",
+        description: "당신이 지금 서 있는 위치",
+        x: 50,
+        y: 50
+      },
+      {
+        position: 3,
+        name: "숨겨진 영향",
+        description: "보이지 않는 힘과 영향",
+        x: 20,
+        y: 35
+      },
+      {
+        position: 4,
+        name: "의식적 욕구",
+        description: "당신이 원하는 것",
+        x: 80,
+        y: 35
+      },
+      {
+        position: 5,
+        name: "무의식적 욕구",
+        description: "당신이 진정으로 필요로 하는 것",
+        x: 20,
+        y: 65
+      },
+      {
+        position: 6,
+        name: "조언",
+        description: "취해야 할 행동",
+        x: 80,
+        y: 65
+      },
+      {
+        position: 7,
+        name: "최종 결과",
+        description: "예상되는 결과",
+        x: 50,
+        y: 80
+      }
+    ],
+    isPremium: true,
+    topics: ["general", "love", "career", "money"]
+  },
   {
     id: "celtic_cross",
     spreadId: "celtic_cross",
@@ -141,47 +201,150 @@ export const tarotSpreads: TarotSpread[] = [
     topics: ["general", "love", "career", "money"]
   },
   {
-    id: "relationship_cross",
-    spreadId: "relationship_cross",
-    name: "Relationship Cross",
-    nameKr: "관계 십자가",
-    description: "두 사람 사이의 관계를 분석하는 5장 배열",
-    cardCount: 5,
+    id: "seven_star",
+    spreadId: "seven_star",
+    name: "Seven Star",
+    nameKr: "세븐 스타",
+    description: "7개의 별이 당신의 운명을 밝혀주는 신비로운 배열",
+    cardCount: 7,
     positions: [
       {
         position: 1,
-        name: "당신",
-        description: "관계에서 당신의 상태",
-        x: 20,
-        y: 50
-      },
-      {
-        position: 2,
-        name: "상대방",
-        description: "상대방의 상태",
-        x: 80,
-        y: 50
-      },
-      {
-        position: 3,
-        name: "관계의 현재",
-        description: "현재 관계의 상태",
-        x: 50,
-        y: 50
-      },
-      {
-        position: 4,
-        name: "도전과제",
-        description: "극복해야 할 문제",
+        name: "과거의 영향",
+        description: "현재에 영향을 미치는 과거의 요소",
         x: 50,
         y: 20
       },
       {
+        position: 2,
+        name: "현재 상황",
+        description: "당신이 지금 서 있는 위치",
+        x: 50,
+        y: 50
+      },
+      {
+        position: 3,
+        name: "숨겨진 영향",
+        description: "보이지 않는 힘과 영향",
+        x: 20,
+        y: 35
+      },
+      {
+        position: 4,
+        name: "의식적 욕구",
+        description: "당신이 원하는 것",
+        x: 80,
+        y: 35
+      },
+      {
         position: 5,
-        name: "잠재력",
-        description: "관계의 가능성",
+        name: "무의식적 욕구",
+        description: "당신이 진정으로 필요로 하는 것",
+        x: 20,
+        y: 65
+      },
+      {
+        position: 6,
+        name: "조언",
+        description: "취해야 할 행동",
+        x: 80,
+        y: 65
+      },
+      {
+        position: 7,
+        name: "최종 결과",
+        description: "예상되는 결과",
         x: 50,
         y: 80
+      }
+    ],
+    isPremium: true,
+    topics: ["general", "love", "career", "money"]
+  },
+  {
+    id: "cup_of_relationship",
+    spreadId: "cup_of_relationship",
+    name: "Cup of Relationship",
+    nameKr: "컵 오브 릴레이션십",
+    description: "사랑과 관계의 깊이를 탐구하는 11장의 특별한 배열",
+    cardCount: 11,
+    positions: [
+      {
+        position: 1,
+        name: "나",
+        description: "나의 현재 감정과 상태",
+        x: 20,
+        y: 80
+      },
+      {
+        position: 2,
+        name: "상대",
+        description: "상대방의 현재 감정과 상태",
+        x: 80,
+        y: 80
+      },
+      {
+        position: 3,
+        name: "관계 기본",
+        description: "두 사람 관계의 기본적인 성향",
+        x: 50,
+        y: 75
+      },
+      {
+        position: 4,
+        name: "관계 과거",
+        description: "과거의 관계 상태",
+        x: 35,
+        y: 60
+      },
+      {
+        position: 5,
+        name: "현재 느 상태",
+        description: "현재 두 사람의 관계 상태",
+        x: 50,
+        y: 50
+      },
+      {
+        position: 6,
+        name: "현재 외부 상황",
+        description: "관계에 영향을 미치는 외부 요인",
+        x: 65,
+        y: 60
+      },
+      {
+        position: 7,
+        name: "현재 나는 어떻게 생각?",
+        description: "현재 관계에 대한 나의 생각",
+        x: 25,
+        y: 40
+      },
+      {
+        position: 8,
+        name: "현재 상대는 어떻게 생각?",
+        description: "현재 관계에 대한 상대의 생각",
+        x: 75,
+        y: 40
+      },
+      {
+        position: 9,
+        name: "미래 나는 어떻게 생각?",
+        description: "미래에 나는 어떻게 생각할지",
+        x: 35,
+        y: 20
+      },
+      {
+        position: 10,
+        name: "미래 상대는 어떻게 생각?",
+        description: "미래에 상대는 어떻게 생각할지",
+        x: 65,
+        y: 20
+      },
+      {
+        position: 11,
+        name: "결과",
+        description: "관계의 최종 결과",
+        x: 50,
+        y: 5
       }
     ],
     isPremium: true,
