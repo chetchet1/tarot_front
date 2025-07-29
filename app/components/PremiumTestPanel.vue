@@ -52,15 +52,6 @@
       </div>
     </div>
   </div>
-  
-  <!-- 플로팅 버튼 -->
-  <button 
-    class="floating-test-btn" 
-    @click="togglePanel"
-    :class="{ active: showPanel }"
-  >
-    🧪
-  </button>
 </template>
 
 <script setup lang="ts">
@@ -84,6 +75,11 @@ const freeReadingStatus = computed(() => userStore.getFreeReadingStatus());
 const togglePanel = () => {
   showPanel.value = !showPanel.value;
 };
+
+// MainApp에서 보낸 이벤트 수신
+window.addEventListener('toggle-test-panel', () => {
+  showPanel.value = !showPanel.value;
+});
 
 const upgradeToPremium = async () => {
   try {
@@ -267,31 +263,7 @@ onMounted(() => {
   font-size: 12px;
 }
 
-.floating-test-btn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  border: none;
-  background: linear-gradient(45deg, #667eea, #764ba2);
-  color: white;
-  font-size: 20px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  z-index: 9998;
-  transition: all 0.3s;
-}
 
-.floating-test-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-}
-
-.floating-test-btn.active {
-  background: linear-gradient(45deg, #f093fb, #f5576c);
-}
 
 /* 모바일 대응 */
 @media (max-width: 768px) {
@@ -300,14 +272,6 @@ onMounted(() => {
     right: 10px;
     left: 10px;
     width: auto;
-  }
-  
-  .floating-test-btn {
-    bottom: 80px;
-    right: 15px;
-    width: 45px;
-    height: 45px;
-    font-size: 18px;
   }
 }
 </style>

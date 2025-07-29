@@ -8,6 +8,16 @@
         </div>
         
         <div class="user-section">
+          <!-- 테스트 버튼 (개발/테스트용) -->
+          <button 
+            v-if="showTestButton"
+            class="test-mode-btn"
+            @click="toggleTestPanel"
+            :class="{ active: isTestPanelOpen }"
+          >
+            🧪
+          </button>
+          
           <div class="user-info">
             <span class="welcome-text">{{ getGreetingMessage() }}</span>
             <span v-if="userStore.isPremium" class="premium-badge">Premium</span>
@@ -105,6 +115,15 @@ const tarotStore = useTarotStore();
 
 // UI 상태
 const showUserDropdown = ref(false);
+const showTestButton = ref(import.meta.env.MODE !== 'production');
+const isTestPanelOpen = ref(false);
+
+// 테스트 패널 토글
+const toggleTestPanel = () => {
+  isTestPanelOpen.value = !isTestPanelOpen.value;
+  // PremiumTestPanel에 메시지 전달
+  window.dispatchEvent(new CustomEvent('toggle-test-panel'));
+};
 
 onMounted(async () => {
   console.log('🏠 메인 앱 페이지 로드');
@@ -274,6 +293,32 @@ const handleClickOutside = (event) => {
   border-radius: 10px;
   font-size: 12px;
   font-weight: 700;
+}
+
+/* 테스트 모드 버튼 */
+.test-mode-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.test-mode-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.test-mode-btn.active {
+  background: linear-gradient(45deg, #f093fb, #f5576c);
 }
 
 .user-menu {
@@ -487,6 +532,12 @@ const handleClickOutside = (event) => {
   
   .user-info {
     display: none;
+  }
+  
+  .test-mode-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
   }
   
   .main-content {
