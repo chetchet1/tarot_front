@@ -1,322 +1,500 @@
 <template>
-  <Page class="page">
-    <ActionBar title="타로 점보기" class="action-bar">
-      <NavigationButton text="뒤로" @tap="$router.back()" />
-    </ActionBar>
-    
-    <ScrollView>
-      <StackLayout class="container">
-        <!-- 주제 선택 -->
-        <StackLayout class="section">
-          <Label text="무엇이 궁금하신가요?" class="section-title" />
-          <FlexboxLayout class="topic-grid">
-            <StackLayout 
-              v-for="topic in topics" 
-              :key="topic.id"
-              class="topic-card"
-              :class="{ selected: selectedTopic === topic.id }"
-              @tap="selectTopic(topic.id)"
-            >
-              <Label :text="topic.icon" class="topic-icon" />
-              <Label :text="topic.name" class="topic-name" />
-            </StackLayout>
-          </FlexboxLayout>
-        </StackLayout>
+  <div class="reading-select">
+    <header class="page-header">
+      <button class="back-button" @click="goBack">← 뒤로</button>
+      <h1>타로 점보기</h1>
+    </header>
 
-        <!-- 질문 입력 (선택사항) -->
-        <StackLayout class="section" v-if="selectedTopic">
-          <Label text="구체적인 질문이 있으신가요? (선택사항)" class="section-subtitle" />
-          <TextView 
-            v-model="question"
-            hint="예: 이번 달에 좋은 일이 있을까요?"
-            class="question-input"
-            returnKeyType="done"
-          />
-        </StackLayout>
-
-        <!-- 배열법 선택 -->
-        <StackLayout class="section" v-if="selectedTopic">
-          <Label text="배열법을 선택하세요" class="section-title" />
-          <StackLayout 
-            v-for="spread in availableSpreads" 
-            :key="spread.spreadId"
-            class="spread-card"
-            :class="{ selected: selectedSpread === spread.spreadId }"
-            @tap="selectSpread(spread.spreadId)"
+    <div class="container">
+      <!-- 주제 선택 -->
+      <section class="section">
+        <h2 class="section-title">점보고 싶은 주제를 선택하세요</h2>
+        <div class="topic-grid">
+          <div 
+            v-for="topic in topics" 
+            :key="topic.id"
+            class="topic-card card"
+            :class="{ selected: selectedTopic === topic.id }"
+            @click="selectTopic(topic.id)"
           >
-            <GridLayout columns="*, auto" rows="auto, auto">
-              <Label :text="spread.nameKr" class="spread-name" row="0" col="0" />
-              <Label 
-                v-if="spread.isPremium && !isPremium" 
-                text="프리미엄" 
-                class="premium-badge" 
-                row="0" col="1" 
-              />
-              <Label :text="spread.description" class="spread-description" row="1" col="0" colSpan="2" />
-              <Label :text="`${spread.cardCount}장`" class="spread-count" row="1" col="1" />
-            </GridLayout>
-          </StackLayout>
-        </StackLayout>
+            <div class="topic-icon">{{ topic.icon }}</div>
+            <h3>{{ topic.name }}</h3>
+            <p>{{ topic.description }}</p>
+          </div>
+        </div>
+      </section>
 
-        <!-- 카드 뽑기 버튼 -->
-        <Button 
-          v-if="selectedTopic && selectedSpread"
-          text="카드 뽑기"
-          @tap="startReading"
-          class="start-button"
-          :isEnabled="!isLoading"
-        />
-      </StackLayout>
-    </ScrollView>
-  </Page>
+      <!-- 스프레드 선택 -->
+      <section class="section">
+        <h2 class="section-title">카드 배열법을 선택하세요</h2>
+        <div class="spread-grid">
+          <div 
+            v-for="spread in spreads" 
+            :key="spread.id"
+            class="spread-card card"
+            :class="{ 
+              selected: selectedSpread === spread.id,
+              premium: spread.isPremium && !userStore.isPremium
+            }"
+            @click="selectSpread(spread)"
+          >
+            <div class="spread-header">
+              <h3>{{ spread.name }}</h3>
+              <span v-if="spread.isPremium && !userStore.isPremium" class="premium-badge">👑</span>
+            </div>
+            <p class="spread-description">{{ spread.description }}</p>
+            <div class="spread-info">
+              <span class="card-count">카드 {{ spread.cardCount }}장</span>
+              <span class="difficulty" :class="spread.difficulty">
+                {{ getDifficultyText(spread.difficulty) }}
+              </span>
+            </div>
+            <div v-if="spread.isPremium && !userStore.isPremium" class="premium-overlay">
+              <p>프리미엄 전용</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 선택 요약 -->
+      <section class="selection-summary" v-if="selectedTopic && selectedSpread">
+        <div class="summary-card card">
+          <h3>선택하신 점괘</h3>
+          <div class="summary-details">
+            <div class="summary-item">
+              <strong>주제:</strong> {{ getTopicName(selectedTopic) }}
+            </div>
+            <div class="summary-item">
+              <strong>배열법:</strong> {{ getSpreadName(selectedSpread) }}
+            </div>
+            <div class="summary-item">
+              <strong>카드 수:</strong> {{ getSpreadCardCount(selectedSpread) }}장
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 시작 버튼 -->
+      <div class="action-section">
+        <button 
+          class="btn btn-primary start-button"
+          :disabled="!canStartReading"
+          @click="startReading"
+        >
+          {{ getStartButtonText() }}
+        </button>
+        
+        <div v-if="!userStore.isPremium" class="free-usage-info">
+          <p>{{ userStore.currentUser?.isAnonymous ? '익명 사용자' : '무료 사용자' }}</p>
+          <router-link to="/premium" class="premium-link">
+            프리미엄으로 업그레이드하고 무제한 이용하기
+          </router-link>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useRouter } from '@nativescript-vue/router';
+import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
 import { getSpreadsByTopic } from '../data/spreads';
-import { Topic } from '../models/tarot';
-import { showAd } from '../services/admob';
-import { confirm, alert } from '@nativescript/core';
+
+interface Topic {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+}
+
+interface Spread {
+  id: string;
+  name: string;
+  description: string;
+  cardCount: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+  isPremium: boolean;
+}
 
 const router = useRouter();
 const userStore = useUserStore();
 const tarotStore = useTarotStore();
 
-const isPremium = computed(() => userStore.isPremium);
-const isLoading = ref(false);
+const selectedTopic = ref<string>('');
+const selectedSpread = ref<string>('');
 
-const topics = [
-  { id: 'general', name: '일반', icon: '🔮' },
-  { id: 'love', name: '연애', icon: '❤️' },
-  { id: 'career', name: '진로', icon: '💼' },
-  { id: 'money', name: '금전', icon: '💰' },
-  { id: 'health', name: '건강', icon: '🌿' }
+// 주제 목록
+const topics: Topic[] = [
+  {
+    id: 'love',
+    name: '연애/사랑',
+    description: '연인, 짝사랑, 이별 등 사랑에 관한 고민',
+    icon: '💕'
+  },
+  {
+    id: 'career',
+    name: '직업/진로',
+    description: '취업, 이직, 승진, 사업 등 일에 관한 고민',
+    icon: '💼'
+  },
+  {
+    id: 'money',
+    name: '금전/재물',
+    description: '투자, 재정관리, 금전운 등 돈에 관한 고민',
+    icon: '💰'
+  },
+  {
+    id: 'health',
+    name: '건강/관계',
+    description: '건강, 인간관계, 가족 등에 관한 고민',
+    icon: '🌿'
+  },
+  {
+    id: 'general',
+    name: '종합운세',
+    description: '전반적인 운세와 앞으로의 길잡이',
+    icon: '🔮'
+  }
 ];
 
-const selectedTopic = ref<Topic | null>(null);
-const selectedSpread = ref<string | null>(null);
-const question = ref('');
-
-const availableSpreads = computed(() => {
+// 스프레드 목록 (동적 생성)
+const spreads = computed(() => {
   if (!selectedTopic.value) return [];
-  
-  let spreads = getSpreadsByTopic(selectedTopic.value);
-  
-  // 무료 사용자는 프리미엄 배열법 필터링
-  if (!isPremium.value) {
-    // 프리미엄 배열법도 보여주되 선택은 못하게 함
-    return spreads;
-  }
-  
-  return spreads;
+  return getSpreadsByTopic(selectedTopic.value).map(spread => ({
+    id: spread.spreadId,
+    name: spread.nameKr,
+    description: spread.description,
+    cardCount: spread.cardCount,
+    difficulty: spread.cardCount <= 1 ? 'easy' : spread.cardCount <= 3 ? 'medium' : 'hard',
+    isPremium: spread.isPremium
+  }));
 });
 
-const selectTopic = (topicId: Topic) => {
+const canStartReading = computed(() => {
+  if (!selectedTopic.value || !selectedSpread.value) return false;
+  
+  const spread = getSpreadsByTopic(selectedTopic.value).find(s => s.spreadId === selectedSpread.value);
+  if (!spread) return false;
+  
+  // 프리미엄 스프레드인데 프리미엄이 아닌 경우
+  if (spread.isPremium && !userStore.isPremium) return false;
+  
+  return true;
+});
+
+const selectTopic = (topicId: string) => {
   selectedTopic.value = topicId;
-  selectedSpread.value = null; // 주제 변경시 배열법 초기화
 };
 
-const selectSpread = (spreadId: string) => {
-  const spread = availableSpreads.value.find(s => s.spreadId === spreadId);
-  
-  if (spread?.isPremium && !isPremium.value) {
-    // 프리미엄 구독 유도
-    router.push({ name: 'premium' });
+const selectSpread = (spread: Spread) => {
+  if (spread.isPremium && !userStore.isPremium) {
+    router.push('/premium');
     return;
   }
+  selectedSpread.value = spread.id;
+};
+
+const getTopicName = (topicId: string) => {
+  return topics.find(t => t.id === topicId)?.name || '';
+};
+
+const getSpreadName = (spreadId: string) => {
+  const spread = getSpreadsByTopic(selectedTopic.value || 'general').find(s => s.spreadId === spreadId);
+  return spread?.nameKr || '';
+};
+
+const getSpreadCardCount = (spreadId: string) => {
+  const spread = getSpreadsByTopic(selectedTopic.value || 'general').find(s => s.spreadId === spreadId);
+  return spread?.cardCount || 0;
+};
+
+const getDifficultyText = (difficulty: string) => {
+  const difficultyMap = {
+    easy: '초급',
+    medium: '중급',
+    hard: '고급'
+  };
+  return difficultyMap[difficulty as keyof typeof difficultyMap] || '';
+};
+
+const getStartButtonText = () => {
+  if (!selectedTopic.value || !selectedSpread.value) {
+    return '주제와 배열법을 선택하세요';
+  }
   
-  selectedSpread.value = spreadId;
+  const spread = spreads.value.find(s => s.id === selectedSpread.value);
+  if (spread?.isPremium && !userStore.isPremium) {
+    return '프리미엄 전용 스프레드입니다';
+  }
+  
+  return '카드 뽑기 시작';
 };
 
 const startReading = async () => {
-  if (!selectedTopic.value || !selectedSpread.value) return;
+  if (!canStartReading.value) return;
   
-  // 무료 사용자는 사용 횟수 체크
-  if (!isPremium.value) {
-    const status = userStore.getFreeReadingStatus();
-    if (!status.canUse) {
-      // 무료 사용 횟수 초과
-      const result = await confirm({
-        title: '무료 점괘 사용 완료',
-        message: `오늘 무료 점괘 ${status.total}회를 모두 사용하셨습니다. 프리미엄으로 업그레이드하시면 무제한으로 이용하실 수 있습니다.`,
-        okButtonText: '프리미엄 보기',
-        cancelButtonText: '취소'
-      });
+  const selectedTopicData = topics.find(t => t.id === selectedTopic.value);
+  const selectedSpreadData = getSpreadsByTopic(selectedTopic.value || 'general').find(s => s.spreadId === selectedSpread.value);
+  
+  if (selectedTopicData && selectedSpreadData) {
+    try {
+      // 선택 정보를 스토어에 저장
+      tarotStore.setSelectedTopic(selectedTopicData);
+      tarotStore.setSelectedSpread(selectedSpreadData);
       
-      if (result) {
-        router.push({ name: 'premium' });
-      }
-      return;
+      console.log('선택된 주제:', selectedTopicData);
+      console.log('선택된 스프레드:', selectedSpreadData);
+      
+      // 카드 뽑기 페이지로 이동
+      await router.push('/card-drawing');
+    } catch (error) {
+      console.error('라우팅 오류:', error);
+      // 페이지 새로고침으로 대체
+      window.location.href = '/card-drawing';
     }
   }
-  
-  isLoading.value = true;
-  
-  try {
-    // 무료 사용자는 광고 표시
-    if (!isPremium.value) {
-      await showAd();
-    }
-    
-    // 점괘 생성
-    const reading = await tarotStore.createReading(
-      selectedSpread.value,
-      selectedTopic.value,
-      question.value || undefined
-    );
-    
-    // 무료 점괘 사용 카운트 증가
-    if (!isPremium.value) {
-      userStore.incrementFreeReading();
-    }
-    
-    // 바로 결과 화면으로 이동 (카드 뽑기 과정 생략)
-    router.push({
-      name: 'reading-result',
-      params: { readingId: reading.id }
-    });
-  } catch (error) {
-    console.error('Failed to start reading:', error);
-    alert({
-      title: '오류',
-      message: '점괘를 생성하는데 실패했습니다. 다시 시도해주세요.',
-      okButtonText: '확인'
-    });
-  } finally {
-    isLoading.value = false;
-  }
+};
+
+const goBack = () => {
+  router.go(-1);
 };
 </script>
 
 <style scoped>
-.page {
-  background-color: #1E1B4B;
+.reading-select {
+  min-height: 100vh;
+  padding: 20px;
 }
 
-.action-bar {
-  background-color: #2D2A5C;
-  color: #FFFFFF;
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.back-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.back-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.page-header h1 {
+  font-size: 24px;
+  margin: 0;
 }
 
 .container {
-  padding: 20;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .section {
-  margin-bottom: 25;
+  margin-bottom: 40px;
 }
 
 .section-title {
-  font-size: 20;
-  font-weight: bold;
-  color: #FFFFFF;
-  margin-bottom: 15;
+  font-size: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+  color: #A855F7;
 }
 
-.section-subtitle {
-  font-size: 16;
-  color: #E5E7EB;
-  margin-bottom: 10;
-  opacity: 0.8;
+.topic-grid,
+.spread-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
-.topic-grid {
-  flex-wrap: wrap;
-  justify-content: space-between;
+.topic-card,
+.spread-card {
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
 }
 
-.topic-card {
-  width: 30%;
-  padding: 15;
-  margin-bottom: 10;
-  background-color: #3E3B6E;
-  border-radius: 15;
-  align-items: center;
+.topic-card:hover,
+.spread-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.topic-card.selected {
-  background-color: #7C3AED;
-  border-width: 2;
-  border-color: #F59E0B;
+.topic-card.selected,
+.spread-card.selected {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: #A855F7;
 }
 
 .topic-icon {
-  font-size: 30;
-  margin-bottom: 5;
+  font-size: 32px;
+  text-align: center;
+  margin-bottom: 15px;
 }
 
-.topic-name {
-  font-size: 14;
-  color: #FFFFFF;
+.topic-card h3,
+.spread-card h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
   text-align: center;
 }
 
-.question-input {
-  background-color: #3E3B6E;
-  color: #FFFFFF;
-  padding: 15;
-  border-radius: 10;
-  font-size: 16;
-  height: 100;
-  placeholder-color: #9CA3AF;
-}
-
-.spread-card {
-  padding: 15;
-  margin-bottom: 10;
-  background-color: #3E3B6E;
-  border-radius: 10;
-  border-width: 2;
-  border-color: transparent;
-}
-
-.spread-card.selected {
-  border-color: #7C3AED;
-  background-color: #4C489D;
-}
-
-.spread-name {
-  font-size: 16;
-  font-weight: bold;
-  color: #FFFFFF;
-  margin-bottom: 5;
-}
-
+.topic-card p,
 .spread-description {
-  font-size: 14;
-  color: #E5E7EB;
-  opacity: 0.8;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  line-height: 1.4;
 }
 
-.spread-count {
-  font-size: 12;
+.spread-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.spread-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+  font-size: 12px;
+}
+
+.card-count {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.difficulty {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.difficulty.easy {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22C55E;
+}
+
+.difficulty.medium {
+  background: rgba(245, 158, 11, 0.2);
   color: #F59E0B;
-  margin-left: 10;
 }
 
-.premium-badge {
-  background-color: #F59E0B;
-  color: #1E1B4B;
-  padding: 4 8;
-  border-radius: 12;
-  font-size: 12;
-  font-weight: bold;
+.difficulty.hard {
+  background: rgba(239, 68, 68, 0.2);
+  color: #EF4444;
+}
+
+.spread-card.premium {
+  opacity: 0.7;
+}
+
+.premium-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  backdrop-filter: blur(5px);
+}
+
+.premium-overlay p {
+  color: #F59E0B;
+  font-weight: 600;
+}
+
+.selection-summary {
+  margin-bottom: 30px;
+}
+
+.summary-card {
+  padding: 20px;
+  text-align: center;
+}
+
+.summary-card h3 {
+  margin-bottom: 15px;
+  color: #A855F7;
+}
+
+.summary-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-item {
+  font-size: 14px;
+}
+
+.action-section {
+  text-align: center;
 }
 
 .start-button {
-  background-color: #7C3AED;
-  color: #FFFFFF;
-  font-size: 18;
-  font-weight: bold;
-  padding: 15;
-  border-radius: 25;
-  margin-top: 20;
+  padding: 15px 30px;
+  font-size: 18px;
+  margin-bottom: 20px;
 }
 
 .start-button:disabled {
   opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.free-usage-info {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.free-usage-info p {
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.premium-link {
+  color: #F59E0B;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.premium-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .topic-grid,
+  .spread-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .summary-details {
+    text-align: left;
+  }
 }
 </style>

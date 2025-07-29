@@ -1,19 +1,18 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
-import { Platform } from '@/utils/platform';
+import { createRouter, createWebHistory } from 'vue-router';
+import { useUserStore } from '../store/user';
 
-// 정적 import로 변경 (동적 import 문제 해결)
-import Home from '@/views/Home.vue';
-import MainApp from '@/views/MainApp.vue';
-import ReadingSelect from '@/views/ReadingSelectWeb.vue';
-import CardDrawing from '@/views/CardDrawingWeb.vue';
-import ReadingResult from '@/views/ReadingResultWeb.vue';
-import Premium from '@/views/PremiumWeb.vue';
-import TarotDictionary from '@/views/TarotDictionaryWeb.vue';
-import History from '@/views/HistoryWeb.vue';
-import AuthCallback from '@/components/AuthCallback.vue';
-import HomeWebTest from '@/views/HomeWebTest.vue';
+// Views
+import Home from '../views/Home.vue';
+import MainApp from '../views/MainApp.vue';
+import ReadingSelect from '../views/ReadingSelect.vue';
+import CardDrawing from '../views/CardDrawing.vue';
+import ReadingResult from '../views/ReadingResult.vue';
+import Premium from '../views/Premium.vue';
+import History from '../views/History.vue';
+import TarotDictionary from '../views/TarotDictionary.vue';
+import AuthCallback from '../components/AuthCallback.vue';
 
-const routes: RouteRecordRaw[] = [
+const routes = [
   {
     path: '/',
     name: 'Home',
@@ -21,63 +20,97 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/app',
-    name: 'MainApp',
+    name: 'App',
     component: MainApp,
+    meta: { requiresAuth: true }
   },
   {
     path: '/reading-select',
     name: 'ReadingSelect',
     component: ReadingSelect,
+    meta: { requiresAuth: true }
   },
   {
     path: '/card-drawing',
     name: 'CardDrawing',
     component: CardDrawing,
+    meta: { requiresAuth: true }
   },
   {
-    path: '/reading-result/:readingId?',
+    path: '/reading-result',
     name: 'ReadingResult',
     component: ReadingResult,
+    meta: { requiresAuth: true }
   },
   {
     path: '/premium',
     name: 'Premium',
     component: Premium,
-  },
-  {
-    path: '/dictionary',
-    name: 'TarotDictionary',
-    component: TarotDictionary,
+    meta: { requiresAuth: true }
   },
   {
     path: '/history',
     name: 'History',
     component: History,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/card-dictionary',
+    name: 'TarotDictionary',
+    component: TarotDictionary,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/dictionary',
+    name: 'Dictionary',
+    component: TarotDictionary,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: () => import('../views/Settings.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/auth/callback',
     name: 'AuthCallback',
     component: AuthCallback,
   },
-  {
-    path: '/test',
-    name: 'HomeWebTest', 
-    component: HomeWebTest,
-  },
 ];
 
-// 웹에서만 라우터 생성
-export const createAppRouter = () => {
-  return createRouter({
-    history: createWebHistory(),
-    routes,
-  });
-};
-
-// 기본 export 를 라우터 인스턴스로 설정
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+// 네비게이션 가드
+router.beforeEach(async (to, from, next) => {
+  const userStore = useUserStore();
+  
+  // 인증이 필요한 페이지
+  if (to.meta.requiresAuth) {
+    // 로딩 중이면 대기
+    if (userStore.isLoading) {
+      await new Promise(resolve => {
+        const unwatch = userStore.$subscribe((mutation, state) => {
+          if (!state.isLoading) {
+            unwatch();
+            resolve(undefined);
+          }
+        });
+      });
+    }
+    
+    // 로그인 상태 확인
+    if (!userStore.isLoggedIn) {
+      // 홈으로 리다이렉트
+      next({ name: 'Home' });
+      return;
+    }
+  }
+  
+  next();
 });
 
 export default router;

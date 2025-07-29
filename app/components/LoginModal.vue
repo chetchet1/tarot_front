@@ -186,7 +186,7 @@
 
 <script>
 import { ref, computed, watch } from 'vue';
-import { useUserStore } from '@/store/user';
+import { useUserStore } from '../store/user';
 
 export default {
   name: 'LoginModal',
@@ -280,8 +280,15 @@ export default {
         if (isLoginMode.value) {
           // 로그인
           await userStore.login(formData.value.email, formData.value.password);
-          emit('success', 'login');
-          closeModal();
+          
+          // 로그인 성공 메시지
+          successMessage.value = '로그인 성공! 잠시만 기다려주세요...';
+          
+          // 로그인 성공 후 처리
+          setTimeout(() => {
+            emit('success', 'login');
+            closeModal();
+          }, 500);
         } else {
           // 회원가입
           await userStore.signUp(

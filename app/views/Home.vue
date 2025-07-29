@@ -1,461 +1,521 @@
 <template>
-  <div class="home-page">
+  <div class="home">
     <!-- 헤더 -->
     <header class="header">
-      <h1 class="header-title">🔮 타로의 정원</h1>
-      <p class="header-subtitle">당신의 운명을 들여다보세요</p>
+      <div class="header-content">
+        <div class="logo-section">
+          <h1 class="app-title">🔮 타로 카드 점집</h1>
+          <p class="tagline">신비로운 타로의 세계에 오신 것을 환영합니다</p>
+        </div>
+        
+        <div class="auth-buttons">
+          <button @click="showLoginModal('login')" class="btn btn-login">
+            로그인
+          </button>
+          <button @click="showLoginModal('signup')" class="btn btn-signup">
+            회원가입
+          </button>
+        </div>
+      </div>
     </header>
 
-    <!-- 메인 컨텐츠 -->
+    <!-- 메인 콘텐츠 -->
     <main class="main-content">
-      <!-- 오늘의 카드 섹션 -->
-      <section class="daily-card-section" @click="showDailyCard">
-        <h2 class="section-title">오늘의 카드</h2>
-        <div class="daily-card-container">
-          <div v-if="dailyCard" class="daily-card">
-            <div class="card-image">{{ dailyCard.imageUrl || '🎴' }}</div>
-            <p class="card-name">{{ dailyCard.nameKr }}</p>
+      <!-- 히어로 섹션 -->
+      <section class="hero-section">
+        <div class="hero-content">
+          <h2 class="hero-title">
+            당신의 운명을 <br>
+            <span class="highlight">타로 카드</span>로 확인하세요
+          </h2>
+          <p class="hero-description">
+            전문가가 해석한 정확한 타로 리딩으로<br>
+            인생의 방향을 찾아보세요
+          </p>
+          
+          <div class="hero-cta">
+            <button @click="showLoginModal('signup')" class="cta-button">
+              ✨ 지금 시작하기
+            </button>
+            <p class="cta-note">무료 회원가입 후 바로 이용 가능</p>
           </div>
-          <div v-else class="daily-card-placeholder">
-            <div class="placeholder-icon">🎴</div>
-            <p>탭하여 오늘의 카드를 뽑으세요</p>
+        </div>
+        
+        <div class="hero-visual">
+          <div class="floating-cards">
+            <div class="card-item">🌟</div>
+            <div class="card-item">🔮</div>
+            <div class="card-item">✨</div>
+            <div class="card-item">🌙</div>
+            <div class="card-item">☀️</div>
           </div>
         </div>
       </section>
 
-      <!-- 무료 점괘 사용 현황 (무료 사용자에게만 표시) -->
-      <section v-if="!user?.isPremium" class="free-usage-section">
-        <div class="usage-info">
-          <span class="usage-text">오늘의 무료 점괘: {{ freeReadingsToday }}/{{ maxFreeReadingsPerDay }}</span>
-          <div class="usage-progress">
-            <div 
-              class="usage-progress-bar"
-              :style="{ width: `${(freeReadingsToday / maxFreeReadingsPerDay) * 100}%` }"
-            ></div>
+      <!-- 특징 섹션 -->
+      <section class="features-section">
+        <h3 class="section-title">타로 카드 점집의 특별함</h3>
+        
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🎯</div>
+            <h4>정확한 해석</h4>
+            <p>전문가가 작성한 정확하고 깊이 있는 타로 카드 해석</p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">📱</div>
+            <h4>언제 어디서나</h4>
+            <p>모바일에서 언제든지 편리하게 타로 점을 체험</p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">🎴</div>
+            <h4>다양한 스프레드</h4>
+            <p>3장, 5장, 켈틱 크로스 등 다양한 카드 배열</p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">📚</div>
+            <h4>기록 보관</h4>
+            <p>모든 점괘 결과를 안전하게 저장하고 관리</p>
           </div>
         </div>
-      </section>
-
-      <!-- 메뉴 버튼들 -->
-      <section class="menu-section">
-        <button 
-          class="menu-button primary-button"
-          :class="{ disabled: !user?.isPremium && !canUseFreeReading }"
-          @click="goToReading"
-        >
-          🎴 타로 점보기
-        </button>
-        
-        <button class="menu-button secondary-button" @click="goToHistory">
-          📚 점괘 기록
-        </button>
-        
-        <button class="menu-button secondary-button" @click="goToCardDictionary">
-          📖 타로카드 사전
-        </button>
-        
-        <button 
-          v-if="!user?.isPremium"
-          class="menu-button premium-button" 
-          @click="goToPremium"
-        >
-          ✨ 프리미엄 구독
-        </button>
-        
-        <button class="menu-button secondary-button" @click="goToSettings">
-          ⚙️ 설정
-        </button>
-        
-        <!-- 개발용 테스트 버튼 -->
-        <button 
-          v-if="!user?.isPremium"
-          class="menu-button test-button" 
-          @click="resetFreeReadings"
-        >
-          🔄 무료 점괘 초기화 (테스트용)
-        </button>
-      </section>
-
-      <!-- 프리미엄 프로모션 (무료 사용자에게만 표시) -->
-      <section v-if="!user?.isPremium" class="promo-section">
-        <h3 class="promo-title">🌟 프리미엄 혜택</h3>
-        <ul class="promo-features">
-          <li>• 광고 제거</li>
-          <li>• 켈틱 크로스 등 고급 배열</li>
-          <li>• 무제한 히스토리 저장</li>
-          <li>• 점괘 결과 공유</li>
-        </ul>
-        <p class="promo-price">월 2,900원</p>
       </section>
     </main>
 
-    <!-- 광고 모달 -->
-    <div v-if="showAdModal" class="ad-modal" @click="closeAd">
-      <div class="ad-content">
-        <div class="ad-placeholder">
-          <p>📺 광고</p>
-          <p>5초 후 자동으로 닫힙니다...</p>
-        </div>
-      </div>
-    </div>
+    <!-- 로그인/회원가입 모달 -->
+    <LoginModal 
+      :isVisible="loginModalVisible"
+      :initialMode="loginModalMode"
+      @close="closeLoginModal"
+      @success="handleLoginSuccess"
+      @show-email-verification="showEmailVerification"
+    />
+
+    <!-- 이메일 인증 모달 -->
+    <EmailVerificationModal
+      :isVisible="emailVerificationVisible"
+      :email="verificationEmail"
+      @close="closeEmailVerification"
+      @go-to-login="goToLoginFromVerification"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
-import { useTarotStore } from '../store/tarot';
-import { TarotCard } from '../models/tarot';
+import LoginModal from '../components/LoginModal.vue';
+import EmailVerificationModal from '../components/EmailVerificationModal.vue';
 
 const router = useRouter();
 const userStore = useUserStore();
-const tarotStore = useTarotStore();
 
-// reactive computed properties
-const user = computed(() => userStore.currentUser);
-const freeReadingsToday = computed(() => userStore.freeReadingsToday);
-const maxFreeReadingsPerDay = computed(() => userStore.maxFreeReadingsPerDay);
-const canUseFreeReading = computed(() => userStore.canUseFreeReading);
-const dailyCard = ref<TarotCard | null>(null);
-const showAdModal = ref(false);
+// 모달 상태
+const loginModalVisible = ref(false);
+const loginModalMode = ref('login');
+const emailVerificationVisible = ref(false);
+const verificationEmail = ref('');
 
 onMounted(async () => {
-  // 사용자 초기화 (이미 main.ts에서 시작되었을 수 있음)
-  if (!userStore.currentUser || userStore.isLoading) {
-    await userStore.initializeUser();
-  }
+  console.log('🏠 홈 페이지 초기화');
   
-  // 타로 스토어 초기화 (비동기)
-  await tarotStore.initialize();
+  // 사용자 초기화
+  await userStore.initializeUser();
   
-  tarotStore.loadReadings();
-  tarotStore.loadDailyCard();
-  
-  // 저장된 오늘의 카드 확인
-  const today = new Date().toDateString();
-  const savedDaily = tarotStore.getDailyCard();
-  
-  if (savedDaily && savedDaily.date === today) {
-    dailyCard.value = savedDaily.card;
+  // 로그인된 사용자는 메인 앱으로 리다이렉트
+  if (userStore.isLoggedIn) {
+    console.log('✅ 로그인된 사용자 감지, 메인 앱으로 이동');
+    router.push('/app');
   }
 });
 
-const showDailyCard = async () => {
-  if (!dailyCard.value) {
-    // 광고 표시 (무료 사용자)
-    if (!user.value?.isPremium) {
-      showAdModal.value = true;
-      setTimeout(() => {
-        showAdModal.value = false;
-      }, 5000);
-    }
-    
-    // 카드 뽑기
-    const card = tarotStore.drawDailyCard();
-    dailyCard.value = card;
-  }
+// 로그인 모달 표시
+const showLoginModal = (mode = 'login') => {
+  console.log('🚪 로그인 모달 열기:', mode);
+  loginModalMode.value = mode;
+  loginModalVisible.value = true;
+};
+
+// 로그인 모달 닫기
+const closeLoginModal = () => {
+  console.log('🚪 로그인 모달 닫기');
+  loginModalVisible.value = false;
+};
+
+// 로그인 성공 처리
+const handleLoginSuccess = (type) => {
+  console.log('✅ 로그인 성공:', type);
+  closeLoginModal();
   
-  // 카드 상세 보기 (임시로 알림 표시)
-  alert(`${dailyCard.value.nameKr}\n\n${dailyCard.value.meanings.general.upright}`);
+  // 로그인 성공 시 메인 앱으로 이동
+  router.push('/app');
 };
 
-const closeAd = () => {
-  showAdModal.value = false;
+// 이메일 인증 모달 표시
+const showEmailVerification = (email) => {
+  console.log('📧 이메일 인증 모달 표시:', email);
+  verificationEmail.value = email;
+  emailVerificationVisible.value = true;
 };
 
-const goToReading = async () => {
-  // 무료 사용자는 사용 횟수 체크
-  if (!user.value?.isPremium) {
-    const status = userStore.getFreeReadingStatus();
-    if (!status.canUse) {
-      const result = confirm(`오늘 무료 점괘 ${status.total}회를 모두 사용하셨습니다. 프리미엄으로 업그레이드하시면 무제한으로 이용하실 수 있습니다.\n\n프리미엄 보기로 이동하시겠습니까?`);
-      
-      if (result) {
-        goToPremium();
-      }
-      return;
-    }
-  }
-  
-  router.push('/reading-select');
+// 이메일 인증 모달 닫기
+const closeEmailVerification = () => {
+  console.log('📧 이메일 인증 모달 닫기');
+  emailVerificationVisible.value = false;
+  verificationEmail.value = '';
 };
 
-const goToHistory = () => router.push('/history');
-const goToCardDictionary = () => router.push('/card-dictionary');
-const goToPremium = () => router.push('/premium');
-const goToSettings = () => router.push('/settings');
-
-// 개발용 테스트 함수
-const resetFreeReadings = () => {
-  userStore.resetFreeReadings();
-  alert('무료 점괘 횟수가 초기화되었습니다.');
+// 인증 모달에서 로그인으로 이동
+const goToLoginFromVerification = () => {
+  closeEmailVerification();
+  showLoginModal('login');
 };
 </script>
 
 <style scoped>
-.home-page {
+.home {
   min-height: 100vh;
   background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
   color: white;
-  padding: 0;
-  overflow-x: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* 헤더 */
 .header {
-  text-align: center;
-  padding: 2rem 1rem 1rem;
-  background: rgba(45, 42, 92, 0.3);
-  backdrop-filter: blur(10px);
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.header-title {
-  font-size: 2rem;
-  font-weight: bold;
-  margin: 0 0 0.5rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
 }
 
-.header-subtitle {
-  font-size: 1rem;
-  opacity: 0.8;
+.logo-section {
+  flex: 1;
+}
+
+.app-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #A855F7 0%, #7C3AED 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.tagline {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
   margin: 0;
 }
 
+.auth-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  min-width: 80px;
+}
+
+.btn-login {
+  background: transparent;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-login:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.btn-signup {
+  background: linear-gradient(135deg, #A855F7 0%, #7C3AED 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+}
+
+.btn-signup:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(168, 85, 247, 0.4);
+}
+
+/* 메인 콘텐츠 */
 .main-content {
-  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* 히어로 섹션 */
+.hero-section {
+  padding: 60px 0;
+  text-align: center;
+}
+
+.hero-content {
   max-width: 600px;
   margin: 0 auto;
 }
 
-.daily-card-section {
-  background: rgba(45, 42, 92, 0.6);
-  border-radius: 15px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  cursor: pointer;
-  transition: transform 0.2s ease;
+.hero-title {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 24px;
+  color: white;
 }
 
-.daily-card-section:hover {
-  transform: translateY(-2px);
+.highlight {
+  background: linear-gradient(135deg, #A855F7 0%, #7C3AED 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-description {
+  font-size: 20px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 40px;
+}
+
+.hero-cta {
+  margin-bottom: 40px;
+}
+
+.cta-button {
+  background: linear-gradient(135deg, #FF6B6B 0%, #EE5A24 100%);
+  color: white;
+  border: none;
+  padding: 18px 36px;
+  border-radius: 50px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(255, 107, 107, 0.3);
+  margin-bottom: 12px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cta-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(255, 107, 107, 0.4);
+}
+
+.cta-note {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.hero-visual {
+  margin-top: 40px;
+}
+
+.floating-cards {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.card-item {
+  width: 60px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: float 6s ease-in-out infinite;
+}
+
+.card-item:nth-child(1) { animation-delay: 0s; }
+.card-item:nth-child(2) { animation-delay: 1.2s; }
+.card-item:nth-child(3) { animation-delay: 2.4s; }
+.card-item:nth-child(4) { animation-delay: 3.6s; }
+.card-item:nth-child(5) { animation-delay: 4.8s; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+/* 특징 섹션 */
+.features-section {
+  padding: 60px 0;
 }
 
 .section-title {
-  font-size: 1.25rem;
-  font-weight: bold;
+  font-size: 32px;
+  font-weight: 700;
   text-align: center;
-  margin: 0 0 1rem;
+  margin-bottom: 50px;
+  color: white;
 }
 
-.daily-card-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-  background: rgba(62, 59, 110, 0.4);
-  border-radius: 10px;
-  padding: 1rem;
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
 }
 
-.daily-card {
+.feature-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 30px;
   text-align: center;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
 }
 
-.card-image {
-  font-size: 4rem;
-  margin-bottom: 0.5rem;
+.feature-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
-.card-name {
-  font-size: 1.1rem;
-  font-weight: 500;
+.feature-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.feature-card h4 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: white;
+}
+
+.feature-card p {
+  font-size: 16px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.8);
   margin: 0;
 }
 
-.daily-card-placeholder {
-  text-align: center;
-  opacity: 0.6;
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+  
+  .app-title {
+    font-size: 24px;
+  }
+  
+  .tagline {
+    font-size: 14px;
+  }
+  
+  .auth-buttons {
+    justify-content: center;
+  }
+  
+  .hero-title {
+    font-size: 36px;
+  }
+  
+  .hero-description {
+    font-size: 18px;
+  }
+  
+  .cta-button {
+    padding: 16px 32px;
+    font-size: 16px;
+  }
+  
+  .floating-cards {
+    gap: 12px;
+  }
+  
+  .card-item {
+    width: 50px;
+    height: 70px;
+    font-size: 20px;
+  }
+  
+  .section-title {
+    font-size: 28px;
+  }
+  
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .feature-card {
+    padding: 24px;
+  }
 }
 
-.placeholder-icon {
-  font-size: 3rem;
-  margin-bottom: 0.5rem;
-}
-
-.free-usage-section {
-  background: rgba(45, 42, 92, 0.6);
-  border: 1px solid #7C3AED;
-  border-radius: 10px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.usage-info {
-  text-align: center;
-}
-
-.usage-text {
-  font-size: 0.9rem;
-  color: #E5E7EB;
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-.usage-progress {
-  height: 8px;
-  background: rgba(62, 59, 110, 0.6);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.usage-progress-bar {
-  height: 100%;
-  background: #7C3AED;
-  transition: width 0.3s ease;
-}
-
-.menu-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-}
-
-.menu-button {
-  width: 100%;
-  padding: 1rem;
-  border: none;
-  border-radius: 25px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.menu-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.menu-button.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #6B7280;
-  color: white;
-}
-
-.primary-button {
-  background: #7C3AED;
-  color: white;
-}
-
-.secondary-button {
-  background: rgba(62, 59, 110, 0.8);
-  color: white;
-}
-
-.premium-button {
-  background: linear-gradient(45deg, #7C3AED, #F59E0B);
-  color: white;
-  font-weight: bold;
-}
-
-.test-button {
-  background: #EF4444;
-  color: white;
-  font-size: 0.8rem;
-  padding: 0.75rem;
-}
-
-.promo-section {
-  background: rgba(45, 42, 92, 0.6);
-  border: 2px solid #F59E0B;
-  border-radius: 15px;
-  padding: 1.5rem;
-  text-align: center;
-}
-
-.promo-title {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: #F59E0B;
-  margin: 0 0 1rem;
-}
-
-.promo-features {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 1rem;
-}
-
-.promo-features li {
-  font-size: 0.9rem;
-  color: #E5E7EB;
-  margin-bottom: 0.25rem;
-}
-
-.promo-price {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: #F59E0B;
-  margin: 0;
-}
-
-.ad-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.ad-content {
-  background: white;
-  color: black;
-  padding: 2rem;
-  border-radius: 10px;
-  text-align: center;
-  max-width: 300px;
-  width: 90%;
-}
-
-.ad-placeholder {
-  font-size: 1.1rem;
-}
-
-.ad-placeholder p {
-  margin: 0.5rem 0;
-}
-
-/* 모바일 최적화 */
 @media (max-width: 480px) {
-  .header {
-    padding: 1.5rem 1rem 0.5rem;
-  }
-  
-  .header-title {
-    font-size: 1.75rem;
-  }
-  
   .main-content {
-    padding: 0.75rem;
+    padding: 0 16px;
   }
   
-  .daily-card-section {
-    padding: 1rem;
+  .header-content {
+    padding: 0 16px;
   }
   
-  .card-image {
-    font-size: 3rem;
+  .hero-section {
+    padding: 40px 0;
+  }
+  
+  .hero-title {
+    font-size: 28px;
+  }
+  
+  .hero-description {
+    font-size: 16px;
+  }
+  
+  .auth-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .btn {
+    width: 100%;
+  }
+}
+
+/* 접근성 */
+@media (prefers-reduced-motion: reduce) {
+  .card-item {
+    animation: none;
+  }
+  
+  .btn:hover,
+  .cta-button:hover {
+    transform: none;
   }
 }
 </style>

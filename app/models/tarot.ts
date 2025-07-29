@@ -59,6 +59,7 @@ export interface SpreadPosition {
 }
 
 export interface TarotSpread {
+  id: string;
   spreadId: string;
   name: string;
   nameKr: string;

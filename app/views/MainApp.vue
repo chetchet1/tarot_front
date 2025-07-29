@@ -72,21 +72,13 @@
             </div>
           </div>
 
-          <router-link to="/history" class="menu-card">
+          <div class="menu-card" @click="showHistoryAlert">
             <div class="menu-icon">📚</div>
             <div class="menu-content">
               <h3>점괘 기록</h3>
               <p>지난 점괘들을 다시 확인해보세요</p>
             </div>
-          </router-link>
-
-          <router-link to="/dictionary" class="menu-card">
-            <div class="menu-icon">📖</div>
-            <div class="menu-content">
-              <h3>타로카드 사전</h3>
-              <p>78장 카드의 의미를 알아보세요</p>
-            </div>
-          </router-link>
+          </div>
 
           <router-link v-if="!userStore.isPremium" to="/premium" class="menu-card premium-card">
             <div class="menu-icon">👑</div>
@@ -115,44 +107,20 @@ const tarotStore = useTarotStore();
 const showUserDropdown = ref(false);
 
 onMounted(async () => {
-  console.log('🏠 메인 앱 초기화');
+  console.log('🏠 메인 앱 페이지 로드');
   
-  // 사용자 초기화가 완료될 때까지 대기 (하지만 타임아웃 설정)
-  const waitForInitialization = () => {
-    return new Promise<void>((resolve) => {
-      // 이미 사용자가 있고 로딩이 아니면 완료
-      if (userStore.currentUser && !userStore.isLoading) {
-        resolve();
-        return;
-      }
-      
-      // 초기화 완료를 기다리되, 최대 5초만 대기
-      const checkInitialization = () => {
-        if (userStore.currentUser && !userStore.isLoading) {
-          resolve();
-        } else {
-          setTimeout(checkInitialization, 100);
-        }
-      };
-      
-      checkInitialization();
-      
-      // 5초 후 타임아웃
-      setTimeout(() => {
-        console.log('사용자 초기화 대기 타임아웃, 계속 진행');
-        resolve();
-      }, 5000);
-    });
-  };
-  
-  // 초기화 대기
-  await waitForInitialization();
-  
-  console.log('사용자 초기화 완료, 앱 로드 진행');
-  
-  // 타로 데이터 로드
-  tarotStore.loadReadings();
-  tarotStore.loadDailyCard();
+  // 사용자가 이미 로그인되어 있고 로딩이 아니면 바로 진행
+  if (userStore.currentUser && !userStore.isLoading) {
+    console.log('사용자 이미 로드됨, 타로 데이터 로드');
+    tarotStore.loadReadings();
+    tarotStore.loadDailyCard();
+  } else if (!userStore.isLoading) {
+    // 로딩 중이 아니면 다시 초기화 시도
+    console.log('사용자 없음, 초기화 시도');
+    await userStore.initializeUser();
+    tarotStore.loadReadings();
+    tarotStore.loadDailyCard();
+  }
   
   // 외부 클릭 이벤트 리스너 추가
   document.addEventListener('click', handleClickOutside);
@@ -222,6 +190,11 @@ const goToPremium = () => {
   console.log('프리미엄 구독');
   showUserDropdown.value = false;
   router.push('/premium');
+};
+
+// 점괘 기록 알림
+const showHistoryAlert = () => {
+  alert('해당 기능은 차후 업데이트 됩니다');
 };
 
 // 외부 클릭 시 드롭다운 닫기

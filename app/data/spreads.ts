@@ -6,6 +6,7 @@ import { TarotSpread } from '../models/tarot';
 
 export const tarotSpreads: TarotSpread[] = [
   {
+    id: "one_card",
     spreadId: "one_card",
     name: "One Card Spread",
     nameKr: "원 카드 스프레드",
@@ -24,6 +25,7 @@ export const tarotSpreads: TarotSpread[] = [
     topics: ["general", "love", "career", "money", "health"]
   },
   {
+    id: "three_card_timeline",
     spreadId: "three_card_timeline",
     name: "Past-Present-Future",
     nameKr: "과거-현재-미래",
@@ -57,6 +59,7 @@ export const tarotSpreads: TarotSpread[] = [
   },
 
   {
+    id: "celtic_cross",
     spreadId: "celtic_cross",
     name: "Celtic Cross",
     nameKr: "켈틱 크로스",
@@ -138,6 +141,7 @@ export const tarotSpreads: TarotSpread[] = [
     topics: ["general", "love", "career", "money"]
   },
   {
+    id: "relationship_cross",
     spreadId: "relationship_cross",
     name: "Relationship Cross",
     nameKr: "관계 십자가",
@@ -184,6 +188,7 @@ export const tarotSpreads: TarotSpread[] = [
     topics: ["love"]
   },
   {
+    id: "career_path",
     spreadId: "career_path",
     name: "Career Path",
     nameKr: "경력 경로",
@@ -244,6 +249,7 @@ export const tarotSpreads: TarotSpread[] = [
     topics: ["career"]
   },
   {
+    id: "year_ahead",
     spreadId: "year_ahead",
     name: "Year Ahead",
     nameKr: "한 해 전망",
@@ -280,3 +286,6 @@ export const getPremiumSpreads = (): TarotSpread[] => {
 export const getSpreadsByTopic = (topic: string): TarotSpread[] => {
   return tarotSpreads.filter(spread => spread.topics.includes(topic));
 };
+
+// Alias for backward compatibility
+export const spreads = tarotSpreads;
