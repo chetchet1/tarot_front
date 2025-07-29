@@ -2,7 +2,7 @@ import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
 import { Platform } from '@/utils/platform';
 
 // 정적 import로 변경 (동적 import 문제 해결)
-import Home from '@/views/HomeWeb.vue';
+import Home from '@/views/Home.vue';
 import MainApp from '@/views/MainApp.vue';
 import ReadingSelect from '@/views/ReadingSelectWeb.vue';
 import CardDrawing from '@/views/CardDrawingWeb.vue';

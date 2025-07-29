@@ -1,5 +1,9 @@
 import { TarotSpread } from '../models/tarot';
 
+// ⚠️ 주의: 이 파일은 기본 스프레드 데이터를 포함하고 있지만,
+// 가능하면 Supabase의 'tarot_spreads' 테이블에서 로드하는 것을 계횟합니다.
+// 다만 스프레드 데이터는 카드 데이터에 비해 버캘이 적으므로 현재는 사용 가능합니다.
+
 export const tarotSpreads: TarotSpread[] = [
   {
     spreadId: "one_card",

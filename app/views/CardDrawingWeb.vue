@@ -57,6 +57,9 @@
             @click="revealCard(index)"
           >
             <div class="card-front" v-if="card.revealed">
+              <div class="card-image">
+                <img :src="getCardImageUrl(card.card)" :alt="card.card.nameKr" @error="onImageError" />
+              </div>
               <h3>{{ card.card.nameKr }}</h3>
               <p class="card-number">{{ card.card.name }}</p>
               <div class="card-orientation" :class="card.orientation">
@@ -123,6 +126,129 @@ const getDrawButtonText = () => {
   return '카드 뽑기';
 };
 
+// 카드 이미지 URL 생성 함수
+const getCardImageUrl = (card: any) => {
+  try {
+    // Supabase에서 오는 imageUrl이 있다면 먼저 처리
+    if (card.imageUrl && !card.imageUrl.includes('undefined')) {
+      let finalUrl = card.imageUrl;
+      // 수트 폴더가 포함된 경로를 수정 (실제 파일은 minor 폴더 바로 아래에 있음)
+      finalUrl = finalUrl.replace('/assets/tarot-cards/minor/cups/', '/assets/tarot-cards/minor/');
+      finalUrl = finalUrl.replace('/assets/tarot-cards/minor/wands/', '/assets/tarot-cards/minor/');
+      finalUrl = finalUrl.replace('/assets/tarot-cards/minor/swords/', '/assets/tarot-cards/minor/');
+      finalUrl = finalUrl.replace('/assets/tarot-cards/minor/pentacles/', '/assets/tarot-cards/minor/');
+      
+      // 메이저 아르카나 파일명 대소문자 수정
+      if (finalUrl.includes('/assets/tarot-cards/major/')) {
+        // 소문자로 되어 있는 파일명을 실제 파일명으로 변경
+        const corrections = {
+          '00-the-fool.png': '00-the-Fool.png',
+          '01-the-magician.png': '01-The-Magician.png',
+          '02-the-high-priestess.png': '02-The-High-Priestess.png',
+          '03-the-empress.png': '03-The-Empress.png',
+          '04-the-emperor.png': '04-The-Emperor.png',
+          '05-the-hierophant.png': '05-The-Hierophant.png',
+          '06-the-lovers.png': '06-The-Lovers.png',
+          '07-the-chariot.png': '07-The-Chariot.png',
+          '08-strength.png': '08-Strength.png',
+          '09-the-hermit.png': '09-The-Hermit.png',
+          '10-wheel-of-fortune.png': '10-Wheel-of-Fortune.png',
+          '11-justice.png': '11-Justice.png',
+          '12-the-hanged-man.png': '12-The-Hanged-Man.png',
+          '13-death.png': '13-Death.png',
+          '14-temperance.png': '14-Temperance.png',
+          '15-the-devil.png': '15-The-Devil.png',
+          '16-the-tower.png': '16-The-Tower.png',
+          '17-the-star.png': '17-The-Star.png',
+          '18-the-moon.png': '18-The-Moon.png',
+          '19-the-sun.png': '19-The-Sun.png',
+          '20-judgement.png': '20-Judgement.png',
+          '21-the-world.png': '21-The-World.png'
+        };
+        
+        // 소문자 파일명을 올바른 대소문자 파일명으로 변경
+        for (const [wrong, correct] of Object.entries(corrections)) {
+          if (finalUrl.includes(wrong)) {
+            finalUrl = finalUrl.replace(wrong, correct);
+            break;
+          }
+        }
+      }
+      
+      return finalUrl;
+    }
+    
+    // 마이너 아르카나의 경우 수트 폴더 없이 경로 생성
+    if (card.arcana === 'minor') {
+      const cardNumber = String(card.number || 1).padStart(2, '0');
+      let cardName;
+      
+      // 수트에 따라 파일명 생성
+      if (card.suit) {
+        if (card.number <= 10) {
+          const numberNames = {
+            1: 'ace',
+            2: 'two', 3: 'three', 4: 'four', 5: 'five',
+            6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten'
+          };
+          cardName = `${numberNames[card.number]}-of-${card.suit}`;
+        } else {
+          // 코트 카드들은 Supabase imageUrl을 사용해야 함 (위에서 이미 처리됨)
+          const faceCards = {
+            11: 'Page', 12: 'Knight', 13: 'Queen', 14: 'King'
+          };
+          const suitCapitalized = card.suit.charAt(0).toUpperCase() + card.suit.slice(1);
+          cardName = `${faceCards[card.number]}-of-${suitCapitalized}`;
+        }
+      } else {
+        // 기본 이름 사용
+        cardName = card.name.toLowerCase().replace(/\s+/g, '-');
+      }
+      
+      return `/assets/tarot-cards/minor/${cardNumber}-${cardName}.png`;
+    }
+    
+    // 메이저 아르카나의 경우
+    if (card.arcana === 'major') {
+      const cardNumber = String(card.number || 0).padStart(2, '0');
+      // 메이저 아르카나 파일명은 실제 파일명에 맞게 수정
+      const majorCardNames = {
+        0: '00-the-Fool.png',
+        1: '01-The-Magician.png',
+        2: '02-The-High-Priestess.png',
+        3: '03-The-Empress.png',
+        4: '04-The-Emperor.png',
+        5: '05-The-Hierophant.png',
+        6: '06-The-Lovers.png',
+        7: '07-The-Chariot.png',
+        8: '08-Strength.png',
+        9: '09-The-Hermit.png',
+        10: '10-Wheel-of-Fortune.png',
+        11: '11-Justice.png',
+        12: '12-The-Hanged-Man.png',
+        13: '13-Death.png',
+        14: '14-Temperance.png',
+        15: '15-The-Devil.png',
+        16: '16-The-Tower.png',
+        17: '17-The-Star.png',
+        18: '18-The-Moon.png',
+        19: '19-The-Sun.png',
+        20: '20-Judgement.png',
+        21: '21-The-World.png'
+      };
+      
+      const fileName = majorCardNames[card.number] || '00-the-Fool.png';
+      return `/assets/tarot-cards/major/${fileName}`;
+    }
+    
+    // 폴백 이미지 (기본 카드 이미지)
+    return '/assets/tarot-cards/major/00-the-Fool.png';
+  } catch (error) {
+    console.error('카드 이미지 URL 생성 오류:', error);
+    return '/assets/tarot-cards/major/00-the-Fool.png';
+  }
+};
+
 // 카드 개수 가져오기
 const getCardCount = () => {
   return tarotStore.selectedSpread?.cardCount || 1;
@@ -142,6 +268,24 @@ onMounted(async () => {
   
   console.log('사용 가능한 카드 수:', tarotStore.tarotCards.length);
   console.log('선택된 스프레드:', tarotStore.selectedSpread);
+  
+  // 이미지 경로 테스트
+  if (tarotStore.tarotCards.length > 0) {
+    const testCard = tarotStore.tarotCards[0];
+    console.log('테스트 카드 데이터:', testCard);
+    console.log('테스트 카드 arcana:', testCard.arcana);
+    console.log('테스트 카드 number:', testCard.number);
+    console.log('테스트 카드 imageUrl:', testCard.imageUrl);
+    
+    const testUrl = getCardImageUrl(testCard);
+    console.log('테스트 카드 이미지 URL:', testUrl);
+    
+    // 이미지 로드 테스트
+    const img = new Image();
+    img.onload = () => console.log('✅ 테스트 이미지 로드 성공:', testUrl);
+    img.onerror = () => console.error('❌ 테스트 이미지 로드 실패:', testUrl);
+    img.src = testUrl;
+  }
 });
 
 const goBack = () => {
@@ -235,6 +379,56 @@ const goToResult = async () => {
 const closeAdModal = () => {
   showAdModal.value = false;
   drawCards();
+};
+
+// 이미지 로드 에러 처리
+const onImageError = (event: Event) => {
+  if (!event || !event.target) {
+    console.warn('이미지 에러 이벤트가 유효하지 않음');
+    return;
+  }
+  
+  const img = event.target as HTMLImageElement;
+  if (!img) {
+    console.warn('이미지 엘리먼트가 없음');
+    return;
+  }
+  
+  console.warn('이미지 로드 실패:', img.src);
+  
+  // 안전하게 폴백 처리
+  const parentElement = img.parentElement;
+  if (parentElement) {
+    try {
+      // 이미지를 숨기고 이모지로 대체
+      img.style.display = 'none';
+      
+      // 이미 이모지가 추가되어 있는지 확인
+      if (!parentElement.querySelector('.fallback-emoji')) {
+        const fallbackEmoji = document.createElement('div');
+        fallbackEmoji.className = 'fallback-emoji';
+        fallbackEmoji.textContent = '🎴';
+        fallbackEmoji.style.fontSize = '48px';
+        fallbackEmoji.style.textAlign = 'center';
+        fallbackEmoji.style.display = 'flex';
+        fallbackEmoji.style.alignItems = 'center';
+        fallbackEmoji.style.justifyContent = 'center';
+        fallbackEmoji.style.width = '100%';
+        fallbackEmoji.style.height = '100%';
+        fallbackEmoji.style.position = 'absolute';
+        fallbackEmoji.style.top = '0';
+        fallbackEmoji.style.left = '0';
+        fallbackEmoji.style.zIndex = '10';
+        fallbackEmoji.style.background = 'rgba(75, 85, 99, 0.9)';
+        fallbackEmoji.style.borderRadius = '6px';
+        parentElement.appendChild(fallbackEmoji);
+      }
+    } catch (error) {
+      console.error('폴백 이미지 생성 중 에러:', error);
+    }
+  } else {
+    console.warn('이미지의 부모 엘리먼트가 없음');
+  }
 };
 </script>
 
@@ -471,8 +665,8 @@ const closeAdModal = () => {
 }
 
 .drawn-card {
-  width: 140px;
-  height: 200px;
+  width: 160px;
+  height: 240px;
   cursor: pointer;
   transition: all 0.3s ease;
   perspective: 1000px;
@@ -491,26 +685,66 @@ const closeAdModal = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 15px;
+  justify-content: space-between;
   text-align: center;
 }
 
 .card-front {
   background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
   color: white;
+  padding: 12px;
+}
+
+.card-image {
+  width: 120px;
+  height: 180px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  position: relative;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+  background: white;
+}
+
+.card-image .fallback-emoji {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(75, 85, 99, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: white;
+  border-radius: 6px;
+  z-index: 10;
 }
 
 .card-front h3 {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+  line-height: 1.2;
 }
 
 .card-number {
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .card-orientation {
@@ -535,6 +769,8 @@ const closeAdModal = () => {
   background: linear-gradient(135deg, #4C1D95 0%, #7C3AED 100%);
   color: rgba(255, 255, 255, 0.6);
   font-size: 32px;
+  padding: 20px;
+  justify-content: center;
 }
 
 .card-back p {

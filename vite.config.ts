@@ -9,12 +9,30 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    // 에셋 복사 설정
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) => {
+          // 이미지 파일들은 원래 경로 유지
+          if (assetInfo.name && /\.(png|jpe?g|gif|svg)$/i.test(assetInfo.name)) {
+            return 'assets/[name][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
+        },
+      },
+    },
+    // 정적 에셋 복사
+    copyPublicDir: true,
   },
   
   // 개발 서버 설정
   server: {
-    port: 8080,
+    port: 8082,  // 로그에서 보인 포트와 맞춤
     host: true,
+    // 정적 파일 제공
+    fs: {
+      allow: ['..'],
+    },
   },
   
   // 경로 별칭 설정
@@ -22,8 +40,16 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, 'app'),
       '~': resolve(__dirname, 'app'),
+      // assets 경로를 직접 매핑
+      '/assets': resolve(__dirname, 'assets'),
     },
   },
+  
+  // 정적 파일 디렉토리 설정 (기본 public)
+  publicDir: 'public',
+  
+  // 에셋으로 처리할 파일 확장자
+  assetsInclude: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.gif', '**/*.svg'],
   
   // Capacitor를 위한 base 설정
   base: './',

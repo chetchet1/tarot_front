@@ -24,30 +24,48 @@ console.log('Supabase Key 검증:', supabase.supabaseKey?.substring(0, 20) + '..
 export const authService = {
   // Supabase 클라이언트 노출
   supabase,
-  // getCurrentUser 함수 개선 - 세션 확인 후 사용자 정보 조회
+  // getCurrentUser 함수 개선 - 타임아웃과 함께 세션 확인
   async getCurrentUser() {
     try {
       console.log('authService.getCurrentUser 호출');
       
-      // 먼저 세션 확인
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // 타임아웃 설정 (5초)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout')), 5000);
+      });
+      
+      // 세션 확인을 타임아웃과 함께 실행
+      const sessionPromise = supabase.auth.getSession();
+      
+      const { data: { session }, error: sessionError } = await Promise.race([
+        sessionPromise,
+        timeoutPromise
+      ]) as any;
       
       if (sessionError) {
         console.log('세션 확인 오류:', sessionError.message);
         return null;
       }
       
-      if (!session) {
+      if (!session || !session.user) {
         console.log('활성 세션이 없음');
         return null;
       }
       
-      // 세션이 있으면 사용자 정보 반환
+      // 세션 유효성 검증
+      const now = new Date().getTime();
+      const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+      
+      if (expiresAt > 0 && now > expiresAt) {
+        console.log('세션이 만료됨');
+        return null;
+      }
+      
       console.log('getCurrentUser 결과:', session.user);
       return session.user;
       
     } catch (error) {
-      console.log('getCurrentUser 예외 (정상):', error.message);
+      console.log('getCurrentUser 예외:', error.message);
       return null;
     }
   },

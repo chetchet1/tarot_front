@@ -9,6 +9,7 @@ export const useUserStore = defineStore('user', () => {
   const isLoggedIn = computed(() => !!currentUser.value && !currentUser.value.isAnonymous);
   const isPremium = computed(() => currentUser.value?.isPremium || false);
   const isLoading = ref(false);
+  const isInitialized = ref(false); // 초기화 완료 여부
   
   // 무료 점괴 관리
   const freeReadingsToday = ref(0);
@@ -209,10 +210,13 @@ export const useUserStore = defineStore('user', () => {
 
   // 로컬 스토리지 저장/불러오기
   const saveUser = () => {
-    console.log('사용자 저장 시도:', currentUser.value);
-    if (currentUser.value) {
-      localStorage.setItem('tarot_user', JSON.stringify(currentUser.value));
-      console.log('사용자 저장 완료');
+    try {
+      if (currentUser.value) {
+        localStorage.setItem('tarot_user', JSON.stringify(currentUser.value));
+        console.log('사용자 저장 완료:', currentUser.value.isAnonymous ? '익명' : '로그인');
+      }
+    } catch (error) {
+      console.error('사용자 저장 실패:', error);
     }
   };
 
@@ -220,15 +224,21 @@ export const useUserStore = defineStore('user', () => {
     console.log('사용자 로드 시도');
     try {
       const saved = localStorage.getItem('tarot_user');
-      console.log('로컬스토리지에서 가져온 데이터:', saved);
       if (saved) {
-        currentUser.value = JSON.parse(saved);
-        console.log('사용자 로드 성공:', currentUser.value);
-      } else {
-        console.log('저장된 사용자 없음, 익명 사용자 생성');
-        currentUser.value = createAnonymousUser();
-        saveUser();
+        const userData = JSON.parse(saved);
+        
+        // 데이터 유효성 검증
+        if (userData && typeof userData === 'object' && userData.id) {
+          currentUser.value = userData;
+          console.log('사용자 로드 성공:', userData.isAnonymous ? '익명' : '로그인');
+          return;
+        }
       }
+      
+      // 저장된 데이터가 없거나 유효하지 않으면 새 익명 사용자 생성
+      console.log('저장된 사용자 없음, 새 익명 사용자 생성');
+      currentUser.value = createAnonymousUser();
+      saveUser();
     } catch (error) {
       console.error('사용자 로드 실패:', error);
       currentUser.value = createAnonymousUser();
@@ -236,70 +246,39 @@ export const useUserStore = defineStore('user', () => {
     }
   };
 
-  // 사용자 초기화
+  // 사용자 초기화 (개선된 버전)
   const initializeUser = async () => {
     console.log('=== 사용자 초기화 시작 ===');
+    
     try {
       isLoading.value = true;
-      console.log('Supabase 인증 상태 확인 시도...');
       
       // 무료 점괴 데이터 로드
       loadFreeReadingData();
       
-      // Supabase 인증 상태 확인 (오류 처리 개선)
-      const user = await authService.getCurrentUser();
-      console.log('Supabase 사용자:', user);
+      // 로컬 스토리지에서 먼저 사용자 정보 로드 (빠른 UI 응답)
+      loadUser();
+      console.log('로컬 사용자 정보 로드 완료:', currentUser.value?.isAnonymous ? '익명' : '로그인');
       
-      if (user && user.email_confirmed_at) {
-        // 이메일 인증이 완료된 사용자만 로그인 처리
-        console.log('인증된 사용자 감지');
-        
-        // 프리미엄 상태 확인
-        const isPremiumUser = await checkPremiumStatus(user.id);
-        console.log('프리미엄 상태:', isPremiumUser);
-        
-        currentUser.value = {
-          id: user.id,
-          email: user.email!,
-          name: user.user_metadata?.name || user.email!.split('@')[0],
-          phone: user.user_metadata?.phone,
-          avatarUrl: user.user_metadata?.avatar_url,
-          createdAt: new Date(user.created_at),
-          lastLoginAt: new Date(),
-          isAnonymous: false,
-          isPremium: isPremiumUser,
-          preferences: {
-            theme: 'dark',
-            language: 'ko',
-            notifications: {
-              dailyReading: true,
-              weeklyInsight: true,
-              promotions: true,
-              newFeatures: true,
-              weeklyReport: false
-            },
-            soundEnabled: true,
-            vibrationEnabled: true,
-            autoSaveReadings: true,
-            privateProfile: false
-          }
-        };
-        saveUser();
-      } else {
-        // 로그인된 사용자가 없거나 이메일 미인증 사용자는 로컬 스토리지에서 로드
-        console.log('비로그인 사용자 또는 미인증 사용자');
-        loadUser();
-      }
+      // Supabase 인증 상태 확인 (비동기로 실행)
+      console.log('Supabase 인증 상태 확인 시도...');
       
-      // 인증 상태 변화 감지
-      authService.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          // 로그인 시 사용자 정보 업데이트
-          const user = session.user;
+      try {
+        const user = await authService.getCurrentUser();
+        console.log('Supabase 사용자 확인 결과:', user ? 'logged_in' : 'not_logged_in');
+        
+        if (user && user.email_confirmed_at) {
+          // 이메일 인증이 완료된 사용자 - 정보 업데이트
+          console.log('인증된 사용자 감지, 정보 업데이트 중...');
           
-          // 프리미엄 상태 확인
-          const isPremiumUser = await checkPremiumStatus(user.id);
-          console.log('로그인 시 프리미엄 상태:', isPremiumUser);
+          // 프리미엄 상태 확인 (오류 발생해도 계속 진행)
+          let isPremiumUser = false;
+          try {
+            isPremiumUser = await checkPremiumStatus(user.id);
+            console.log('프리미엄 상태:', isPremiumUser);
+          } catch (premiumError) {
+            console.warn('프리미엄 상태 확인 실패:', premiumError);
+          }
           
           currentUser.value = {
             id: user.id,
@@ -328,21 +307,88 @@ export const useUserStore = defineStore('user', () => {
             }
           };
           saveUser();
-          isLoading.value = false;
+          console.log('로그인 사용자 정보 업데이트 완료');
+        } else if (user && !user.email_confirmed_at) {
+          console.log('이메일 미인증 사용자 - 익명 사용자로 처리');
+          if (currentUser.value?.isAnonymous !== false) {
+            currentUser.value = createAnonymousUser();
+            saveUser();
+          }
+        } else {
+          console.log('비로그인 상태 확인');
+          // 로컬에 로그인 사용자가 저장되어 있다면 익명으로 변경
+          if (currentUser.value && !currentUser.value.isAnonymous) {
+            console.log('로컬 로그인 정보 제거하고 익명 사용자로 전환');
+            currentUser.value = createAnonymousUser();
+            saveUser();
+          }
+        }
+      } catch (authError) {
+        console.warn('Supabase 인증 확인 실패 (로컬 정보 유지):', authError.message);
+        // 네트워크 오류 등의 경우 로컬 정보 유지
+      }
+      
+      // 인증 상태 변화 감지 설정
+      authService.onAuthStateChange(async (event, session) => {
+        console.log('인증 상태 변화:', event);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          const user = session.user;
+          
+          // 프리미엄 상태 확인
+          let isPremiumUser = false;
+          try {
+            isPremiumUser = await checkPremiumStatus(user.id);
+          } catch (error) {
+            console.warn('로그인 시 프리미엄 상태 확인 실패:', error);
+          }
+          
+          currentUser.value = {
+            id: user.id,
+            email: user.email!,
+            name: user.user_metadata?.name || user.email!.split('@')[0],
+            phone: user.user_metadata?.phone,
+            avatarUrl: user.user_metadata?.avatar_url,
+            createdAt: new Date(user.created_at),
+            lastLoginAt: new Date(),
+            isAnonymous: false,
+            isPremium: isPremiumUser,
+            preferences: currentUser.value?.preferences || {
+              theme: 'dark',
+              language: 'ko',
+              notifications: {
+                dailyReading: true,
+                weeklyInsight: true,
+                promotions: true,
+                newFeatures: true,
+                weeklyReport: false
+              },
+              soundEnabled: true,
+              vibrationEnabled: true,
+              autoSaveReadings: true,
+              privateProfile: false
+            }
+          };
+          saveUser();
+          console.log('로그인 이벤트 처리 완료');
         } else if (event === 'SIGNED_OUT') {
-          // 로그아웃 시 익명 사용자로 전환
+          console.log('로그아웃 이벤트 처리');
           currentUser.value = createAnonymousUser();
           saveUser();
-          isLoading.value = false;
         }
       });
       
     } catch (error) {
       console.error('사용자 초기화 실패:', error);
-      currentUser.value = createAnonymousUser();
-      saveUser();
+      // 최후의 수단으로 익명 사용자 생성
+      if (!currentUser.value) {
+        currentUser.value = createAnonymousUser();
+        saveUser();
+      }
     } finally {
+      // 로딩 상태 해제
       isLoading.value = false;
+      console.log('사용자 초기화 완료');
     }
   };
 

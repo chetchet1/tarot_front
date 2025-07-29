@@ -117,15 +117,38 @@ const showUserDropdown = ref(false);
 onMounted(async () => {
   console.log('🏠 메인 앱 초기화');
   
-  // 사용자 초기화
-  await userStore.initializeUser();
+  // 사용자 초기화가 완료될 때까지 대기 (하지만 타임아웃 설정)
+  const waitForInitialization = () => {
+    return new Promise<void>((resolve) => {
+      // 이미 사용자가 있고 로딩이 아니면 완료
+      if (userStore.currentUser && !userStore.isLoading) {
+        resolve();
+        return;
+      }
+      
+      // 초기화 완료를 기다리되, 최대 5초만 대기
+      const checkInitialization = () => {
+        if (userStore.currentUser && !userStore.isLoading) {
+          resolve();
+        } else {
+          setTimeout(checkInitialization, 100);
+        }
+      };
+      
+      checkInitialization();
+      
+      // 5초 후 타임아웃
+      setTimeout(() => {
+        console.log('사용자 초기화 대기 타임아웃, 계속 진행');
+        resolve();
+      }, 5000);
+    });
+  };
   
-  // 로그인되지 않은 사용자는 홈으로 리다이렉트
-  if (!userStore.isLoggedIn) {
-    console.log('❌ 로그인되지 않은 사용자, 홈으로 이동');
-    router.push('/');
-    return;
-  }
+  // 초기화 대기
+  await waitForInitialization();
+  
+  console.log('사용자 초기화 완료, 앱 로드 진행');
   
   // 타로 데이터 로드
   tarotStore.loadReadings();

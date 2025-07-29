@@ -31,28 +31,44 @@ const initializeApp = async () => {
   try {
     console.log('🚀 앱 초기화 시작...');
     
-    // 1. 사용자 데이터 초기화
-    await userStore.initializeUser();
+    // 1. 사용자 데이터 초기화 (비동기로 실행 - UI 블록킹 방지)
+    userStore.initializeUser().catch(error => {
+      console.error('사용자 초기화 실패:', error);
+    });
     
-    // 2. 타로 데이터 초기화
-    await tarotStore.initialize();
+    // 2. 타로 데이터 초기화 (비동기로 실행)
+    tarotStore.initialize().catch(error => {
+      console.error('타로 데이터 초기화 실패:', error);
+    });
     
-    // 3. 광고 서비스 초기화 (무료 사용자용)
-    if (!userStore.isPremium) {
-      console.log('📺 광고 서비스 초기화...');
-      await initializeAdMob();
-    }
+    // 3. 광고 서비스 초기화 (비동기로 실행)
+    setTimeout(async () => {
+      try {
+        if (!userStore.isPremium) {
+          console.log('📺 광고 서비스 초기화...');
+          await initializeAdMob();
+        }
+      } catch (error) {
+        console.error('광고 서비스 초기화 실패:', error);
+      }
+    }, 1000);
     
-    // 4. 구독 서비스 초기화
-    console.log('💳 구독 서비스 초기화...');
-    await initializeSubscription();
+    // 4. 구독 서비스 초기화 (비동기로 실행)
+    setTimeout(async () => {
+      try {
+        console.log('💳 구독 서비스 초기화...');
+        await initializeSubscription();
+      } catch (error) {
+        console.error('구독 서비스 초기화 실패:', error);
+      }
+    }, 2000);
     
-    console.log('✅ 앱 초기화 완료');
+    console.log('✅ 앱 초기화 시작 완료 (백그라운드 작업 계속)');
   } catch (error) {
     console.error('❌ 앱 초기화 실패:', error);
     // 초기화 실패해도 앱은 계속 동작하도록
   }
 };
 
-// 앱 초기화 실행
+// 앱 초기화 실행 (비동기 - UI 블록킹 방지)
 initializeApp();

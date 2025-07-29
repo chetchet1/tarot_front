@@ -38,7 +38,7 @@
           @click="selectCard(card)"
         >
           <div class="card-image">
-            <div class="card-placeholder">🃏</div>
+          <img :src="getCardImageUrl(card)" :alt="card.nameKr" @error="onImageError" />
           </div>
           <div class="card-info">
             <h3>{{ card.nameKr }}</h3>
@@ -63,7 +63,9 @@
           
           <div class="modal-body">
             <div class="card-visual">
-              <div class="card-image-large">🃏</div>
+              <div class="card-image-large">
+                <img :src="getCardImageUrl(selectedCard)" :alt="selectedCard.nameKr" @error="onImageError" />
+              </div>
               <div class="card-basic-info">
                 <p><strong>영문명:</strong> {{ selectedCard.name }}</p>
                 <p><strong>분류:</strong> {{ selectedCard.arcana === 'major' ? '메이저 아르카나' : '마이너 아르카나' }}</p>
@@ -133,68 +135,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useTarotStore } from '@/store/tarot';
 
-// 임시 카드 데이터 (실제로는 allTarotCards에서 가져옴)
-const mockCards = [
-  {
-    id: 0,
-    name: "The Fool",
-    nameKr: "바보",
-    arcana: "major",
-    number: 0,
-    keywords: {
-      upright: ["새로운 시작", "순수함", "자발성", "신선함"],
-      reversed: ["무모함", "어리석음", "경솔함", "위험"]
-    },
-    meanings: {
-      general: {
-        upright: "새로운 시작과 모험의 기회가 다가오고 있습니다.",
-        reversed: "무모한 행동을 조심하고 신중하게 생각하세요."
-      },
-      love: {
-        upright: "순수한 사랑이나 새로운 만남이 기다리고 있습니다.",
-        reversed: "사랑에서 성급한 판단을 내리지 마세요."
-      }
-    }
-  },
-  {
-    id: 1,
-    name: "The Magician",
-    nameKr: "마법사",
-    arcana: "major",
-    number: 1,
-    keywords: {
-      upright: ["의지력", "집중", "실행력", "창조"],
-      reversed: ["능력 부족", "집중력 분산", "조작", "속임수"]
-    },
-    meanings: {
-      general: {
-        upright: "당신의 의지와 능력으로 목표를 달성할 수 있습니다.",
-        reversed: "능력을 과신하지 말고 겸손하게 행동하세요."
-      }
-    }
-  },
-  {
-    id: 64,
-    name: "Ace of Pentacles",
-    nameKr: "펜타클의 에이스",
-    arcana: "minor",
-    suit: "pentacles",
-    number: 1,
-    keywords: {
-      upright: ["새로운 기회", "번영", "풍요", "시작"],
-      reversed: ["기회 상실", "계획 부족", "탐욕", "물질주의"]
-    },
-    meanings: {
-      general: {
-        upright: "물질적 번영과 새로운 기회가 찾아옵니다.",
-        reversed: "기회를 놓치거나 물질에 너무 집착하고 있습니다."
-      }
-    }
-  }
-];
+const tarotStore = useTarotStore();
+const allCards = ref<any[]>([]);
 
 const router = useRouter();
 const searchQuery = ref('');
@@ -220,7 +166,7 @@ const meaningCategories = [
 ];
 
 const filteredCards = computed(() => {
-  let filtered = mockCards;
+  let filtered = allCards.value;
   
   // 검색어 필터
   if (searchQuery.value) {
@@ -255,10 +201,38 @@ const setMeaningTab = (tabId: string) => {
   activeMeaningTab.value = tabId;
 };
 
+// 카드 이미지 URL 생성 함수
+const getCardImageUrl = (card: any) => {
+  try {
+    // Supabase에서 오는 imageUrl을 우선적으로 사용
+    if (card.imageUrl && !card.imageUrl.includes('undefined')) {
+      return card.imageUrl;
+    }
+    
+    // image_url 필드도 확인
+    if (card.image_url && !card.image_url.includes('undefined')) {
+      return card.image_url;
+    }
+    
+    // 폴백 이미지
+    return '/assets/tarot-cards/major/00-the-Fool.png';
+  } catch (error) {
+    console.error('카드 이미지 URL 생성 오류:', error);
+    return '/assets/tarot-cards/major/00-the-Fool.png';
+  }
+};
+
 const selectCard = (card: any) => {
   selectedCard.value = card;
   activeMeaningTab.value = 'general';
 };
+
+// 컴포넌트 마운트 시 카드 데이터 로드
+onMounted(async () => {
+  await tarotStore.initialize();
+  allCards.value = tarotStore.tarotCards;
+  console.log('타로 사전 카드 데이터 로드:', allCards.value.length);
+});
 
 const closeModal = () => {
   selectedCard.value = null;
@@ -272,6 +246,27 @@ const getSuitName = (suit: string) => {
     pentacles: '펜타클 (물질)'
   };
   return suitNames[suit] || suit;
+};
+
+// 이미지 로드 에러 처리
+const onImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement;
+  if (img && img.parentElement) {
+    img.style.display = 'none';
+    if (!img.parentElement.querySelector('.fallback-emoji')) {
+      const fallbackEmoji = document.createElement('div');
+      fallbackEmoji.className = 'fallback-emoji';
+      fallbackEmoji.textContent = '🃏';
+      fallbackEmoji.style.cssText = `
+        font-size: 48px; text-align: center; display: flex;
+        align-items: center; justify-content: center;
+        width: 100%; height: 100%; position: absolute;
+        top: 0; left: 0; background: rgba(75, 85, 99, 0.9);
+        border-radius: 6px; z-index: 10;
+      `;
+      img.parentElement.appendChild(fallbackEmoji);
+    }
+  }
 };
 </script>
 
@@ -390,6 +385,20 @@ const getSuitName = (suit: string) => {
 .card-image {
   text-align: center;
   margin-bottom: 15px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.card-image img {
+  width: 80px;
+  height: 120px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: white;
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .card-placeholder {
@@ -499,8 +508,37 @@ const getSuitName = (suit: string) => {
 }
 
 .card-image-large {
-  font-size: 80px;
-  color: rgba(255, 255, 255, 0.6);
+  width: 120px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.card-image-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  background: white;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.card-image-large .fallback-emoji {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(75, 85, 99, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  color: white;
+  border-radius: 6px;
+  z-index: 10;
 }
 
 .card-basic-info p {
