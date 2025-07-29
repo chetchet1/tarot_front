@@ -126,7 +126,7 @@
       <div class="cards-container" v-if="isComplete && drawnCards.length > 0">
         <!-- 캘틱 크로스 전용 레이아웃 -->
         <div v-if="isCelticCross" class="celtic-cross-container">
-          <p class="instruction premium-instruction">🔮 켈틱 크로스 - 10장의 카드가 당신의 운명을 밝혀드립니다</p>
+          <p class="instruction premium-instruction">🔮 켈틱 크로스</p>
           <CelticCrossLayout 
             :cards="drawnCards"
             :isDrawing="false"

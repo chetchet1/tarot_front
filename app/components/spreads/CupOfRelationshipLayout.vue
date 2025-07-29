@@ -425,11 +425,21 @@
       </div>
     </div>
   </div>
+  
+  <!-- 포지션 의미 인라인 표시 (프리미엄 사용자용) -->
+  <PositionMeaningInline
+    v-if="userStore.isPremium"
+    :visible="showPositionMeaning"
+    :spread-id="'cup_of_relationship'"
+    :position="selectedPosition"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { nativeUtils } from '@/utils/capacitor';
+import { useUserStore } from '@/store/user';
+import PositionMeaningInline from '@/components/PositionMeaningInline.vue';
 
 interface CardData {
   card: any;
@@ -445,6 +455,11 @@ interface Props {
 
 const props = defineProps<Props>();
 const emit = defineEmits(['card-click']);
+const userStore = useUserStore();
+
+// 포지션 의미 표시 관련
+const showPositionMeaning = ref(false);
+const selectedPosition = ref(0);
 
 const cardsContainer = ref<HTMLElement>();
 
@@ -470,6 +485,12 @@ const handleCardClick = async (index: number) => {
   if (props.cards[index] && !props.cards[index].revealed) {
     await nativeUtils.buttonTapHaptic();
     emit('card-click', index);
+    
+    // 프리미엄 사용자인 경우 카드 공개 후 포지션 의미 표시
+    if (userStore.isPremium) {
+      selectedPosition.value = index + 1;
+      showPositionMeaning.value = true;
+    }
   }
 };
 

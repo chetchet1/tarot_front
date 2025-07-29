@@ -368,11 +368,21 @@
       </div>
     </div>
   </div>
+  
+  <!-- 포지션 의미 인라인 표시 (프리미엄 사용자용) -->
+  <PositionMeaningInline
+    v-if="userStore.isPremium"
+    :visible="showPositionMeaning"
+    :spread-id="'celtic_cross'"
+    :position="selectedPosition"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { nativeUtils } from '@/utils/capacitor';
+import { useUserStore } from '@/store/user';
+import PositionMeaningInline from '@/components/PositionMeaningInline.vue';
 
 interface CardData {
   card: any;
@@ -390,12 +400,23 @@ const props = defineProps<Props>();
 const emit = defineEmits(['card-click']);
 
 const cardsContainer = ref<HTMLElement>();
+const userStore = useUserStore();
+
+// 포지션 의미 표시 관련
+const showPositionMeaning = ref(false);
+const selectedPosition = ref(0);
 
 // 카드 클릭 핸들러
 const handleCardClick = async (index: number) => {
   if (props.cards[index] && !props.cards[index].revealed) {
     await nativeUtils.buttonTapHaptic();
     emit('card-click', index);
+    
+    // 프리미엄 사용자인 경우 카드 공개 후 포지션 의미 표시
+    if (userStore.isPremium) {
+      selectedPosition.value = index + 1;
+      showPositionMeaning.value = true;
+    }
   }
 };
 
@@ -532,8 +553,8 @@ const onImageError = (event: Event) => {
 .celtic-cross-layout {
   position: relative;
   width: 100%;
-  min-height: 800px;
-  padding: 20px;
+  min-height: 500px;
+  padding: 10px 10px 5px 10px;
 }
 
 /* 배경 장식 */
@@ -589,7 +610,7 @@ const onImageError = (event: Event) => {
   position: relative;
   width: 100%;
   max-width: 1200px;
-  height: 800px;
+  height: 500px;
   margin: 0 auto;
 }
 
@@ -611,14 +632,14 @@ const onImageError = (event: Event) => {
 .position-1 { /* 현재상황 - 중앙 왼쪽 */
   top: 55%;
   left: calc(40% - 60px);
-  transform: translate(-80%, -15%);
+  transform: translate(-80%, 0%);
   z-index: 10;
 }
 
 .position-2 { /* 도전/십자가 - 중앙 오른쪽 */
   top: 51%;
   left: calc(40% + 60px);
-  transform: translate(-105%, -35%);
+  transform: translate(-105%, -25%);
   z-index: 10;
 }
 
@@ -643,38 +664,38 @@ const onImageError = (event: Event) => {
 .position-3 { /* 먼 과거 - 위 */
   top: 21%;
   left: 40%;
-  transform: translate(-90%, -10%);
+  transform: translate(-90%, -40%);
 }
 
 .position-4 { /* 가까운 과거 - 왼쪽 */
   top: 53%;
   left: -5%;
-  transform: translate(-140%, -25%);
+  transform: translate(-140%, -10%);
 }
 
 .position-5 { /* 가능한 미래 - 오른쪽 */
   top: 53%;
   left: 85%;
-  transform: translate(-40%, -25%);
+  transform: translate(-40%, -10%);
 }
 
 .position-6 { /* 가까운 미래 - 아래 */
   top: 98%;
   left: 40%;
-  transform: translate(-90%, -20%);
+  transform: translate(-90%, 40%);
 }
 
 /* 오른쪽 기둥 */
 .position-7 { /* 당신의 접근 - 맨 아래 */
   top: 85%;
   left: 95%;
-  transform: translate(0%, 15%);
+  transform: translate(0%, 100%);
 }
 
 .position-8 { /* 외부 영향 */
   top: 62%;
   left: 95%;
-  transform: translate(20%, -15%);
+  transform: translate(30%, 35%);
 }
 
 .position-9 { /* 희망과 두려움 */
@@ -686,7 +707,7 @@ const onImageError = (event: Event) => {
 .position-10 { /* 최종 결과 - 맨 위 */
   top: 15%;
   left: 95%;
-  transform: translate(20%, -50%);
+  transform: translate(30%, -90%);
 }
 
 /* 위치 라벨 */
@@ -733,10 +754,10 @@ const onImageError = (event: Event) => {
   content: '';
   position: absolute;
   top: 50%;
-  left: 40%;
+  left: calc(40% - 20px);
   transform: translate(-50%, -50%);
-  width: 600px;
-  height: 350px;
+  width: 200px;
+  height: 200px;
   border: 2px dashed rgba(168, 85, 247, 0.2);
   border-radius: 20px;
   pointer-events: none;
@@ -872,7 +893,7 @@ const onImageError = (event: Event) => {
 /* 진행 표시기 */
 .progress-indicator {
   position: absolute;
-  bottom: 20px;
+  bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
@@ -936,66 +957,63 @@ const onImageError = (event: Event) => {
 /* 모바일 반응형 */
 @media (max-width: 768px) {
   .celtic-cross-layout {
-    min-height: 600px;
-    padding: 10px;
+    min-height: 400px;
+    padding: 5px;
   }
 
   .cards-container {
-    height: 600px;
-    transform: scale(0.7);
+    height: 400px;
+    transform: scale(0.75);
     transform-origin: top center;
   }
 
   /* 모바일에서 중앙 카드 위치 조정 */
-  .position-1 {
-    left: calc(40% - 80px);
-  }
-  
+  .position-1,
   .position-2 {
-    left: calc(40% + 80px);
+    left: calc(40% - 20px);
   }
   
   /* 모바일에서 상하좌우 카드 위치 조정 */
   .position-3 {
-    top: 10%;
+    top: 18%;
   }
   
   .position-4 {
-    left: 5%;
+    left: 8%;
   }
   
   .position-5 {
-    left: 75%;
+    left: 65%;
   }
   
   .position-6 {
-    top: 90%;
+    top: 82%;
   }
   
   /* 모바일에서 오른쪽 기둥 조정 */
   .position-7 {
-    top: 88%;
-    left: 93%;
+    top: 80%;
+    right: 2px;
   }
   
   .position-8 {
-    top: 64%;
-    left: 93%;
+    top: 60%;
+    right: 2px;
   }
   
   .position-9 {
-    top: 36%;
-    left: 93%;
+    top: 40%;
+    right: 2px;
   }
   
   .position-10 {
-    top: 12%;
-    left: 93%;
+    top: 20%;
+    right: 2px;
   }
   
   .cards-container::before {
-    width: 350px;
-    height: 250px;
+    width: 160px;
+    height: 160px;
   }
 
   .card-position {
@@ -1033,7 +1051,7 @@ const onImageError = (event: Event) => {
 
 @media (max-width: 480px) {
   .cards-container {
-    transform: scale(0.6);
+    transform: scale(0.65);
   }
 
   /* 더 작은 화면에서 카드 위치 더 조정 */
@@ -1063,29 +1081,16 @@ const onImageError = (event: Event) => {
   }
   
   /* 더 작은 화면에서 오른쪽 기둥 조정 */
-  .position-7 {
-    top: 88%;
-    left: 92%;
-  }
-  
-  .position-8 {
-    top: 64%;
-    left: 92%;
-  }
-  
-  .position-9 {
-    top: 36%;
-    left: 92%;
-  }
-  
+  .position-7,
+  .position-8,
+  .position-9,
   .position-10 {
-    top: 12%;
-    left: 92%;
+    right: 0;
   }
   
   .cards-container::before {
-    width: 280px;
-    height: 200px;
+    width: 140px;
+    height: 140px;
   }
 }
 </style>
