@@ -8,13 +8,13 @@
 
     <!-- 카드 배치 영역 -->
     <div class="cards-container" ref="cardsContainer">
-      <!-- Position 1: 현재 상황 (중앙) -->
+      <!-- Position 1: 현재내면 (중앙) -->
       <div 
         class="card-position position-1"
         :class="{ 'has-card': cards[0], 'revealed': cards[0]?.revealed }"
         @click="handleCardClick(0)"
       >
-        <div class="position-label">1. 현재 상황</div>
+        <div class="position-label">1. 현재내면</div>
         <div class="card-slot">
           <transition name="card-flip">
             <div v-if="cards[0]" class="card-content">
@@ -43,13 +43,13 @@
         </div>
       </div>
 
-      <!-- Position 2: 도전/십자가 (중앙, 위에 겹침) -->
+      <!-- Position 2: 현재외부 (중앙, 위에 겹침) -->
       <div 
         class="card-position position-2"
         :class="{ 'has-card': cards[1], 'revealed': cards[1]?.revealed }"
         @click="handleCardClick(1)"
       >
-        <div class="position-label">2. 도전/십자가</div>
+        <div class="position-label">2. 현재외부</div>
         <div class="card-slot">
           <transition name="card-flip">
             <div v-if="cards[1]" class="card-content">
@@ -78,13 +78,13 @@
         </div>
       </div>
 
-      <!-- Position 3: 먼 과거 (위) -->
+      <!-- Position 3: 근본 (아래) -->
       <div 
         class="card-position position-3"
         :class="{ 'has-card': cards[2], 'revealed': cards[2]?.revealed }"
         @click="handleCardClick(2)"
       >
-        <div class="position-label">3. 먼 과거</div>
+        <div class="position-label">3. 근본</div>
         <div class="card-slot">
           <transition name="card-flip">
             <div v-if="cards[2]" class="card-content">
@@ -113,13 +113,13 @@
         </div>
       </div>
 
-      <!-- Position 4: 가까운 과거 (왼쪽) -->
+      <!-- Position 4: 과거 (왼쪽) -->
       <div 
         class="card-position position-4"
         :class="{ 'has-card': cards[3], 'revealed': cards[3]?.revealed }"
         @click="handleCardClick(3)"
       >
-        <div class="position-label">4. 가까운 과거</div>
+        <div class="position-label">4. 과거</div>
         <div class="card-slot">
           <transition name="card-flip">
             <div v-if="cards[3]" class="card-content">
@@ -148,13 +148,13 @@
         </div>
       </div>
 
-      <!-- Position 5: 가능한 미래 (오른쪽) -->
+      <!-- Position 5: 드러나는 모습 (위) -->
       <div 
         class="card-position position-5"
         :class="{ 'has-card': cards[4], 'revealed': cards[4]?.revealed }"
         @click="handleCardClick(4)"
       >
-        <div class="position-label">5. 가능한 미래</div>
+        <div class="position-label">5. 드러나는 모습</div>
         <div class="card-slot">
           <transition name="card-flip">
             <div v-if="cards[4]" class="card-content">
@@ -183,13 +183,13 @@
         </div>
       </div>
 
-      <!-- Position 6: 가까운 미래 (아래) -->
+      <!-- Position 6: 미래 (오른쪽) -->
       <div 
         class="card-position position-6"
         :class="{ 'has-card': cards[5], 'revealed': cards[5]?.revealed }"
         @click="handleCardClick(5)"
       >
-        <div class="position-label">6. 가까운 미래</div>
+        <div class="position-label">6. 미래</div>
         <div class="card-slot">
           <transition name="card-flip">
             <div v-if="cards[5]" class="card-content">
@@ -219,13 +219,13 @@
       </div>
 
       <!-- 오른쪽 기둥 (7-10번) -->
-      <!-- Position 7: 당신의 접근 -->
+      <!-- Position 7: 내가보는나 -->
       <div 
         class="card-position position-7"
         :class="{ 'has-card': cards[6], 'revealed': cards[6]?.revealed }"
         @click="handleCardClick(6)"
       >
-        <div class="position-label">7. 당신의 접근</div>
+        <div class="position-label">7. 내가보는나</div>
         <div class="card-slot">
           <transition name="card-flip">
             <div v-if="cards[6]" class="card-content">
@@ -254,13 +254,13 @@
         </div>
       </div>
 
-      <!-- Position 8: 외부 영향 -->
+      <!-- Position 8: 남이보는나 -->
       <div 
         class="card-position position-8"
         :class="{ 'has-card': cards[7], 'revealed': cards[7]?.revealed }"
         @click="handleCardClick(7)"
       >
-        <div class="position-label">8. 외부 영향</div>
+        <div class="position-label">8. 남이보는나</div>
         <div class="card-slot">
           <transition name="card-flip">
             <div v-if="cards[7]" class="card-content">
@@ -289,13 +289,13 @@
         </div>
       </div>
 
-      <!-- Position 9: 희망과 두려움 -->
+      <!-- Position 9: 예상하는 결과 -->
       <div 
         class="card-position position-9"
         :class="{ 'has-card': cards[8], 'revealed': cards[8]?.revealed }"
         @click="handleCardClick(8)"
       >
-        <div class="position-label">9. 희망과 두려움</div>
+        <div class="position-label">9. 예상하는 결과</div>
         <div class="card-slot">
           <transition name="card-flip">
             <div v-if="cards[8]" class="card-content">
@@ -324,13 +324,13 @@
         </div>
       </div>
 
-      <!-- Position 10: 최종 결과 -->
+      <!-- Position 10: 실제 결과 -->
       <div 
         class="card-position position-10"
         :class="{ 'has-card': cards[9], 'revealed': cards[9]?.revealed }"
         @click="handleCardClick(9)"
       >
-        <div class="position-label">10. 최종 결과</div>
+        <div class="position-label">10. 실제 결과</div>
         <div class="card-slot">
           <transition name="card-flip">
             <div v-if="cards[9]" class="card-content">
@@ -408,11 +408,15 @@ const selectedPosition = ref(0);
 
 // 카드 클릭 핸들러
 const handleCardClick = async (index: number) => {
-  if (props.cards[index] && !props.cards[index].revealed) {
+  if (props.cards[index]) {
     await nativeUtils.buttonTapHaptic();
-    emit('card-click', index);
     
-    // 프리미엄 사용자인 경우 카드 공개 후 포지션 의미 표시
+    // 카드가 아직 공개되지 않은 경우
+    if (!props.cards[index].revealed) {
+      emit('card-click', index);
+    }
+    
+    // 프리미엄 사용자인 경우 포지션 의미 표시 (카드가 공개된 상태에서도)
     if (userStore.isPremium) {
       selectedPosition.value = index + 1;
       showPositionMeaning.value = true;
@@ -620,6 +624,7 @@ const onImageError = (event: Event) => {
   width: 120px;
   height: 180px;
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 /* 중앙 카드 그룹 강조 */
@@ -661,50 +666,50 @@ const onImageError = (event: Event) => {
   border: 1px solid rgba(168, 85, 247, 0.4);
 }
 
-.position-3 { /* 먼 과거 - 위 */
-  top: 21%;
-  left: 40%;
-  transform: translate(-90%, -40%);
-}
-
-.position-4 { /* 가까운 과거 - 왼쪽 */
-  top: 53%;
-  left: -5%;
-  transform: translate(-140%, -10%);
-}
-
-.position-5 { /* 가능한 미래 - 오른쪽 */
-  top: 53%;
-  left: 85%;
-  transform: translate(-40%, -10%);
-}
-
-.position-6 { /* 가까운 미래 - 아래 */
+.position-3 { /* 근본 - 아래 */
   top: 98%;
   left: 40%;
   transform: translate(-90%, 40%);
 }
 
+.position-4 { /* 과거 - 왼쪽 */
+  top: 53%;
+  left: -5%;
+  transform: translate(-140%, -10%);
+}
+
+.position-5 { /* 드러나는 모습 - 위 */
+  top: 21%;
+  left: 40%;
+  transform: translate(-90%, -40%);
+}
+
+.position-6 { /* 미래 - 오른쪽 */
+  top: 53%;
+  left: 85%;
+  transform: translate(-40%, -10%);
+}
+
 /* 오른쪽 기둥 */
-.position-7 { /* 당신의 접근 - 맨 아래 */
+.position-7 { /* 내가보는나 - 맨 아래 */
   top: 85%;
   left: 95%;
   transform: translate(0%, 100%);
 }
 
-.position-8 { /* 외부 영향 */
+.position-8 { /* 남이보는나 */
   top: 62%;
   left: 95%;
   transform: translate(30%, 35%);
 }
 
-.position-9 { /* 희망과 두려움 */
+.position-9 { /* 예상하는 결과 */
   top: 38%;
   left: 95%;
   transform: translate(0%, -25%);
 }
 
-.position-10 { /* 최종 결과 - 맨 위 */
+.position-10 { /* 실제 결과 - 맨 위 */
   top: 15%;
   left: 95%;
   transform: translate(30%, -90%);
@@ -975,7 +980,7 @@ const onImageError = (event: Event) => {
   
   /* 모바일에서 상하좌우 카드 위치 조정 */
   .position-3 {
-    top: 18%;
+    top: 82%;
   }
   
   .position-4 {
@@ -983,11 +988,11 @@ const onImageError = (event: Event) => {
   }
   
   .position-5 {
-    left: 65%;
+    top: 18%;
   }
   
   .position-6 {
-    top: 82%;
+    left: 65%;
   }
   
   /* 모바일에서 오른쪽 기둥 조정 */
@@ -1065,7 +1070,7 @@ const onImageError = (event: Event) => {
   
   /* 더 작은 화면에서 상하좌우 카드 위치 조정 */
   .position-3 {
-    top: 15%;
+    top: 85%;
   }
   
   .position-4 {
@@ -1073,11 +1078,11 @@ const onImageError = (event: Event) => {
   }
   
   .position-5 {
-    left: 70%;
+    top: 15%;
   }
   
   .position-6 {
-    top: 85%;
+    left: 70%;
   }
   
   /* 더 작은 화면에서 오른쪽 기둥 조정 */

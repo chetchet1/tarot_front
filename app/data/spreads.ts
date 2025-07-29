@@ -128,71 +128,71 @@ export const tarotSpreads: TarotSpread[] = [
     positions: [
       {
         position: 1,
-        name: "현재 상황",
-        description: "지금 당신이 처한 상황",
+        name: "현재내면",
+        description: "당신의 내면 상태와 감정",
         x: 40,
         y: 50
       },
       {
         position: 2,
-        name: "도전/십자가",
-        description: "현재 마주하고 있는 문제나 도전",
+        name: "현재외부",
+        description: "외부 환경과 영향",
         x: 40,
         y: 50
       },
       {
         position: 3,
-        name: "먼 과거",
-        description: "현재 상황의 근본 원인",
+        name: "근본",
+        description: "현재 상황의 뿌리와 기초",
         x: 40,
-        y: 20
+        y: 80
       },
       {
         position: 4,
-        name: "가까운 과거",
-        description: "최근에 일어난 관련 사건",
+        name: "과거",
+        description: "지나간 사건과 경험",
         x: 15,
         y: 50
       },
       {
         position: 5,
-        name: "가능한 미래",
-        description: "가까운 미래에 일어날 수 있는 일",
+        name: "드러나는 모습",
+        description: "당신이 드러내는 외부적 모습",
+        x: 40,
+        y: 20
+      },
+      {
+        position: 6,
+        name: "미래",
+        description: "앞으로 펼쳐질 가능성",
         x: 65,
         y: 50
       },
       {
-        position: 6,
-        name: "가까운 미래",
-        description: "곧 일어날 일",
-        x: 40,
-        y: 80
-      },
-      {
         position: 7,
-        name: "당신의 접근",
-        description: "상황에 대한 당신의 태도",
+        name: "내가보는나",
+        description: "자신에 대한 자아 인식",
         x: 85,
         y: 80
       },
       {
         position: 8,
-        name: "외부 영향",
-        description: "주변 환경과 타인의 영향",
+        name: "남이보는나",
+        description: "타인이 보는 나의 모습",
         x: 85,
         y: 60
       },
       {
         position: 9,
-        name: "희망과 두려움",
-        description: "당신의 기대와 걱정",
+        name: "예상하는 결과",
+        description: "내가 기대하고 예상하는 결과",
         x: 85,
         y: 40
       },
       {
         position: 10,
-        name: "최종 결과",
-        description: "모든 것을 고려한 최종적인 결과",
+        name: "실제 결과",
+        description: "실제로 일어날 가능성이 높은 결과",
         x: 85,
         y: 20
       }
