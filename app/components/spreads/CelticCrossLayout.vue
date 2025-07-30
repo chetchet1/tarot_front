@@ -396,7 +396,7 @@
       </div>
     </div>
 
-    <!-- 버튼 컨테이너 (일괄 뒤집기 + 슬롯) -->
+    <!-- 버튼 컨테이너 (일괄 뒤집기) -->
     <div class="action-buttons-container" v-if="!isDrawing">
       <button 
         v-if="hasUnrevealedCards"
@@ -405,7 +405,6 @@
       >
         <span class="icon">✨</span> 모든 카드 뒤집기
       </button>
-      <div v-else class="button-placeholder"></div>
       
       <!-- 부모 컴포넌트에서 전달하는 추가 버튼을 위한 슬롯 -->
       <slot name="action-button"></slot>
@@ -419,6 +418,7 @@
       </div>
     </div>
 
+    
     <!-- 해석 결과 섹션 (모든 카드가 공개된 후) -->
     <div v-if="showInterpretation && interpretation && !hasUnrevealedCards" class="interpretation-section">
       <div class="interpretation-container">
@@ -518,6 +518,7 @@ interface Props {
   drawProgress: number;
   interpretation?: any; // 해석 결과
   showInterpretation?: boolean; // 해석 표시 여부
+  topic?: string; // 운세 주제 (love, career, money, general)
 }
 
 const props = defineProps<Props>();
@@ -1693,6 +1694,200 @@ const onImageError = (event: Event) => {
   
   .element-count {
     font-size: 20px;
+  }
+}
+
+/* AI 해석 버튼 스타일 */
+.btn-ai-interpretation {
+  background: linear-gradient(135deg, #A855F7 0%, #7C3AED 100%);
+  color: white;
+}
+
+.btn-ai-interpretation:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9333EA 0%, #6D28D9 100%);
+}
+
+.btn-ai-interpretation.loading {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+.loading-spinner-small {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* AI 해석 결과 섹션 */
+.ai-interpretation-section {
+  margin-top: 80px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(124, 58, 237, 0.1) 100%);
+  border: 2px solid rgba(168, 85, 247, 0.4);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-interpretation-section::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, transparent 70%);
+  animation: pulse 4s ease-in-out infinite;
+}
+
+.ai-interpretation-container {
+  position: relative;
+  z-index: 1;
+}
+
+.ai-interpretation-container h3 {
+  text-align: center;
+  color: #A855F7;
+  font-size: 28px;
+  margin-bottom: 25px;
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ai-interpretation-content {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 25px;
+  backdrop-filter: blur(10px);
+}
+
+.ai-interpretation-content p {
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.8;
+  font-size: 16px;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 768px) {
+  .ai-interpretation-section {
+    margin-top: 60px;
+    padding: 15px;
+  }
+  
+  .ai-interpretation-container h3 {
+    font-size: 24px;
+  }
+  
+  .ai-interpretation-content {
+    padding: 20px;
+  }
+  
+  .ai-interpretation-content p {
+    font-size: 15px;
+  }
+}
+
+/* 평점 시스템 스타일 */
+.rating-section {
+  margin-top: 30px;
+  padding-top: 25px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.rating-section h4 {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+.star-rating {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  filter: grayscale(100%) opacity(0.5);
+  padding: 5px;
+}
+
+.star-btn:hover {
+  transform: scale(1.2);
+}
+
+.star-btn.active {
+  filter: grayscale(0%) opacity(1);
+  transform: scale(1.1);
+  animation: starPulse 0.3s ease;
+}
+
+@keyframes starPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1.1); }
+}
+
+.rating-hint {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  height: 20px;
+  transition: all 0.2s ease;
+}
+
+.rating-submitted {
+  margin-top: 25px;
+  padding: 20px;
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  border-radius: 12px;
+  text-align: center;
+  animation: slideInUp 0.5s ease-out;
+}
+
+.rating-submitted p {
+  color: #22C55E;
+  font-size: 16px;
+  margin: 0;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .star-btn {
+    font-size: 28px;
+  }
+  
+  .rating-hint {
+    font-size: 13px;
   }
 }
 </style>

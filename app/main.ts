@@ -68,6 +68,22 @@ const initializeApp = async () => {
     }, 2000);
     
     console.log('✅ 앱 초기화 시작 완료 (백그라운드 작업 계속)');
+    
+    // 5. 개발 모드에서 Supabase 설정 확인
+    if (import.meta.env.DEV) {
+      setTimeout(async () => {
+        try {
+          const { checkSupabaseSetup } = await import('./utils/checkSupabaseSetup');
+          await checkSupabaseSetup();
+          
+          // Edge Function 테스트 함수도 로드
+          const { testEdgeFunction } = await import('./utils/testEdgeFunction');
+          (window as any).testEdgeFunction = testEdgeFunction;
+        } catch (error) {
+          console.error('Supabase 설정 확인 실패:', error);
+        }
+      }, 3000);
+    }
   } catch (error) {
     console.error('❌ 앱 초기화 실패:', error);
     // 초기화 실패해도 앱은 계속 동작하도록

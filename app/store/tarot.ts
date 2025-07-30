@@ -1208,6 +1208,16 @@ export const useTarotStore = defineStore('tarot', () => {
   const clearImprovedInterpretation = () => {
     improvedInterpretation.value = null;
   };
+  
+  // reading 업데이트 함수 추가
+  const updateReading = (reading: Reading) => {
+    const index = readings.value.findIndex(r => r.id === reading.id);
+    if (index !== -1) {
+      readings.value[index] = reading;
+      saveReadingsToStorage();
+    }
+    currentReading.value = reading;
+  };
 
   return {
     readings,
@@ -1239,6 +1249,7 @@ export const useTarotStore = defineStore('tarot', () => {
     getTempDrawnCards,
     setImprovedInterpretation,
     getImprovedInterpretation,
-    clearImprovedInterpretation
+    clearImprovedInterpretation,
+    updateReading
   };
 });

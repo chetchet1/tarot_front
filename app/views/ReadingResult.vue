@@ -8,8 +8,40 @@
     <div class="container" v-if="reading">
 
 
-      <!-- 카드 해석 -->
-      <section class="cards-section">
+      <!-- AI 해석 (프리미엄 사용자 + 켈틱 크로스) -->
+      <section v-if="userStore.isPremium && reading.spreadId === 'celtic_cross' && reading.aiInterpretation" class="ai-interpretation-section">
+        <h2>🤖 AI 타로 해석</h2>
+        <div class="ai-interpretation-content">
+          <p>{{ reading.aiInterpretation }}</p>
+        </div>
+        
+        <!-- 평점 시스템 -->
+        <div class="rating-section" v-if="reading.aiInterpretationId && !userRating">
+          <h4>이 해석이 도움이 되셨나요?</h4>
+          <div class="star-rating">
+            <button 
+              v-for="i in 5" 
+              :key="i"
+              @click="submitRating(i)"
+              class="star-btn"
+              :class="{ active: hoverRating >= i || selectedRating >= i }"
+              @mouseenter="hoverRating = i"
+              @mouseleave="hoverRating = 0"
+            >
+              ⭐
+            </button>
+          </div>
+          <p class="rating-hint">{{ getRatingHint() }}</p>
+        </div>
+        
+        <!-- 평점 제출 후 메시지 -->
+        <div class="rating-submitted" v-if="userRating">
+          <p>✅ 소중한 피드백 감사합니다!</p>
+        </div>
+      </section>
+
+      <!-- 카드 해석 (AI 해석이 없거나 프리미엄이 아닌 경우) -->
+      <section v-if="!userStore.isPremium || reading.spreadId !== 'celtic_cross' || !reading.aiInterpretation" class="cards-section">
         <h2>📜 카드 해석</h2>
         
         <!-- 켈틱 크로스 특별 레이아웃 -->
@@ -736,6 +768,7 @@ import { useTarotStore } from '../store/tarot';
 import { useUserStore } from '../store/user';
 import { aiAnalysisService, AIAnalysisResult } from '../services/ai/aiAnalysisService';
 import EnhancedInterpretation from '../components/interpretation/EnhancedInterpretation.vue';
+import { AIInterpretationService } from '../services/ai/AIInterpretationService';
 
 const router = useRouter();
 const route = useRoute();
@@ -758,6 +791,11 @@ const selectedCardIndex = ref<number | null>(null);
 const aiAnalysis = ref<AIAnalysisResult | null>(null);
 const isLoadingAI = ref(false);
 const showAIAnalysis = ref(false);
+
+// 평점 관련 상태
+const hoverRating = ref(0);
+const selectedRating = ref(0);
+const userRating = ref(0);
 
 // 향상된 켈틱 크로스 해석은 reading 객체에 포함됨
 
@@ -981,6 +1019,35 @@ const getInsightEmoji = (insight: string): string => {
   if (insight.includes('도전') || insight.includes('어려움')) return '🗿';
   if (insight.includes('기회') || insight.includes('가능성')) return '🌈';
   return '✨';
+};
+
+// 평점 제출
+// 평점 제출
+const submitRating = async (rating: number) => {
+  if (!reading.value?.aiInterpretationId || userRating.value > 0) return;
+  
+  selectedRating.value = rating;
+  userRating.value = rating;
+  
+  try {
+    const aiService = new AIInterpretationService(userStore.isPremium);
+    await aiService.submitRating(reading.value.aiInterpretationId, rating);
+    console.log('평점 제출 성공:', rating);
+  } catch (error) {
+    console.error('평점 제출 오류:', error);
+  }
+};
+
+// 평점 힌트 텍스트
+const getRatingHint = () => {
+  const rating = hoverRating.value || selectedRating.value;
+  if (rating === 0) return '별점을 클릭해주세요';
+  if (rating === 1) return '전혀 도움이 되지 않았어요';
+  if (rating === 2) return '별로 도움이 되지 않았어요';
+  if (rating === 3) return '보통이에요';
+  if (rating === 4) return '도움이 되었어요';
+  if (rating === 5) return '매우 도움이 되었어요!';
+  return '';
 };
 
 onMounted(() => {
@@ -2395,6 +2462,168 @@ onMounted(() => {
   
   .probability-value {
     font-size: 28px;
+  }
+}
+
+/* AI 해석 결과 섹션 */
+.ai-interpretation-section {
+  margin: 40px 0;
+  padding: 30px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(124, 58, 237, 0.1) 100%);
+  border: 2px solid rgba(168, 85, 247, 0.4);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-interpretation-section::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, transparent 70%);
+  animation: pulse 4s ease-in-out infinite;
+}
+
+.ai-interpretation-section h2 {
+  text-align: center;
+  color: #A855F7;
+  font-size: 28px;
+  margin-bottom: 25px;
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ai-interpretation-content {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 25px;
+  backdrop-filter: blur(10px);
+}
+
+.ai-interpretation-content p {
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.8;
+  font-size: 16px;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* 평점 시스템 스타일 */
+.rating-section {
+  margin-top: 30px;
+  padding-top: 25px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.rating-section h4 {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+.star-rating {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  filter: grayscale(100%) opacity(0.5);
+  padding: 5px;
+}
+
+.star-btn:hover {
+  transform: scale(1.2);
+}
+
+.star-btn.active {
+  filter: grayscale(0%) opacity(1);
+  transform: scale(1.1);
+  animation: starPulse 0.3s ease;
+}
+
+@keyframes starPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1.1); }
+}
+
+.rating-hint {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  height: 20px;
+  transition: all 0.2s ease;
+}
+
+.rating-submitted {
+  margin-top: 25px;
+  padding: 20px;
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  border-radius: 12px;
+  text-align: center;
+  animation: slideInUp 0.5s ease-out;
+}
+
+.rating-submitted p {
+  color: #22C55E;
+  font-size: 16px;
+  margin: 0;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .ai-interpretation-section {
+    margin: 30px 0;
+    padding: 20px;
+  }
+  
+  .ai-interpretation-section h2 {
+    font-size: 24px;
+  }
+  
+  .ai-interpretation-content {
+    padding: 20px;
+  }
+  
+  .ai-interpretation-content p {
+    font-size: 15px;
+  }
+  
+  .star-btn {
+    font-size: 28px;
+  }
+  
+  .rating-hint {
+    font-size: 13px;
   }
 }
 </style>

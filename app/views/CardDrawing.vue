@@ -145,7 +145,6 @@
             :cards="drawnCards"
             :isDrawing="false"
             :drawProgress="100"
-            :improvedInterpretation="improvedInterpretation"
             :showInterpretation="allCardsRevealed"
             @card-click="revealCard"
             @reveal-all="revealAllCards"
@@ -262,12 +261,11 @@ import { nativeUtils } from '@/utils/capacitor';
 import { getAdManager } from '@/services/adManagerSingleton';
 import { ImprovedCelticCrossInterpreter } from '@/utils/ImprovedCelticCrossInterpreter';
 
-// AdModal을 동적 import로 변경
-const AdModal = defineAsyncComponent(() => import('@/components/AdModal.vue'));
-// 스프레드 레이아웃 컴포넌트들 import
-const CelticCrossLayout = defineAsyncComponent(() => import('@/components/spreads/CelticCrossLayout.vue'));
-const SevenStarLayout = defineAsyncComponent(() => import('@/components/spreads/SevenStarLayout.vue'));
-const CupOfRelationshipLayout = defineAsyncComponent(() => import('@/components/spreads/CupOfRelationshipLayout.vue'));
+// 컴포넌트 직접 import로 변경
+import AdModal from '@/components/AdModal.vue';
+import CelticCrossLayout from '@/components/spreads/CelticCrossLayout.vue';
+import SevenStarLayout from '@/components/spreads/SevenStarLayout.vue';
+import CupOfRelationshipLayout from '@/components/spreads/CupOfRelationshipLayout.vue';
 
 interface DrawnCardData {
   card: any; // TarotCard type
@@ -749,7 +747,10 @@ const generateCelticCrossInterpretation = async () => {
   if (!isCelticCross.value || drawnCards.value.length !== 10) return;
   
   try {
+    // 인스턴스 먼저 생성
     const interpreter = new ImprovedCelticCrossInterpreter();
+    
+    // cardsData를 먼저 준비
     const cardsData = drawnCards.value.map((drawn, index) => ({
       position: index,
       card: drawn.card,
@@ -757,8 +758,12 @@ const generateCelticCrossInterpretation = async () => {
       positionName: interpreter.getPositionName(index)
     }));
     
+    // generateInterpretation 메서드로 해석 생성
     const interpretation = await interpreter.generateInterpretation(cardsData);
     improvedInterpretation.value = interpretation;
+    
+    // tarotStore에도 저장
+    tarotStore.setImprovedInterpretation(interpretation);
   } catch (error) {
     console.error('켈틱 크로스 해석 생성 오류:', error);
   }
@@ -779,11 +784,65 @@ const goToResult = async () => {
       tarotStore.getTempDrawnCards() || undefined
     );
     
+    // 프리미엄 사용자인 경우 켈틱 크로스 AI 해석 생성
+    if (userStore.isPremium && isCelticCross.value && reading) {
+      try {
+        // AI 해석 서비스 인스턴스 생성
+        const { AIInterpretationService } = await import('@/services/ai/AIInterpretationService');
+        const aiService = new AIInterpretationService(userStore.isPremium);
+        
+        // AI 해석 생성을 위한 카드 데이터 준비
+        const cardsForAI = reading.cards.map((card: any, index: number) => ({
+          id: card.id,
+          name: card.name || card.nameEn || '',
+          name_kr: card.nameKr || card.name_kr || card.name || '',
+          nameKr: card.nameKr || card.name_kr || card.name || '',
+          arcana: card.arcana || 'unknown',
+          suit: card.suit || null,
+          number: card.number || null,
+          orientation: card.orientation || 'upright',
+          position: {
+            position: index + 1,
+            name: card.position?.name || [
+              '현재내면',
+              '현재외부', 
+              '근본',
+              '과거',
+              '드러나는 모습',
+              '미래',
+              '내가보는나',
+              '남이보는나',
+              '예상하는 결과',
+              '실제 결과'
+            ][index] || `위치 ${index + 1}`
+          }
+        }));
+        
+        // AI 해석 생성
+        const result = await aiService.generateInterpretation(
+          cardsForAI,
+          tarotStore.selectedTopic?.id || 'love', // 선택된 주제 사용
+          'celtic_cross'
+        );
+        
+        if (result && result.text) {
+          // AI 해석을 reading에 추가
+          reading.aiInterpretation = result.text;
+          reading.aiInterpretationId = result.interpretationId || null;
+        }
+        
+        // reading을 store에 업데이트
+        tarotStore.updateReading(reading);
+      } catch (aiError) {
+        console.error('AI 해석 생성 실패:', aiError);
+      }
+    }
+    
     // 점괴 결과 화면으로 이동
     router.push(`/reading-result?readingId=${reading.id}`);
   } catch (error) {
     console.error('점괴 생성 실패:', error);
-    alert('점괃4 생성에 실패했습니다. 다시 시도해주세요.');
+    alert('점괘 생성에 실패했습니다. 다시 시도해주세요.');
   }
 };
 

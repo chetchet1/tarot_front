@@ -39,10 +39,50 @@ export interface ImprovedInterpretation {
 }
 
 export class ImprovedCelticCrossInterpreter {
-  private cards: CardData[];
+  private cards: CardData[] = [];
+  
+  private positionNames = [
+    '현재 상황 (내면)',
+    '도전과 외부 영향',
+    '근본 원인',
+    '과거',
+    '가능한 미래',
+    '가까운 미래',
+    '자신의 상태',
+    '외부 환경',
+    '희망과 두려움',
+    '최종 결과'
+  ];
 
-  constructor(cards: CardData[]) {
-    this.cards = cards;
+  constructor(cards?: CardData[]) {
+    if (cards) {
+      this.cards = cards;
+    }
+  }
+  
+  public getPositionName(index: number): string {
+    return this.positionNames[index] || `위치 ${index + 1}`;
+  }
+  
+  public async generateInterpretation(cardsData: any[]): Promise<ImprovedInterpretation> {
+    // cardsData를 CardData 형식으로 변환
+    this.cards = cardsData.map(data => ({
+      id: data.card.id,
+      name: data.card.name,
+      nameKr: data.card.nameKr,
+      arcana: data.card.arcana,
+      number: data.card.number,
+      suit: data.card.suit,
+      element: data.card.element,
+      keywords: data.card.keywords,
+      orientation: data.orientation,
+      position: {
+        name: data.positionName,
+        description: ''
+      }
+    }));
+    
+    return this.getInterpretation();
   }
 
   public getInterpretation(): ImprovedInterpretation {
