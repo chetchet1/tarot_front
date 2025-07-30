@@ -34,7 +34,8 @@
             class="spread-card card"
             :class="{ 
               selected: selectedSpread === spread.id,
-              premium: spread.isPremium && !userStore.isPremium
+              premium: spread.isPremium && !userStore.isPremium,
+              updating: spread.id === 'seven_star' || spread.id === 'cup_of_relationship'
             }"
             @click="selectSpread(spread)"
           >
@@ -51,6 +52,9 @@
             </div>
             <div v-if="spread.isPremium && !userStore.isPremium" class="premium-overlay">
               <p>프리미엄 전용</p>
+            </div>
+            <div v-else-if="spread.id === 'seven_star' || spread.id === 'cup_of_relationship'" class="updating-overlay">
+              <p>🔄 업데이트 중</p>
             </div>
           </div>
         </div>
@@ -175,6 +179,11 @@ const spreads = computed(() => {
 const canStartReading = computed(() => {
   if (!selectedTopic.value || !selectedSpread.value) return false;
   
+  // 세븐스타와 릴레이션쉽 배열법은 업데이트 중
+  if (selectedSpread.value === 'seven_star' || selectedSpread.value === 'cup_of_relationship') {
+    return false;
+  }
+  
   const spread = getSpreadsByTopic(selectedTopic.value).find(s => s.spreadId === selectedSpread.value);
   if (!spread) return false;
   
@@ -189,6 +198,12 @@ const selectTopic = (topicId: string) => {
 };
 
 const selectSpread = (spread: Spread) => {
+  // 세븐스타와 릴레이션쉽 배열법 확인
+  if (spread.id === 'seven_star' || spread.id === 'cup_of_relationship') {
+    alert(`${spread.name} 배열법은 현재 업데이트 중입니다!\n\n빠른 시일 내에 서비스를 재개할 예정입니다.`);
+    return;
+  }
+  
   if (spread.isPremium && !userStore.isPremium) {
     router.push('/premium');
     return;
@@ -234,6 +249,13 @@ const getStartButtonText = () => {
 
 const startReading = async () => {
   if (!canStartReading.value) return;
+  
+  // 세븐스타와 릴레이션쉽 배열법 확인
+  if (selectedSpread.value === 'seven_star' || selectedSpread.value === 'cup_of_relationship') {
+    const spreadName = getSpreadName(selectedSpread.value);
+    alert(`${spreadName} 배열법은 현재 업데이트 중입니다!\n\n빠른 시일 내에 서비스를 재개할 예정입니다.`);
+    return;
+  }
   
   const selectedTopicData = topics.find(t => t.id === selectedTopic.value);
   const selectedSpreadData = getSpreadsByTopic(selectedTopic.value || 'general').find(s => s.spreadId === selectedSpread.value);
@@ -407,7 +429,13 @@ const goBack = () => {
   opacity: 0.7;
 }
 
-.premium-overlay {
+.spread-card.updating {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.premium-overlay,
+.updating-overlay {
   position: absolute;
   top: 0;
   left: 0;
@@ -424,6 +452,25 @@ const goBack = () => {
 .premium-overlay p {
   color: #F59E0B;
   font-weight: 600;
+}
+
+.updating-overlay {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.updating-overlay p {
+  color: #94A3B8;
+  font-weight: 600;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
 }
 
 .selection-summary {
