@@ -1085,68 +1085,68 @@ onMounted(() => {
   z-index: 100;
 }
 
-/* 각 위치별 좌표 - CelticCrossLayout.vue와 동일하게 */
+/* 각 위치별 좌표 - 간격을 좁혀서 조정 */
 .celtic-cross-layout .position-1 { /* 현재내면 - 중앙 왼쪽 */
-  top: 55%;
-  left: calc(40% - 60px);
-  transform: translate(-80%, 25%);
+  top: 52%;
+  left: calc(40% - 40px);
+  transform: translate(-100%, 15%);
   z-index: 10;
 }
 
 .celtic-cross-layout .position-2 { /* 현재외부 - 중앙 오른쪽 */
-  top: 51%;
-  left: calc(40% + 60px);
-  transform: translate(-105%, 0%);
+  top: 50%;
+  left: calc(40% + 40px);
+  transform: translate(-70%, -5%);
   z-index: 10;
 }
 
 .celtic-cross-layout .position-3 { /* 근본 - 아래 */
-  top: 98%;
+  top: 78%;
   left: 40%;
-  transform: translate(-90%, 65%);
+  transform: translate(-90%, 45%);
 }
 
 .celtic-cross-layout .position-4 { /* 과거 - 왼쪽 */
-  top: 53%;
-  left: -5%;
-  transform: translate(-140%, 15%);
+  top: 50%;
+  left: 8%;
+  transform: translate(-120%, 5%);
 }
 
 .celtic-cross-layout .position-5 { /* 드러나는 모습 - 위 */
-  top: 21%;
+  top: 25%;
   left: 40%;
-  transform: translate(-90%, -15%);
+  transform: translate(-90%, -25%);
 }
 
 .celtic-cross-layout .position-6 { /* 미래 - 오른쪽 */
-  top: 53%;
-  left: 85%;
-  transform: translate(-40%, 15%);
+  top: 50%;
+  left: 72%;
+  transform: translate(-20%, 5%);
 }
 
-/* 오른쪽 기둥 */
+/* 오른쪽 기둥 - 간격 좁히기 */
 .celtic-cross-layout .position-7 { /* 내가보는나 - 맨 아래 */
-  top: 85%;
-  left: 95%;
-  transform: translate(0%, 125%);
+  top: 75%;
+  left: 88%;
+  transform: translate(50%, 90%);
 }
 
 .celtic-cross-layout .position-8 { /* 남이보는나 */
-  top: 62%;
-  left: 95%;
-  transform: translate(30%, 60%);
+  top: 57%;
+  left: 88%;
+  transform: translate(70%, 40%);
 }
 
 .celtic-cross-layout .position-9 { /* 예상하는 결과 */
-  top: 38%;
-  left: 95%;
-  transform: translate(0%, 0%);
+  top: 40%;
+  left: 88%;
+  transform: translate(50%, -10%);
 }
 
 .celtic-cross-layout .position-10 { /* 실제 결과 - 맨 위 */
-  top: 15%;
-  left: 95%;
-  transform: translate(30%, -65%);
+  top: 22%;
+  left: 88%;
+  transform: translate(70%, -60%);
 }
 
 .card-mini {
@@ -1618,35 +1618,48 @@ onMounted(() => {
   
   /* 더 작은 화면에서 카드 위치 더 조정 */
   .celtic-cross-layout .position-1 {
-    left: calc(40% - 60px);
+    left: calc(40% - 35px);
   }
   
   .celtic-cross-layout .position-2 {
-    left: calc(40% + 60px);
+    left: calc(40% + 35px);
   }
   
   /* 더 작은 화면에서 상하좌우 카드 위치 조정 */
   .celtic-cross-layout .position-3 {
-    top: 85%;
+    top: 78%;
   }
   
   .celtic-cross-layout .position-4 {
-    left: 10%;
+    left: 15%;
   }
   
   .celtic-cross-layout .position-5 {
-    top: 15%;
+    top: 22%;
   }
   
   .celtic-cross-layout .position-6 {
-    left: 70%;
+    left: 65%;
   }
   
-  /* 더 작은 화면에서 오른쪽 기둥 조정 */
-  .celtic-cross-layout .position-7,
-  .celtic-cross-layout .position-8,
-  .celtic-cross-layout .position-9,
+  /* 더 작은 화면에서 오른쪽 기둥 조정 - 간격 더 좁히기 */
+  .celtic-cross-layout .position-7 {
+    top: 70%;
+    right: 0;
+  }
+  
+  .celtic-cross-layout .position-8 {
+    top: 52%;
+    right: 0;
+  }
+  
+  .celtic-cross-layout .position-9 {
+    top: 34%;
+    right: 0;
+  }
+  
   .celtic-cross-layout .position-10 {
+    top: 16%;
     right: 0;
   }
 }
@@ -1680,47 +1693,54 @@ onMounted(() => {
   }
   
   /* 모바일에서 중앙 카드 위치 조정 */
-  .celtic-cross-layout .position-1,
+  .celtic-cross-layout .position-1 {
+    left: calc(40% - 25px);
+  }
+  
   .celtic-cross-layout .position-2 {
-    left: calc(40% - 20px);
+    left: calc(40% + 25px);
   }
   
   /* 모바일에서 상하좌우 카드 위치 조정 */
   .celtic-cross-layout .position-3 {
-    top: 82%;
+    top: 75%;
   }
   
   .celtic-cross-layout .position-4 {
-    left: 8%;
+    left: 12%;
   }
   
   .celtic-cross-layout .position-5 {
-    top: 18%;
+    top: 25%;
   }
   
   .celtic-cross-layout .position-6 {
-    left: 65%;
+    left: 60%;
   }
   
-  /* 모바일에서 오른쪽 기둥 조정 */
+  /* 모바일에서 오른쪽 기둥 조정 - 간격 좁히기 */
   .celtic-cross-layout .position-7 {
-    top: 80%;
-    right: 2px;
+    top: 72%;
+    right: 5px;
+    left: auto;
   }
   
   .celtic-cross-layout .position-8 {
-    top: 60%;
-    right: 2px;
+    top: 54%;
+    right: 5px;
+    left: auto;
   }
   
   .celtic-cross-layout .position-9 {
-    top: 40%;
-    right: 2px;
+    top: 36%;
+    right: 5px;
+    left: auto;
   }
   
   .celtic-cross-layout .position-10 {
-    top: 20%;
-    right: 2px;
+    top: 18%;
+    right: 5px;
+    left: auto;
   }
   
   .card-detail-content {
