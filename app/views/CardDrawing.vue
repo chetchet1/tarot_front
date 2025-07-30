@@ -8,8 +8,15 @@
     <header class="page-header">
       <button class="back-button" @click="goBack">← 뒤로</button>
       <h1>카드 뽑기</h1>
-      <div v-if="!userStore.isPremium" class="free-usage-indicator">
-        무료 사용: {{ userStore.freeReadingsToday }}/{{ userStore.maxFreeReadingsPerDay }}
+      <div v-if="!userStore.isPremium && !adStatus.isTemporaryPremium" class="free-usage-indicator">
+        무료 사용: {{ adStatus.dailyReadingCount }}/{{ adStatus.remainingReadings >= 0 ? adStatus.dailyReadingCount + adStatus.remainingReadings : '∞' }}
+        <span v-if="adStatus.bonusReadings > 0" class="bonus-indicator">
+          (+{{ adStatus.bonusReadings }} 보너스)
+        </span>
+      </div>
+      <div v-else-if="adStatus.isTemporaryPremium" class="premium-status-indicator">
+        🌟 임시 프리미엄 활성화 중
+        <span class="expiry-time">{{ formatExpiryTime() }}</span>
       </div>
     </header>
 
@@ -207,6 +214,7 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '@/store/user';
 import { useTarotStore } from '@/store/tarot';
 import { nativeUtils } from '@/utils/capacitor';
+import { getAdManager } from '@/services/adManagerSingleton';
 
 // AdModal을 동적 import로 변경
 const AdModal = defineAsyncComponent(() => import('@/components/AdModal.vue'));
@@ -237,6 +245,35 @@ const shuffledDeck = ref<any[]>([]);
 const allCardsRevealed = computed(() => {
   return drawnCards.value.length > 0 && drawnCards.value.every(card => card.revealed);
 });
+
+// 광고 매니저 상태
+const adManager = getAdManager();
+const adStatus = ref(adManager.getStatus());
+
+// 광고 상태 업데이트 함수
+const updateAdStatus = () => {
+  adStatus.value = adManager.getStatus();
+};
+
+// 남은 시간 포맷팅
+const formatExpiryTime = () => {
+  if (!adStatus.value.temporaryPremiumExpiry) return '';
+  
+  const now = new Date();
+  const expiry = new Date(adStatus.value.temporaryPremiumExpiry);
+  const diff = expiry.getTime() - now.getTime();
+  
+  if (diff <= 0) return '만료됨';
+  
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (hours > 0) {
+    return `${hours}시간 ${minutes}분 남음`;
+  } else {
+    return `${minutes}분 남음`;
+  }
+};
 
 // 특별 레이아웃 스프레드인지 확인
 const isCelticCross = computed(() => {
@@ -562,18 +599,23 @@ const startDrawing = async () => {
   // 버튼 클릭 햇틱 피드백
   await nativeUtils.buttonTapHaptic();
   
-  // 무료 사용자 체크
-  if (!userStore.isPremium && !userStore.canUseFreeReading) {
-    alert(`오늘의 무료 점괘 횟수를 모두 사용했습니다. (${userStore.freeReadingsToday}/${userStore.maxFreeReadingsPerDay})\n\n프리미엄으로 업그레이드하면 무제한 이용할 수 있습니다.`);
-    router.push('/premium');
+  // 광고 매니저를 통해 점괘 시작 가능 여부 확인
+  const canStart = await adManager.startReading();
+  
+  if (!canStart) {
+    // 점괘를 볼 수 없는 경우
+    const status = adManager.getStatus();
+    if (status.remainingReadings === 0) {
+      // 무료 횟수 소진 - 옵션 표시
+      showFreeUsageOptions();
+    }
     return;
   }
 
-  if (!userStore.isPremium) {
-    showAdModal.value = true;
-    return;
-  }
-
+  // 광고 상태 업데이트
+  updateAdStatus();
+  
+  // 카드 뽑기 진행
   await drawCards();
 };
 
@@ -653,6 +695,7 @@ const closeAdModal = () => {
 };
 
 // 이미지 로드 에러 처리
+// 이미지 로드 에러 처리
 const onImageError = (event: Event) => {
   if (!event || !event.target) {
     console.warn('이미지 에러 이벤트가 유효하지 않음');
@@ -699,6 +742,23 @@ const onImageError = (event: Event) => {
     }
   } else {
     console.warn('이미지의 부모 엘리먼트가 없음');
+  }
+};
+
+// 무료 사용자 옵션 표시
+const showFreeUsageOptions = () => {
+  // TODO: 모달로 더 예쁨게 만들기
+  const options = [
+    '1. 프리미엄으로 업그레이드하기',
+    '2. 리워드 광고 시청하고 추가 횟수 받기',
+    '3. 24시간 임시 프리미엄 활성화'
+  ];
+  
+  const choice = confirm(`오늘의 무료 점괘를 모두 사용했습니다.\n\n${options.join('\n')}\n\n계속하시겠습니까?`);
+  
+  if (choice) {
+    // TODO: 옵션 선택 화면 보여주기
+    router.push('/premium');
   }
 };
 </script>

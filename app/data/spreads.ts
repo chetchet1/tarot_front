@@ -201,67 +201,6 @@ export const tarotSpreads: TarotSpread[] = [
     topics: ["general", "love", "career", "money"]
   },
   {
-    id: "seven_star",
-    spreadId: "seven_star",
-    name: "Seven Star",
-    nameKr: "세븐 스타",
-    description: "7개의 별이 당신의 운명을 밝혀주는 신비로운 배열",
-    cardCount: 7,
-    positions: [
-      {
-        position: 1,
-        name: "과거의 영향",
-        description: "현재에 영향을 미치는 과거의 요소",
-        x: 50,
-        y: 20
-      },
-      {
-        position: 2,
-        name: "현재 상황",
-        description: "당신이 지금 서 있는 위치",
-        x: 50,
-        y: 50
-      },
-      {
-        position: 3,
-        name: "숨겨진 영향",
-        description: "보이지 않는 힘과 영향",
-        x: 20,
-        y: 35
-      },
-      {
-        position: 4,
-        name: "의식적 욕구",
-        description: "당신이 원하는 것",
-        x: 80,
-        y: 35
-      },
-      {
-        position: 5,
-        name: "무의식적 욕구",
-        description: "당신이 진정으로 필요로 하는 것",
-        x: 20,
-        y: 65
-      },
-      {
-        position: 6,
-        name: "조언",
-        description: "취해야 할 행동",
-        x: 80,
-        y: 65
-      },
-      {
-        position: 7,
-        name: "최종 결과",
-        description: "예상되는 결과",
-        x: 50,
-        y: 80
-      }
-    ],
-    isPremium: true,
-    topics: ["general", "love", "career", "money"]
-  },
-  {
     id: "cup_of_relationship",
     spreadId: "cup_of_relationship",
     name: "Cup of Relationship",

@@ -6,12 +6,17 @@ import {
   Reading, 
   Orientation,
   Topic,
-  TarotSpread
+  TarotSpread,
+  Reading as TarotReading
 } from '../models/tarot';
 import { useUserStore } from './user';
 import { tarotService, spreadService } from '../services/supabase';
 import { tarotSpreads } from '../data/spreads';
-import { generateEnhancedInterpretation } from '../services/premiumInterpretation';
+import { generateEnhancedInterpretation, generateCelticCrossInterpretation, CelticCrossInterpreter } from '../services/premiumInterpretation';
+import { CardCombinationAnalyzer, TopicSpecificInterpretation } from '../services/interpretation/cardCombinations';
+import { PersonalizedInterpretation, LifePathCalculator, ZodiacCalculator } from '../services/interpretation/personalizedInterpretation';
+import { AIInterpretationEnhancer, ProbabilityInterpreter } from '../services/interpretation/aiEnhancer';
+import { DeepInterpretationService } from '../services/premium/deepInterpretation';
 
 interface DailyCard {
   date: string;
@@ -430,13 +435,156 @@ export const useTarotStore = defineStore('tarot', () => {
         };
       });
 
-      // 프리미엄 해석 생성
-      const interpretation = generateEnhancedInterpretation(
-        cardsWithPositions,
-        spread,
-        topic,
-        userStore.isPremium
-      );
+      // 해석 생성 - 다층적 분석 시스템 적용
+      let interpretation: any;
+      
+      // 1. 기본 해석 생성
+      if (spreadId === 'celtic_cross') {
+        // 켈틱 크로스 전용 해석기 사용
+        const celticInterpreter = new CelticCrossInterpreter(cardsWithPositions, topic);
+        const celticInterpretation = await celticInterpreter.generateInterpretation();
+        
+        interpretation = {
+          cards: cardsWithPositions.map((card, index) => ({
+            ...card,
+            interpretation: {
+              basic: celticInterpretation.positions[index].meaning,
+              advice: celticInterpretation.advice
+            }
+          })),
+          overallMessage: celticInterpretation.overallPattern,
+          premiumInsights: userStore.isPremium ? {
+            relationships: celticInterpretation.relationships,
+            keywords: celticInterpretation.keywords,
+            elementAnalysis: celticInterpretation.relationships.filter(r => r.includes('원소')),
+            timelineAnalysis: celticInterpretation.relationships.find(r => r.includes('과거') || r.includes('현재') || r.includes('미래')),
+            advice: celticInterpretation.advice
+          } : undefined
+        };
+      } else {
+        // 기존 해석 생성 로직
+        interpretation = generateEnhancedInterpretation(
+          cardsWithPositions,
+          spread,
+          topic,
+          userStore.isPremium
+        );
+      }
+
+      // 2. 카드 조합 분석 추가 (프리미엄)
+      let cardCombinations = [];
+      let cardPattern = null;
+      
+      if (userStore.isPremium) {
+        cardCombinations = DeepInterpretationService.analyzeCardCombinations(cardsWithPositions);
+        cardPattern = DeepInterpretationService.analyzeCardPattern(cardsWithPositions);
+      }
+      
+      // 3. 주제별 특화 해석 추가
+      const enhancedCards = cardsWithPositions.map((card, index) => {
+        const enhanced = TopicSpecificInterpretation.enhanceInterpretation(
+          card,
+          topic,
+          spread.positions[index]
+        );
+        return {
+          ...card,
+          interpretation: {
+            ...card.interpretation,
+            ...enhanced
+          }
+        };
+      });
+      
+      // 4. AI 기반 심층 해석 (프리미엄)
+      let deepInterpretation = null;
+      let probabilityAnalysis = null;
+      
+      if (userStore.isPremium) {
+        // 새로운 심층 해석 서비스 사용
+        const tempReading: TarotReading = {
+          id: `temp_${Date.now()}`,
+          userId: userStore.currentUser?.id,
+          spreadId,
+          topic,
+          question,
+          cards: cardsWithPositions,
+          overallMessage: '',
+          createdAt: new Date(),
+          isPremium: true,
+          shared: false
+        };
+        
+        deepInterpretation = DeepInterpretationService.generateDeepInterpretation(tempReading);
+        
+        // 확률적 분석
+        probabilityAnalysis = DeepInterpretationService.generateProbabilityAnalysis(
+          cardsWithPositions,
+          topic
+        );
+      }
+      
+      // 6. 시간대별 분석 (켈틱 크로스인 경우)
+      let timelineAnalysis = null;
+      if (spreadId === 'celtic_cross') {
+        const pastCards = [cardsWithPositions[2], cardsWithPositions[3]];
+        const presentCard = cardsWithPositions[0];
+        const futureCards = [cardsWithPositions[4], cardsWithPositions[5]];
+        
+        timelineAnalysis = CardCombinationAnalyzer.analyzeTimelineInfluence(
+          pastCards,
+          presentCard,
+          futureCards
+        );
+      }
+      
+      // 7. 모든 분석 결과 통합
+      interpretation = {
+        ...interpretation,
+        cards: enhancedCards,
+        cardCombinations,
+        cardPattern,
+        deepInterpretation,
+        probabilityAnalysis,
+        timelineAnalysis,
+        // 프리미엄 전용 추가 통찰
+        premiumInsights: userStore.isPremium ? {
+          ...interpretation.premiumInsights,
+          deepLayers: deepInterpretation?.layers,
+          synthesis: deepInterpretation?.synthesis,
+          keyInsights: deepInterpretation?.keyInsights,
+          actionPlan: deepInterpretation?.actionPlan,
+          affirmations: deepInterpretation?.affirmations,
+          journalPrompts: deepInterpretation?.journalPrompts,
+          cardCombinations,
+          cardPattern,
+          probabilityAnalysis,
+          timelineAnalysis
+        } : undefined
+      };
+
+      // 8. 개인화된 해석 추가 (사용자 프로필이 있는 경우)
+      if (userStore.currentUser?.birthDate) {
+        const userProfile = {
+          birthDate: new Date(userStore.currentUser.birthDate),
+          zodiacSign: ZodiacCalculator.getZodiacSign(new Date(userStore.currentUser.birthDate)),
+          lifePathNumber: LifePathCalculator.calculate(new Date(userStore.currentUser.birthDate)),
+          readingHistory: readings.value
+        };
+        
+        const personalizedInterpreter = new PersonalizedInterpretation(userProfile);
+        
+        interpretation.cards = interpretation.cards.map(card => {
+          const personalized = personalizedInterpreter.enhanceInterpretation(card, { spread, topic });
+          return {
+            ...card,
+            interpretation: {
+              ...card.interpretation,
+              personalized
+            }
+          };
+        });
+      }
 
       const reading: Reading = {
         id: `reading_${Date.now()}`,
@@ -449,7 +597,13 @@ export const useTarotStore = defineStore('tarot', () => {
         createdAt: new Date(),
         isPremium: spread.isPremium,
         shared: false,
-        premiumInsights: interpretation.premiumInsights
+        // 프리미엄 분석 데이터 모두 포함
+        premiumInsights: interpretation.premiumInsights,
+        cardCombinations: userStore.isPremium ? cardCombinations : undefined,
+        cardPattern: userStore.isPremium ? cardPattern : undefined,
+        deepInterpretation: userStore.isPremium ? deepInterpretation : undefined,
+        probabilityAnalysis: userStore.isPremium ? probabilityAnalysis : undefined,
+        timelineAnalysis: userStore.isPremium ? timelineAnalysis : undefined
       };
       
       console.log('생성된 점괘:', reading);

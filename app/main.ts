@@ -22,9 +22,13 @@ app.mount('#app');
 // Store 초기화는 마운트 후에 실행
 import { useUserStore } from './store/user';
 import { useTarotStore } from './store/tarot';
+import { initializeAdManager } from './services/adManagerSingleton';
 
 const userStore = useUserStore();
 const tarotStore = useTarotStore();
+
+// AdManager에 userStore 주입
+initializeAdManager(() => userStore);
 
 // 앱 초기화 함수
 const initializeApp = async () => {

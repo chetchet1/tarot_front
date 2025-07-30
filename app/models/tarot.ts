@@ -83,6 +83,12 @@ export interface Reading {
   shared: boolean;
   tags?: string[];
   premiumInsights?: any; // 프리미엄 사용자를 위한 추가 인사이트
+  // 프리미엄 분석 필드들
+  cardCombinations?: any[];
+  cardPattern?: any;
+  deepInterpretation?: any;
+  probabilityAnalysis?: any;
+  timelineAnalysis?: any;
 }
 
 export interface UserStats {

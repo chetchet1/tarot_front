@@ -22,7 +22,169 @@ interface DetailedInterpretation {
   affirmation?: string;
 }
 
-// 켈틱 크로스 특별 해석
+// 켈틱 크로스 해석기 클래스
+export class CelticCrossInterpreter {
+  private cards: any[];
+  private topic: string;
+
+  constructor(cards: any[], topic: string) {
+    this.cards = cards;
+    this.topic = topic;
+  }
+
+  async generateInterpretation(): Promise<any> {
+    const positions = this.cards.map((card, index) => ({
+      meaning: this.getPositionMeaning(card, index),
+      card: card
+    }));
+
+    const overallPattern = this.generateOverallPattern();
+    const relationships = this.analyzeRelationships();
+    const keywords = this.extractKeywords();
+    const advice = this.generateAdvice();
+
+    return {
+      positions,
+      overallPattern,
+      relationships,
+      keywords,
+      advice
+    };
+  }
+
+  private getPositionMeaning(card: any, index: number): string {
+    const positionMeanings = [
+      '현재 당신의 상황',
+      '당면한 도전이나 영향',
+      '먼 과거의 영향',
+      '최근 과거의 사건',
+      '가능한 미래의 결과',
+      '가까운 미래의 전개',
+      '당신의 접근 방식',
+      '외부 환경과 영향',
+      '희망과 두려움',
+      '최종 결과와 교훈'
+    ];
+
+    const position = positionMeanings[index];
+    const meaning = card.meanings?.[this.topic]?.[card.orientation] || 
+                   card.meanings?.general?.[card.orientation] || 
+                   '이 카드는 중요한 메시지를 담고 있습니다.';
+
+    return `${position}: ${meaning}`;
+  }
+
+  private generateOverallPattern(): string {
+    const majorCount = this.cards.filter(c => c.arcana === 'major').length;
+    const uprightCount = this.cards.filter(c => c.orientation === 'upright').length;
+    
+    let pattern = '';
+    
+    if (majorCount >= 5) {
+      pattern = '인생의 중대한 전환점에 서 있습니다. ';
+    } else if (majorCount >= 3) {
+      pattern = '중요한 변화와 성장의 시기입니다. ';
+    } else {
+      pattern = '일상적인 문제들이 주를 이루고 있습니다. ';
+    }
+    
+    if (uprightCount >= 7) {
+      pattern += '전반적으로 긍정적인 에너지가 흐르고 있습니다.';
+    } else if (uprightCount <= 3) {
+      pattern += '도전과 어려움이 있지만, 이는 성장의 기회입니다.';
+    } else {
+      pattern += '균형잡힌 상황으로, 신중한 접근이 필요합니다.';
+    }
+    
+    return pattern;
+  }
+
+  private analyzeRelationships(): string[] {
+    const relationships = [];
+    
+    // 과거와 현재의 연결
+    if (this.cards[2].suit === this.cards[0].suit && this.cards[2].arcana === 'minor' && this.cards[0].arcana === 'minor') {
+      relationships.push('과거의 경험이 현재 상황에 직접적인 영향을 미치고 있습니다.');
+    }
+    
+    // 현재와 미래의 연결
+    if (this.cards[0].orientation === this.cards[5].orientation) {
+      relationships.push('현재의 에너지가 가까운 미래까지 이어질 것으로 보입니다.');
+    }
+    
+    // 의식과 무의식의 대비
+    if (this.cards[6].orientation !== this.cards[8].orientation) {
+      relationships.push('의식적인 접근과 무의식적인 두려움 사이에 갈등이 있습니다.');
+    }
+    
+    // 원소 분석
+    const elements = this.analyzeElements();
+    if (elements.dominant) {
+      relationships.push(`${elements.dominant} 원소의 에너지가 강하게 작용하고 있습니다.`);
+    }
+    
+    return relationships;
+  }
+
+  private analyzeElements(): any {
+    const elementCount = { fire: 0, water: 0, air: 0, earth: 0 };
+    const elementMap = {
+      'wands': 'fire',
+      'cups': 'water',
+      'swords': 'air',
+      'pentacles': 'earth'
+    };
+    
+    this.cards.forEach(card => {
+      if (card.suit && elementMap[card.suit]) {
+        elementCount[elementMap[card.suit]]++;
+      }
+    });
+    
+    const dominant = Object.entries(elementCount)
+      .sort(([,a], [,b]) => b - a)[0];
+    
+    return {
+      dominant: dominant[1] >= 3 ? dominant[0] : null,
+      counts: elementCount
+    };
+  }
+
+  private extractKeywords(): string[] {
+    const keywords = new Set<string>();
+    
+    this.cards.forEach(card => {
+      if (card.keywords && card.keywords[card.orientation]) {
+        card.keywords[card.orientation].forEach((kw: string) => keywords.add(kw));
+      }
+    });
+    
+    return Array.from(keywords).slice(0, 10);
+  }
+
+  private generateAdvice(): string {
+    const futureCard = this.cards[9]; // 최종 결과
+    const approachCard = this.cards[6]; // 당신의 접근
+    
+    let advice = '';
+    
+    if (futureCard.orientation === 'upright') {
+      advice = '긍정적인 결과를 향해 나아가고 있습니다. ';
+    } else {
+      advice = '예상과 다른 결과가 나올 수 있지만, 이 또한 성장의 기회입니다. ';
+    }
+    
+    if (approachCard.orientation === 'upright') {
+      advice += '현재의 접근 방식을 유지하되, 유연성을 잃지 마세요.';
+    } else {
+      advice += '접근 방식을 재검토하고 새로운 관점을 시도해보세요.';
+    }
+    
+    return advice;
+  }
+}
+
+// 기존 함수도 유지 (호환성을 위해)
 export const getCelticCrossInterpretation = (cards: CardInterpretation[]): any => {
   const interpretations: any = {};
   
@@ -899,5 +1061,6 @@ function getTransformationPath(challenge: any, orientation: string): string {
 
 export default {
   generateEnhancedInterpretation,
-  generatePremiumInsights
+  generatePremiumInsights,
+  CelticCrossInterpreter
 };

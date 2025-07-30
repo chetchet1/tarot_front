@@ -77,6 +77,12 @@ const routes = [
     name: 'AuthCallback',
     component: AuthCallback,
   },
+  {
+    path: '/test-premium',
+    name: 'TestPremium',
+    component: () => import('../views/TestPremium.vue'),
+    meta: { requiresAuth: true }
+  },
 ];
 
 const router = createRouter({
