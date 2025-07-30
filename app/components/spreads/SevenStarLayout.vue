@@ -276,6 +276,21 @@
       </div>
     </div>
 
+    <!-- 버튼 컨테이너 (일괄 뒤집기 + 슬롯) -->
+    <div class="action-buttons-container" v-if="!isDrawing">
+      <button 
+        v-if="hasUnrevealedCards"
+        class="btn-action btn-reveal-all" 
+        @click="revealAllCards"
+      >
+        <span class="icon">✨</span> 모든 카드 뒤집기
+      </button>
+      <div v-else class="button-placeholder"></div>
+      
+      <!-- 부모 컴포넌트에서 전달하는 추가 버튼을 위한 슬롯 -->
+      <slot name="action-button"></slot>
+    </div>
+
     <!-- 진행 상태 표시 -->
     <div class="progress-indicator" v-if="isDrawing">
       <p>별들이 당신의 운명을 읽고 있습니다...</p>
@@ -313,8 +328,13 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const emit = defineEmits(['card-click']);
+const emit = defineEmits(['card-click', 'reveal-all']);
 const userStore = useUserStore();
+
+// 공개되지 않은 카드가 있는지 확인
+const hasUnrevealedCards = computed(() => {
+  return props.cards.some(card => card && !card.revealed);
+});
 
 // 포지션 의미 표시 관련
 const showPositionMeaning = ref(false);
@@ -335,6 +355,12 @@ const getSparkleStyle = (index: number) => {
     animationDelay: `${delay}s`,
     animationDuration: `${duration}s`
   };
+};
+
+// 모든 카드 뒤집기
+const revealAllCards = async () => {
+  await nativeUtils.buttonTapHaptic();
+  emit('reveal-all');
 };
 
 // 카드 클릭 핸들러
@@ -879,6 +905,73 @@ const onImageError = (event: Event) => {
 @media (max-width: 480px) {
   .cards-container {
     transform: scale(0.6);
+  }
+}
+
+/* 액션 버튼 컨테이너 */
+.action-buttons-container {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 500px;
+}
+
+.button-placeholder {
+  width: 180px;
+  height: 48px;
+}
+
+.btn-action {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #1E1B4B;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+  min-width: 180px;
+  justify-content: center;
+}
+
+.btn-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+}
+
+.btn-action .icon {
+  font-size: 20px;
+}
+
+@media (max-width: 768px) {
+  .action-buttons-container {
+    bottom: 10px;
+    gap: 10px;
+    max-width: 100%;
+    padding: 0 10px;
+  }
+  
+  .btn-action {
+    font-size: 14px;
+    padding: 10px 16px;
+    min-width: 140px;
+  }
+  
+  .button-placeholder {
+    width: 140px;
+    height: 40px;
   }
 }
 </style>

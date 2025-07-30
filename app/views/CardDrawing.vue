@@ -6,8 +6,15 @@
   'special-layout-mode': hasSpecialLayout
 }">
     <header class="page-header">
-      <button class="back-button" @click="goBack">← 뒤로</button>
-      <h1>카드 뽑기</h1>
+      <div class="header-top">
+        <button class="back-button" @click="goBack">← 뒤로</button>
+        <h1>
+          카드 뽑기
+          <span v-if="hasSpecialLayout" class="spread-name">
+            - {{ getSpreadDisplayName() }}
+          </span>
+        </h1>
+      </div>
       <div v-if="!userStore.isPremium && !adStatus.isTemporaryPremium" class="free-usage-indicator">
         무료 사용: {{ adStatus.dailyReadingCount }}/{{ adStatus.remainingReadings >= 0 ? adStatus.dailyReadingCount + adStatus.remainingReadings : '∞' }}
         <span v-if="adStatus.bonusReadings > 0" class="bonus-indicator">
@@ -133,35 +140,68 @@
       <div class="cards-container" v-if="isComplete && drawnCards.length > 0">
         <!-- 캘틱 크로스 전용 레이아웃 -->
         <div v-if="isCelticCross" class="celtic-cross-container">
-          <p class="instruction premium-instruction">🔮 켈틱 크로스</p>
+
           <CelticCrossLayout 
             :cards="drawnCards"
             :isDrawing="false"
             :drawProgress="100"
             @card-click="revealCard"
-          />
+            @reveal-all="revealAllCards"
+          >
+            <template #action-button>
+              <button 
+                class="btn-action btn-result"
+                @click="goToResult"
+                :disabled="!allCardsRevealed"
+              >
+                해석 보기
+              </button>
+            </template>
+          </CelticCrossLayout>
         </div>
         
         <!-- 세븐 스타 전용 레이아웃 -->
         <div v-else-if="isSevenStar" class="seven-star-container">
-          <p class="instruction premium-instruction">⭐ 세븐 스타 - 7개의 별이 당신의 운명을 비춥니다</p>
+
           <SevenStarLayout 
             :cards="drawnCards"
             :isDrawing="false"
             :drawProgress="100"
             @card-click="revealCard"
-          />
+            @reveal-all="revealAllCards"
+          >
+            <template #action-button>
+              <button 
+                class="btn-action btn-result"
+                @click="goToResult"
+                :disabled="!allCardsRevealed"
+              >
+                해석 보기
+              </button>
+            </template>
+          </SevenStarLayout>
         </div>
         
         <!-- 컵 오브 릴레이션십 전용 레이아웃 -->
         <div v-else-if="isCupOfRelationship" class="cup-relationship-container">
-          <p class="instruction premium-instruction">💕 컵 오브 릴레이션십 - 사랑의 깊이를 탐구합니다</p>
+
           <CupOfRelationshipLayout 
             :cards="drawnCards"
             :isDrawing="false"
             :drawProgress="100"
             @card-click="revealCard"
-          />  
+            @reveal-all="revealAllCards"
+          >
+            <template #action-button>
+              <button 
+                class="btn-action btn-result"
+                @click="goToResult"
+                :disabled="!allCardsRevealed"
+              >
+                해석 보기
+              </button>
+            </template>
+          </CupOfRelationshipLayout>  
         </div>
         
         <!-- 일반 카드 레이아웃 -->
@@ -193,7 +233,10 @@
           </div>
         </div>
 
+
+        
         <button 
+          v-if="!hasSpecialLayout"
           class="btn btn-primary result-button"
           @click="goToResult"
           :disabled="!allCardsRevealed"
@@ -291,6 +334,14 @@ const isCupOfRelationship = computed(() => {
 const hasSpecialLayout = computed(() => {
   return isCelticCross.value || isSevenStar.value || isCupOfRelationship.value;
 });
+
+// 스프레드 표시 이름 가져오기
+const getSpreadDisplayName = () => {
+  if (isCelticCross.value) return '켈틱 크로스';
+  if (isSevenStar.value) return '세븐 스타';
+  if (isCupOfRelationship.value) return '컵 오브 릴레이션십';
+  return '';
+};
 
 // 카드 뽑기 버튼 텍스트
 const getDrawButtonText = () => {
@@ -666,6 +717,19 @@ const revealCard = async (index: number) => {
   drawnCards.value[index].revealed = true;
 };
 
+// 모든 카드 일괄 뒤집기
+const revealAllCards = async () => {
+  // 햅틱 피드백
+  await nativeUtils.buttonTapHaptic();
+  
+  // 모든 카드를 순차적으로 뒤집기 (애니메이션 효과)
+  for (let i = 0; i < drawnCards.value.length; i++) {
+    drawnCards.value[i].revealed = true;
+    // 카드 사이에 약간의 딜레이 추가
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+};
+
 const goToResult = async () => {
   try {
     // 뽑힌 카드로 점괴 생성
@@ -771,12 +835,19 @@ const showFreeUsageOptions = () => {
 
 .page-header {
   display: flex;
-  align-items: center;
-  gap: 20px;
+  flex-direction: column;
+  gap: 10px;
   margin-bottom: 30px;
   padding-bottom: 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
 }
 
 .back-button {
@@ -796,13 +867,18 @@ const showFreeUsageOptions = () => {
 .page-header h1 {
   font-size: 24px;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spread-name {
+  color: #FFD700;
+  font-size: 20px;
+  font-weight: 600;
 }
 
 .free-usage-indicator {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
   background: rgba(168, 85, 247, 0.2);
   border: 1px solid rgba(168, 85, 247, 0.4);
   padding: 6px 12px;
@@ -810,6 +886,28 @@ const showFreeUsageOptions = () => {
   font-size: 12px;
   color: #A855F7;
   font-weight: 600;
+  align-self: flex-end;
+  margin-left: auto;
+}
+
+.premium-status-indicator {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.2) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: #FFD700;
+  font-weight: 600;
+  align-self: flex-end;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.expiry-time {
+  font-size: 11px;
+  color: rgba(255, 215, 0, 0.8);
 }
 
 .container {
@@ -1288,16 +1386,19 @@ const showFreeUsageOptions = () => {
 }
 
 @media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+  .header-top {
+    flex-wrap: wrap;
   }
   
-  .free-usage-indicator {
-    position: static;
-    transform: none;
-    align-self: flex-end;
+  .header-top h1 {
+    flex: 1;
+  }
+  
+  .free-usage-indicator,
+  .premium-status-indicator {
+    width: 100%;
+    text-align: center;
+    margin-top: 8px;
   }
   
   .drawn-cards {
@@ -1340,6 +1441,13 @@ const showFreeUsageOptions = () => {
   
   .card-back-small {
     font-size: 12px;
+  }
+  
+  /* 모바일에서 해석 보기 버튼 마진 조정 */
+  .celtic-cross-mode .result-button,
+  .seven-star-mode .result-button,
+  .cup-relationship-mode .result-button {
+    margin-top: 60px;
   }
 }
 
@@ -1400,17 +1508,66 @@ const showFreeUsageOptions = () => {
   color: #1E1B4B;
   font-weight: 700;
   box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
-  margin-top: 40px;
+  margin-top: 80px;
 }
 
-.celtic-cross-mode .result-button:hover:not(:disabled) {
+.celtic-cross-mode .result-button:hover:not(:disabled),
+.seven-star-mode .result-button:hover:not(:disabled),
+.cup-relationship-mode .result-button:hover:not(:disabled) {
   transform: translateY(-3px);
   box-shadow: 0 12px 35px rgba(255, 215, 0, 0.6);
 }
 
-.celtic-cross-mode .result-button:disabled {
+.celtic-cross-mode .result-button:disabled,
+.seven-star-mode .result-button:disabled,
+.cup-relationship-mode .result-button:disabled {
   background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.5);
   box-shadow: none;
 }
+
+/* 공통 액션 버튼 스타일 */
+.btn-action {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #1E1B4B;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+  min-width: 180px;
+  justify-content: center;
+}
+
+.btn-action:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+}
+
+.btn-action:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn-action .icon {
+  font-size: 20px;
+}
+
+@media (max-width: 768px) {
+  .btn-action {
+    font-size: 14px;
+    padding: 10px 16px;
+    min-width: 140px;
+  }
+}
+
 </style>

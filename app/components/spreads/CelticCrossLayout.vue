@@ -2,8 +2,44 @@
   <div class="celtic-cross-layout">
     <!-- 배경 장식 -->
     <div class="layout-background">
-      <div class="mystic-circle"></div>
-      <div class="cross-lines"></div>
+      <!-- 켈트 노트 문양 -->
+      <svg class="celtic-knot" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="celticGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#A855F7;stop-opacity:0.3" />
+            <stop offset="50%" style="stop-color:#7C3AED;stop-opacity:0.2" />
+            <stop offset="100%" style="stop-color:#6D28D9;stop-opacity:0.3" />
+          </linearGradient>
+        </defs>
+        <!-- 중앙 원 -->
+        <circle cx="200" cy="200" r="60" fill="none" stroke="url(#celticGradient)" stroke-width="3" opacity="0.6"/>
+        <!-- 네 개의 연결된 고리 -->
+        <path d="M 200 140 Q 260 140 260 200 T 200 260 Q 140 260 140 200 T 200 140" 
+              fill="none" stroke="url(#celticGradient)" stroke-width="2" opacity="0.5"/>
+        <path d="M 140 200 Q 140 140 200 140 T 260 200 Q 260 260 200 260 T 140 200" 
+              fill="none" stroke="url(#celticGradient)" stroke-width="2" opacity="0.5"/>
+        <!-- 외곽 장식 -->
+        <path d="M 200 80 L 200 120 M 200 280 L 200 320 M 120 200 L 80 200 M 280 200 L 320 200" 
+              stroke="url(#celticGradient)" stroke-width="3" opacity="0.4"/>
+      </svg>
+      
+      <!-- 신비로운 십자가 -->
+      <div class="mystic-cross">
+        <div class="cross-vertical"></div>
+        <div class="cross-horizontal"></div>
+        <div class="cross-center"></div>
+      </div>
+      
+      <!-- 빛나는 구체들 -->
+      <div class="floating-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <div class="orb orb-4"></div>
+      </div>
+      
+      <!-- 신비한 안개 효과 -->
+      <div class="mystic-fog"></div>
     </div>
 
     <!-- 카드 배치 영역 -->
@@ -360,6 +396,21 @@
       </div>
     </div>
 
+    <!-- 버튼 컨테이너 (일괄 뒤집기 + 슬롯) -->
+    <div class="action-buttons-container" v-if="!isDrawing">
+      <button 
+        v-if="hasUnrevealedCards"
+        class="btn-action btn-reveal-all" 
+        @click="revealAllCards"
+      >
+        <span class="icon">✨</span> 모든 카드 뒤집기
+      </button>
+      <div v-else class="button-placeholder"></div>
+      
+      <!-- 부모 컴포넌트에서 전달하는 추가 버튼을 위한 슬롯 -->
+      <slot name="action-button"></slot>
+    </div>
+
     <!-- 진행 상태 표시 -->
     <div class="progress-indicator" v-if="isDrawing">
       <p>카드를 배치하고 있습니다...</p>
@@ -379,7 +430,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import { nativeUtils } from '@/utils/capacitor';
 import { useUserStore } from '@/store/user';
 import PositionMeaningInline from '@/components/PositionMeaningInline.vue';
@@ -397,14 +448,25 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const emit = defineEmits(['card-click']);
+const emit = defineEmits(['card-click', 'reveal-all']);
 
 const cardsContainer = ref<HTMLElement>();
 const userStore = useUserStore();
 
+// 공개되지 않은 카드가 있는지 확인
+const hasUnrevealedCards = computed(() => {
+  return props.cards.some(card => card && !card.revealed);
+});
+
 // 포지션 의미 표시 관련
 const showPositionMeaning = ref(false);
 const selectedPosition = ref(0);
+
+// 모든 카드 뒤집기
+const revealAllCards = async () => {
+  await nativeUtils.buttonTapHaptic();
+  emit('reveal-all');
+};
 
 // 카드 클릭 핸들러
 const handleCardClick = async (index: number) => {
@@ -572,36 +634,192 @@ const onImageError = (event: Event) => {
   overflow: hidden;
 }
 
-.mystic-circle {
+/* 켈트 노트 문양 */
+.celtic-knot {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 900px;
-  height: 900px;
+  width: 400px;
+  height: 400px;
+  animation: rotate-slow 60s linear infinite;
+  filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.3));
+}
+
+@keyframes rotate-slow {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* 신비로운 십자가 */
+.mystic-cross {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+}
+
+.cross-vertical,
+.cross-horizontal {
+  position: absolute;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(168, 85, 247, 0.1) 20%,
+    rgba(168, 85, 247, 0.2) 50%,
+    rgba(168, 85, 247, 0.1) 80%,
+    transparent 100%
+  );
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.3);
+}
+
+.cross-vertical {
+  top: 0;
+  left: 50%;
+  width: 4px;
+  height: 100%;
+  transform: translateX(-50%);
+  animation: pulse-vertical 4s ease-in-out infinite;
+}
+
+.cross-horizontal {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  transform: translateY(-50%);
+  animation: pulse-horizontal 4s ease-in-out infinite 2s;
+}
+
+.cross-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(
+    circle,
+    rgba(168, 85, 247, 0.3) 0%,
+    rgba(168, 85, 247, 0.1) 50%,
+    transparent 100%
+  );
+  border-radius: 50%;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse-vertical {
+  0%, 100% { opacity: 0.3; height: 100%; }
+  50% { opacity: 0.8; height: 90%; }
+}
+
+@keyframes pulse-horizontal {
+  0%, 100% { opacity: 0.3; width: 100%; }
+  50% { opacity: 0.8; width: 90%; }
+}
+
+/* 빛나는 구체들 */
+.floating-orbs {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.orb {
+  position: absolute;
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(168, 85, 247, 0.1) 0%,
-    rgba(168, 85, 247, 0.05) 40%,
-    transparent 70%
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(168, 85, 247, 0.4) 50%,
+    transparent 100%
   );
-  animation: pulse 8s ease-in-out infinite;
+  filter: blur(2px);
 }
 
-.cross-lines {
+.orb-1 {
+  width: 30px;
+  height: 30px;
+  top: 20%;
+  left: 20%;
+  animation: float-orb1 20s ease-in-out infinite;
+}
+
+.orb-2 {
+  width: 20px;
+  height: 20px;
+  top: 70%;
+  left: 75%;
+  animation: float-orb2 25s ease-in-out infinite;
+}
+
+.orb-3 {
+  width: 25px;
+  height: 25px;
+  top: 30%;
+  left: 80%;
+  animation: float-orb3 22s ease-in-out infinite;
+}
+
+.orb-4 {
+  width: 15px;
+  height: 15px;
+  top: 75%;
+  left: 25%;
+  animation: float-orb4 28s ease-in-out infinite;
+}
+
+@keyframes float-orb1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+  25% { transform: translate(50px, -30px) scale(1.2); opacity: 0.6; }
+  50% { transform: translate(-30px, 50px) scale(0.8); opacity: 0.4; }
+  75% { transform: translate(30px, 30px) scale(1.1); opacity: 0.5; }
+}
+
+@keyframes float-orb2 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+  33% { transform: translate(-40px, 40px) scale(1.3); opacity: 0.7; }
+  66% { transform: translate(40px, -40px) scale(0.9); opacity: 0.3; }
+}
+
+@keyframes float-orb3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  50% { transform: translate(-60px, -30px) scale(1.4); opacity: 0.8; }
+}
+
+@keyframes float-orb4 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+  20% { transform: translate(30px, 50px) scale(1.2); opacity: 0.5; }
+  40% { transform: translate(-50px, -30px) scale(0.8); opacity: 0.6; }
+  60% { transform: translate(40px, -40px) scale(1.1); opacity: 0.4; }
+  80% { transform: translate(-30px, 30px) scale(0.9); opacity: 0.3; }
+}
+
+/* 신비한 안개 효과 */
+.mystic-fog {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 800px;
-  height: 800px;
-  background: 
-    linear-gradient(to right, rgba(168, 85, 247, 0.1) 49%, transparent 49%, transparent 51%, rgba(168, 85, 247, 0.1) 51%),
-    linear-gradient(to bottom, rgba(168, 85, 247, 0.1) 49%, transparent 49%, transparent 51%, rgba(168, 85, 247, 0.1) 51%);
-  background-size: 100% 2px, 2px 100%;
-  background-position: center;
-  background-repeat: no-repeat;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    rgba(168, 85, 247, 0.05) 40%,
+    rgba(168, 85, 247, 0.1) 60%,
+    transparent 100%
+  );
+  animation: breathe 8s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
 }
 
 @keyframes pulse {
@@ -637,14 +855,14 @@ const onImageError = (event: Event) => {
 .position-1 { /* 현재상황 - 중앙 왼쪽 */
   top: 55%;
   left: calc(40% - 60px);
-  transform: translate(-80%, 0%);
+  transform: translate(-80%, 25%);
   z-index: 10;
 }
 
 .position-2 { /* 도전/십자가 - 중앙 오른쪽 */
   top: 51%;
   left: calc(40% + 60px);
-  transform: translate(-105%, -25%);
+  transform: translate(-105%, 0%);
   z-index: 10;
 }
 
@@ -669,50 +887,50 @@ const onImageError = (event: Event) => {
 .position-3 { /* 근본 - 아래 */
   top: 98%;
   left: 40%;
-  transform: translate(-90%, 40%);
+  transform: translate(-90%, 65%);
 }
 
 .position-4 { /* 과거 - 왼쪽 */
   top: 53%;
   left: -5%;
-  transform: translate(-140%, -10%);
+  transform: translate(-140%, 15%);
 }
 
 .position-5 { /* 드러나는 모습 - 위 */
   top: 21%;
   left: 40%;
-  transform: translate(-90%, -40%);
+  transform: translate(-90%, -15%);
 }
 
 .position-6 { /* 미래 - 오른쪽 */
   top: 53%;
   left: 85%;
-  transform: translate(-40%, -10%);
+  transform: translate(-40%, 15%);
 }
 
 /* 오른쪽 기둥 */
 .position-7 { /* 내가보는나 - 맨 아래 */
   top: 85%;
   left: 95%;
-  transform: translate(0%, 100%);
+  transform: translate(0%, 125%);
 }
 
 .position-8 { /* 남이보는나 */
   top: 62%;
   left: 95%;
-  transform: translate(30%, 35%);
+  transform: translate(30%, 60%);
 }
 
 .position-9 { /* 예상하는 결과 */
   top: 38%;
   left: 95%;
-  transform: translate(0%, -25%);
+  transform: translate(0%, 0%);
 }
 
 .position-10 { /* 실제 결과 - 맨 위 */
   top: 15%;
   left: 95%;
-  transform: translate(30%, -90%);
+  transform: translate(30%, -65%);
 }
 
 /* 위치 라벨 */
@@ -972,6 +1190,21 @@ const onImageError = (event: Event) => {
     transform-origin: top center;
   }
 
+  /* 배경 요소 크기 조정 */
+  .celtic-knot {
+    width: 300px;
+    height: 300px;
+  }
+  
+  .mystic-cross {
+    width: 400px;
+    height: 400px;
+  }
+  
+  .orb-1, .orb-2, .orb-3, .orb-4 {
+    display: none; /* 모바일에서는 성능을 위해 숨김 */
+  }
+  
   /* 모바일에서 중앙 카드 위치 조정 */
   .position-1,
   .position-2 {
@@ -1043,20 +1276,23 @@ const onImageError = (event: Event) => {
     font-size: 9px;
   }
 
-  .mystic-circle {
-    width: 450px;
-    height: 450px;
-  }
 
-  .cross-lines {
-    width: 400px;
-    height: 400px;
-  }
 }
 
 @media (max-width: 480px) {
   .cards-container {
     transform: scale(0.65);
+  }
+  
+  /* 작은 화면에서 배경 요소 더 축소 */
+  .celtic-knot {
+    width: 250px;
+    height: 250px;
+  }
+  
+  .mystic-cross {
+    width: 350px;
+    height: 350px;
   }
 
   /* 더 작은 화면에서 카드 위치 더 조정 */
@@ -1096,6 +1332,73 @@ const onImageError = (event: Event) => {
   .cards-container::before {
     width: 140px;
     height: 140px;
+  }
+}
+
+/* 액션 버튼 컨테이너 */
+.action-buttons-container {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translate(-50%, 200%);
+  z-index: 100;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 500px;
+}
+
+.button-placeholder {
+  width: 180px;
+  height: 48px;
+}
+
+.btn-action {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #1E1B4B;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+  min-width: 180px;
+  justify-content: center;
+}
+
+.btn-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+}
+
+.btn-action .icon {
+  font-size: 20px;
+}
+
+@media (max-width: 768px) {
+  .action-buttons-container {
+    bottom: 10px;
+    gap: 10px;
+    max-width: 100%;
+    padding: 0 10px;
+  }
+  
+  .btn-action {
+    font-size: 14px;
+    padding: 10px 16px;
+    min-width: 140px;
+  }
+  
+  .button-placeholder {
+    width: 140px;
+    height: 40px;
   }
 }
 </style>
