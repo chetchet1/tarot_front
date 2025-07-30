@@ -89,6 +89,9 @@ export interface Reading {
   deepInterpretation?: any;
   probabilityAnalysis?: any;
   timelineAnalysis?: any;
+  // 향상된 해석 필드들
+  enhancedInterpretation?: any;
+  improvedInterpretation?: any;
 }
 
 export interface UserStats {

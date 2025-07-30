@@ -42,13 +42,17 @@ export class CelticCrossInterpreter {
     const relationships = this.analyzeRelationships();
     const keywords = this.extractKeywords();
     const advice = this.generateAdvice();
+    const elementAnalysis = this.generateElementAnalysis();
+    const timelineAnalysis = this.generateTimelineAnalysis();
 
     return {
       positions,
       overallPattern,
       relationships,
       keywords,
-      advice
+      advice,
+      elementAnalysis,
+      timelineAnalysis
     };
   }
 
@@ -181,6 +185,105 @@ export class CelticCrossInterpreter {
     }
     
     return advice;
+  }
+
+  private generateElementAnalysis(): string[] {
+    const elements = this.analyzeElements();
+    const analysis = [];
+    
+    // 원소 분포 분석
+    const { fire, water, air, earth } = elements.counts;
+    
+    if (fire >= 3) {
+      analysis.push('화(불)의 에너지가 강합니다 - 열정, 행동력, 창의성이 중요한 시기입니다.');
+    }
+    if (water >= 3) {
+      analysis.push('수(물)의 에너지가 강합니다 - 감정, 직관, 내면의 지혜에 주목하세요.');
+    }
+    if (air >= 3) {
+      analysis.push('풍(공기)의 에너지가 강합니다 - 의사소통, 분석, 새로운 아이디어가 중요합니다.');
+    }
+    if (earth >= 3) {
+      analysis.push('지(흙)의 에너지가 강합니다 - 현실성, 안정성, 구체적 성과가 중요합니다.');
+    }
+    
+    // 불균형 분석
+    if (fire === 0) analysis.push('화(불) 에너지가 부족합니다 - 더 적극적인 행동이 필요할 수 있습니다.');
+    if (water === 0) analysis.push('수(물) 에너지가 부족합니다 - 감정적 연결과 공감이 필요합니다.');
+    if (air === 0) analysis.push('풍(공기) 에너지가 부족합니다 - 명확한 사고와 계획이 필요합니다.');
+    if (earth === 0) analysis.push('지(흙) 에너지가 부족합니다 - 현실적인 기반 마련이 필요합니다.');
+    
+    // 메이저 아르카나 분석
+    const majorCount = this.cards.filter(c => c.arcana === 'major').length;
+    if (majorCount >= 4) {
+      analysis.push('메이저 카드가 많습니다 - 인생의 중요한 전환점, 운명적 순간입니다.');
+    }
+    
+    return analysis;
+  }
+
+  private generateTimelineAnalysis(): any {
+    const past = [this.cards[2], this.cards[3]]; // 먼 과거, 가까운 과거
+    const present = [this.cards[0], this.cards[1]]; // 현재 상황, 도전
+    const future = [this.cards[4], this.cards[5], this.cards[9]]; // 가능한 미래, 가까운 미래, 최종 결과
+    
+    const timeline = {
+      past: {
+        energy: this.analyzeTimeEnergy(past),
+        lesson: '과거의 경험이 현재에 미치는 영향'
+      },
+      present: {
+        energy: this.analyzeTimeEnergy(present),
+        challenge: '현재 직면한 핵심 과제'
+      },
+      future: {
+        energy: this.analyzeTimeEnergy(future),
+        potential: '미래의 가능성과 방향'
+      },
+      flow: this.analyzeTimeFlow(past, present, future),
+      advice: this.generateTimelineAdvice(past, present, future)
+    };
+    
+    return timeline;
+  }
+
+  private analyzeTimeEnergy(cards: any[]): string {
+    const uprightCount = cards.filter(c => c.orientation === 'upright').length;
+    const majorCount = cards.filter(c => c.arcana === 'major').length;
+    
+    if (uprightCount === cards.length) {
+      return '매우 긍정적이고 순탄한 에너지';
+    } else if (uprightCount === 0) {
+      return '도전과 변화가 필요한 에너지';
+    } else if (majorCount >= 2) {
+      return '중요한 변화와 전환의 에너지';
+    } else {
+      return '균형잡힌 에너지';
+    }
+  }
+
+  private analyzeTimeFlow(past: any[], present: any[], future: any[]): string {
+    const pastEnergy = past.filter(c => c.orientation === 'upright').length;
+    const presentEnergy = present.filter(c => c.orientation === 'upright').length;
+    const futureEnergy = future.filter(c => c.orientation === 'upright').length;
+    
+    if (pastEnergy < presentEnergy && presentEnergy < futureEnergy) {
+      return '과거의 어려움을 극복하고 점점 더 나은 미래로 향하고 있습니다.';
+    } else if (pastEnergy > presentEnergy && presentEnergy > futureEnergy) {
+      return '현재 어려움을 겪고 있지만, 이는 새로운 시작을 위한 준비 과정일 수 있습니다.';
+    } else {
+      return '삶의 자연스러운 순환과 리듬 속에 있습니다.';
+    }
+  }
+
+  private generateTimelineAdvice(past: any[], present: any[], future: any[]): string {
+    const futureCard = future[2]; // 최종 결과
+    
+    if (futureCard.orientation === 'upright') {
+      return '과거의 경험을 토대로 현재에 충실하면 밝은 미래가 기다리고 있습니다.';
+    } else {
+      return '과거의 패턴을 반복하지 말고, 새로운 접근 방식을 시도해보세요.';
+    }
   }
 }
 

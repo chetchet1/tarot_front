@@ -481,7 +481,12 @@ export const useTarotStore = defineStore('tarot', () => {
             }
           })),
           overallMessage: celticInterpretation.overallPattern,
-          premiumInsights: undefined
+          premiumInsights: {
+            relationships: celticInterpretation.relationships || [],
+            elementAnalysis: celticInterpretation.elementAnalysis || [],
+            timelineAnalysis: celticInterpretation.timelineAnalysis || {},
+            keywords: celticInterpretation.keywords || []
+          }
         };
       } else if (spreadId === 'seven_star' && userStore.isPremium) {
         // 프리미엄 사용자는 향상된 세븐 스타 해석기 사용
@@ -675,10 +680,20 @@ export const useTarotStore = defineStore('tarot', () => {
         cardPattern: userStore.isPremium ? cardPattern : undefined,
         deepInterpretation: userStore.isPremium ? deepInterpretation : undefined,
         probabilityAnalysis: userStore.isPremium ? probabilityAnalysis : undefined,
-        timelineAnalysis: userStore.isPremium ? timelineAnalysis : undefined
+        timelineAnalysis: userStore.isPremium ? timelineAnalysis : undefined,
+        // 향상된 해석 데이터 추가
+        enhancedInterpretation: interpretation.enhancedInterpretation,
+        // 개선된 해석 데이터 추가 (켈틱 크로스)
+        improvedInterpretation: improvedInterpretation.value
       };
       
       console.log('생성된 점괘:', reading);
+      console.log('개선된 해석 저장 상태:', {
+        improvedInterpretationFromRef: improvedInterpretation.value,
+        enhancedInterpretationFromInterpretation: interpretation.enhancedInterpretation,
+        readingImprovedInterpretation: reading.improvedInterpretation,
+        readingEnhancedInterpretation: reading.enhancedInterpretation
+      });
 
       // 로컬 저장
       saveReading(reading);

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프리미엄 켈틱 크로스 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        button {
+            background: #9333ea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #7c3aed;
+        }
+        pre {
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>프리미엄 켈틱 크로스 점괘 테스트</h1>
+        <p>이 페이지는 프리미엄 켈틱 크로스 점괘의 모든 데이터가 제대로 표시되는지 테스트합니다.</p>
+        
+        <button onclick="testPremiumCelticCross()">프리미엄 켈틱 크로스 점괘 생성</button>
+        <button onclick="clearLocalStorage()">로컬 스토리지 초기화</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function testPremiumCelticCross() {
+            const mockReading = {
+                id: 'test-premium-celtic-' + Date.now(),
+                spreadId: 'celtic_cross',
+                topic: 'general',
+                date: new Date().toISOString(),
+                overallMessage: '당신은 지금 중요한 전환점에 서 있습니다. 과거의 경험이 현재의 지혜가 되어 미래를 향한 길을 밝혀줄 것입니다.',
+                cards: [
+                    // 10장의 카드 데이터 (실제 앱에서는 데이터베이스에서 가져옴)
+                    {
+                        id: 1,
+                        name: 'The Fool',
+                        nameKr: '바보',
+                        arcana: 'major',
+                        number: 0,
+                        orientation: 'upright',
+                        imageUrl: '/assets/tarot-cards/major/00-the-Fool.png',
+                        position: {
+                            name: '현재 내면',
+                            description: '현재 당신의 내면 상태와 핵심 이슈'
+                        },
+                        interpretation: {
+                            basic: '새로운 시작과 순수한 열정이 당신의 내면을 가득 채우고 있습니다.',
+                            advice: '두려움 없이 새로운 도전을 받아들이세요.'
+                        }
+                    },
+                    {
+                        id: 3,
+                        name: 'The Empress',
+                        nameKr: '여황제',
+                        arcana: 'major',
+                        number: 3,
+                        orientation: 'reversed',
+                        imageUrl: '/assets/tarot-cards/major/03-The-Empress.png',
+                        position: {
+                            name: '현재 외부',
+                            description: '외부 환경과 도전 과제'
+                        },
+                        interpretation: {
+                            basic: '창조적 에너지가 차단되어 있거나 자기 돌봄이 필요한 시기입니다.',
+                            advice: '자신을 먼저 돌보는 시간을 가지세요.'
+                        }
+                    },
+                    {
+                        id: 5,
+                        name: 'The Hierophant',
+                        nameKr: '교황',
+                        arcana: 'major',
+                        number: 5,
+                        orientation: 'upright',
+                        imageUrl: '/assets/tarot-cards/major/05-The-Hierophant.png',
+                        position: {
+                            name: '과거',
+                            description: '이 상황의 기초가 된 과거의 영향'
+                        },
+                        interpretation: {
+                            basic: '전통적인 가치관과 교육이 당신의 기반을 형성했습니다.',
+                            advice: '과거의 가르침에서 지혜를 찾되, 새로운 관점도 받아들이세요.'
+                        }
+                    },
+                    {
+                        id: 10,
+                        name: 'Wheel of Fortune',
+                        nameKr: '운명의 수레바퀴',
+                        arcana: 'major',
+                        number: 10,
+                        orientation: 'upright',
+                        imageUrl: '/assets/tarot-cards/major/10-Wheel-of-Fortune.png',
+                        position: {
+                            name: '가능한 미래',
+                            description: '현재 경로를 따를 때의 잠재적 결과'
+                        },
+                        interpretation: {
+                            basic: '운명의 큰 전환점이 다가오고 있습니다.',
+                            advice: '변화의 흐름을 받아들이고 기회를 포착하세요.'
+                        }
+                    },
+                    {
+                        id: 21,
+                        name: 'The World',
+                        nameKr: '세계',
+                        arcana: 'major',
+                        number: 21,
+                        orientation: 'upright',
+                        imageUrl: '/assets/tarot-cards/major/21-The-World.png',
+                        position: {
+                            name: '근미래',
+                            description: '곧 일어날 일이나 다음 단계'
+                        },
+                        interpretation: {
+                            basic: '중요한 주기가 완성되고 새로운 시작이 다가옵니다.',
+                            advice: '현재의 성취를 축하하고 다음 단계를 준비하세요.'
+                        }
+                    },
+                    {
+                        id: 'cups-02',
+                        name: 'Two of Cups',
+                        nameKr: '컵의 2',
+                        arcana: 'minor',
+                        suit: 'cups',
+                        number: 2,
+                        orientation: 'upright',
+                        imageUrl: '/assets/tarot-cards/minor/cups-02.png',
+                        position: {
+                            name: '나',
+                            description: '이 상황에서의 당신의 접근 방식'
+                        },
+                        interpretation: {
+                            basic: '감정적 연결과 파트너십을 추구하는 당신의 모습이 보입니다.',
+                            advice: '진정한 소통과 상호 이해를 통해 관계를 발전시키세요.'
+                        }
+                    },
+                    {
+                        id: 'swords-ace',
+                        name: 'Ace of Swords',
+                        nameKr: '검의 에이스',
+                        arcana: 'minor',
+                        suit: 'swords',
+                        number: 1,
+                        orientation: 'reversed',
+                        imageUrl: '/assets/tarot-cards/minor/swords-ace.png',
+                        position: {
+                            name: '환경',
+                            description: '주변 환경과 외부 영향'
+                        },
+                        interpretation: {
+                            basic: '명확성이 부족하고 의사소통에 어려움이 있는 환경입니다.',
+                            advice: '더 명확한 정보를 구하고 오해를 풀어나가세요.'
+                        }
+                    },
+                    {
+                        id: 'wands-10',
+                        name: 'Ten of Wands',
+                        nameKr: '지팡이의 10',
+                        arcana: 'minor',
+                        suit: 'wands',
+                        number: 10,
+                        orientation: 'upright',
+                        imageUrl: '/assets/tarot-cards/minor/wands-10.png',
+                        position: {
+                            name: '당신의 태도',
+                            description: '내면의 두려움, 희망, 또는 기대'
+                        },
+                        interpretation: {
+                            basic: '많은 책임감을 느끼고 있으며 부담스러워하고 있습니다.',
+                            advice: '불필요한 짐은 내려놓고 도움을 요청하세요.'
+                        }
+                    },
+                    {
+                        id: 'pentacles-03',
+                        name: 'Three of Pentacles',
+                        nameKr: '펜타클의 3',
+                        arcana: 'minor',
+                        suit: 'pentacles',
+                        number: 3,
+                        orientation: 'upright',
+                        imageUrl: '/assets/tarot-cards/minor/pentacles-03.png',
+                        position: {
+                            name: '결과',
+                            description: '이 상황의 궁극적인 결과나 해결'
+                        },
+                        interpretation: {
+                            basic: '협력과 팀워크를 통해 성공적인 결과를 얻게 됩니다.',
+                            advice: '다른 사람들과 협력하여 더 큰 성취를 이루세요.'
+                        }
+                    }
+                ],
+                // 프리미엄 데이터들
+                cardCombinations: [
+                    {
+                        type: 'special',
+                        meaning: 'The Fool과 The Empress의 조합은 창조적인 새 시작을 암시합니다. 순수한 열정과 풍요로운 창조력이 만나 놀라운 결과를 만들어낼 수 있습니다.',
+                        advice: '당신의 직관을 믿고 창조적인 프로젝트를 시작하기에 완벽한 시기입니다.'
+                    },
+                    {
+                        type: 'element',
+                        meaning: '공기와 대지 원소의 균형이 잘 맞아 실용적인 아이디어를 현실화할 수 있습니다.',
+                        advice: '구체적인 계획을 세우고 단계적으로 실행해 나가세요.'
+                    }
+                ],
+                cardPattern: {
+                    name: '변화와 성장의 패턴',
+                    description: '전체적으로 변화와 새로운 시작을 나타내는 카드들이 많이 나타났습니다.',
+                    implication: '인생의 새로운 장을 열 준비가 되어 있으며, 과거의 경험을 바탕으로 더 나은 미래를 만들어갈 수 있습니다.'
+                },
+                probabilityAnalysis: {
+                    successProbability: 75,
+                    challengeProbability: 25,
+                    uncertaintyLevel: 15,
+                    recommendation: '전반적으로 긍정적인 결과가 예상됩니다. 자신감을 가지고 앞으로 나아가되, 세부사항에 주의를 기울이세요.'
+                },
+                deepInterpretation: {
+                    layers: {
+                        psychological: {
+                            consciousPatterns: ['새로운 시작에 대한 열망', '자유로운 표현 욕구'],
+                            unconsciousPatterns: ['과거의 상처 치유 필요', '자기 가치 재발견'],
+                            growthOpportunities: ['창조성 개발', '자기 신뢰 구축']
+                        },
+                        spiritual: {
+                            soulLessons: ['순수성 회복', '직관력 강화'],
+                            spiritualGifts: ['창조적 영감', '영적 안내'],
+                            chakraActivations: ['제3차크라(태양신경총)', '제5차크라(목)']
+                        },
+                        shadow: {
+                            hiddenAspects: [
+                                {
+                                    card: 'The Empress Reversed',
+                                    message: '자기 돌봄의 부족이 창조성을 차단하고 있습니다.'
+                                }
+                            ]
+                        }
+                    },
+                    synthesis: '당신은 지금 인생의 중요한 전환점에 있습니다. 과거의 경험들이 현재의 지혜로 변환되고 있으며, 이는 미래를 위한 강력한 기반이 될 것입니다.',
+                    keyInsights: [
+                        '새로운 시작을 위한 완벽한 타이밍',
+                        '창조적 에너지의 강력한 흐름',
+                        '내면의 지혜와 외부 기회의 조화'
+                    ],
+                    actionPlan: {
+                        immediate: [
+                            '오늘 하루 동안 새로운 프로젝트에 대한 아이디어를 브레인스토밍하세요',
+                            '자기 돌봄을 위한 시간을 예약하세요'
+                        ],
+                        weekly: [
+                            '창조적인 활동에 매일 30분씩 투자하세요',
+                            '명상이나 요가를 통해 내면의 평화를 찾으세요'
+                        ],
+                        monthly: [
+                            '장기 목표를 재검토하고 필요시 수정하세요',
+                            '새로운 기술이나 지식을 배우기 시작하세요'
+                        ]
+                    },
+                    affirmations: [
+                        '나는 새로운 시작을 두려워하지 않습니다',
+                        '나의 창조성은 무한합니다',
+                        '나는 내 직관을 신뢰합니다'
+                    ]
+                },
+                premiumInsights: {
+                    relationships: [
+                        '현재 내면(The Fool)과 현재 외부(The Empress R)의 대조는 내적 열정과 외적 제약 사이의 긴장을 나타냅니다',
+                        '과거와 미래 카드의 연결은 경험을 통한 성장의 여정을 보여줍니다'
+                    ],
+                    elementAnalysis: [
+                        '공기 원소 우세: 새로운 아이디어와 커뮤니케이션이 중요',
+                        '대지 원소 부족: 더 많은 실용성과 안정성이 필요'
+                    ],
+                    timelineAnalysis: {
+                        past: { energy: '학습과 준비의 시기' },
+                        present: { energy: '전환과 결정의 순간' },
+                        future: { energy: '성장과 확장의 가능성' },
+                        flow: '과거의 경험이 현재의 지혜가 되어 미래의 성공으로 이어집니다',
+                        advice: '현재의 불확실성을 받아들이고 직관을 신뢰하세요'
+                    },
+                    keywords: ['새로운 시작', '창조성', '자기 돌봄', '직관', '변화']
+                },
+                enhancedInterpretation: {
+                    synthesis: '전체적인 카드 배치는 당신이 인생의 새로운 장을 시작할 준비가 되어 있음을 보여줍니다.',
+                    keyThemes: ['변화와 성장', '창조성의 발현', '내면의 지혜'],
+                    guidance: '지금은 과감하게 새로운 도전을 시작할 때입니다.'
+                }
+            };
+
+            // 로컬 스토리지에 저장
+            const existingReadings = JSON.parse(localStorage.getItem('tarot_readings') || '[]');
+            existingReadings.push(mockReading);
+            localStorage.setItem('tarot_readings', JSON.stringify(existingReadings));
+            localStorage.setItem('current_reading_id', mockReading.id);
+
+            // 결과 표시
+            document.getElementById('result').innerHTML = `
+                <h2>테스트 점괘 생성 완료!</h2>
+                <p>ID: ${mockReading.id}</p>
+                <p>이제 앱에서 이 점괘를 확인할 수 있습니다.</p>
+                <pre>${JSON.stringify(mockReading, null, 2)}</pre>
+                <p><a href="/reading-result?readingId=${mockReading.id}" target="_blank">점괘 결과 페이지로 이동</a></p>
+            `;
+        }
+
+        function clearLocalStorage() {
+            localStorage.removeItem('tarot_readings');
+            localStorage.removeItem('current_reading_id');
+            document.getElementById('result').innerHTML = '<p>로컬 스토리지가 초기화되었습니다.</p>';
+        }
+    </script>
+</body>
+</html>

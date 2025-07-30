@@ -6,11 +6,7 @@
     </header>
 
     <div class="container" v-if="reading">
-      <!-- 전체 메시지 -->
-      <section class="overall-message">
-        <h2>🔮 전체 메시지</h2>
-        <p>{{ reading.overallMessage }}</p>
-      </section>
+
 
       <!-- 카드 해석 -->
       <section class="cards-section">
@@ -191,7 +187,7 @@
       </section>
 
       <!-- 프리미엄 사용자를 위한 고급 분석 -->
-      <section v-if="userStore.isPremium && (reading.cardCombinations || reading.deepInterpretation || reading.probabilityAnalysis || reading.cardPattern || reading.enhancedInterpretation)" class="premium-analysis">
+      <section v-if="userStore.isPremium && reading.spreadId === 'celtic_cross' && (reading.cardCombinations || reading.deepInterpretation || reading.probabilityAnalysis || reading.cardPattern)" class="premium-analysis">
         <h2>🌟 프리미엄 AI 심층 분석</h2>
         
         <!-- 카드 조합 분석 -->
@@ -365,15 +361,15 @@
 
       <!-- 향상된 해석 (프리미엄) -->
       <EnhancedInterpretation
-        v-if="userStore.isPremium && (reading.enhancedInterpretation || reading.improvedInterpretation) && (reading.spreadId === 'celtic_cross' || reading.spreadId === 'seven_star' || reading.spreadId === 'cup_of_relationship')"
+        v-if="userStore.isPremium && reading.spreadId === 'celtic_cross' && (reading.enhancedInterpretation || reading.improvedInterpretation)"
         :interpretation="reading.enhancedInterpretation || reading.improvedInterpretation"
         :topic="reading.topic || 'general'"
         :show-position-meanings="true"
         :spread-id="reading.spreadId"
       />
 
-      <!-- 켈틱 크로스 전용 해석 섹션 -->
-      <section v-if="reading.spreadId === 'celtic_cross' && reading.premiumInsights && !reading.enhancedInterpretation && !reading.improvedInterpretation" class="celtic-cross-insights">
+      <!-- 켈틱 크로스 전용 해석 섹션 (프리미엄) -->
+      <section v-if="userStore.isPremium && reading.spreadId === 'celtic_cross' && reading.premiumInsights" class="celtic-cross-insights">
         <h2>🔮 켈틱 크로스 심층 해석</h2>
         
         <!-- 카드 관계 분석 -->
@@ -425,9 +421,190 @@
           </div>
         </div>
       </section>
+      <!-- 기타 스프레드를 위한 프리미엄 분석 (seven_star, cup_of_relationship) -->
+      <section v-if="userStore.isPremium && reading.spreadId !== 'celtic_cross' && (reading.cardCombinations || reading.deepInterpretation || reading.probabilityAnalysis || reading.cardPattern)" class="premium-analysis">
+        <h2>🌟 프리미엄 AI 심층 분석</h2>
+        
+        <!-- 카드 조합 분석 -->
+        <div v-if="reading.cardCombinations?.length > 0" class="analysis-section card-combinations">
+          <h3>🔗 카드 조합의 의미</h3>
+          <div class="combination-list">
+            <div v-for="(combo, index) in reading.cardCombinations" :key="index" class="combination-item">
+              <div class="combo-header">
+                <span class="type-badge" :class="combo.type">
+                  {{ combo.type === 'special' ? '✨ 특별한 조합' : 
+                     combo.type === 'suit' ? '🎴 수트 조합' : 
+                     combo.type === 'number' ? '🔢 숫자 관계' : 
+                     combo.type === 'element' ? '🌟 원소 조합' : '🔗 조합' }}
+                </span>
+              </div>
+              <p class="combo-meaning">{{ combo.meaning }}</p>
+              <p v-if="combo.advice" class="combo-advice">
+                <span class="advice-icon">💡</span> {{ combo.advice }}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 카드 패턴 분석 -->
+        <div v-if="reading.cardPattern" class="analysis-section card-pattern">
+          <h3>🎯 전체 카드 패턴</h3>
+          <div class="pattern-content">
+            <p class="pattern-name">{{ reading.cardPattern.name }}</p>
+            <p class="pattern-description">{{ reading.cardPattern.description }}</p>
+            <p v-if="reading.cardPattern.implication" class="pattern-implication">
+              <strong>의미:</strong> {{ reading.cardPattern.implication }}
+            </p>
+          </div>
+        </div>
+        
+        <!-- 확률적 분석 -->
+        <div v-if="reading.probabilityAnalysis" class="analysis-section probability-analysis">
+          <h3>📊 결과 예측 분석</h3>
+          <div class="probability-content">
+            <div class="probability-grid">
+              <div class="probability-item success">
+                <div class="probability-value">{{ reading.probabilityAnalysis.successProbability }}%</div>
+                <div class="probability-label">성공 확률</div>
+              </div>
+              <div class="probability-item challenge">
+                <div class="probability-value">{{ reading.probabilityAnalysis.challengeProbability }}%</div>
+                <div class="probability-label">도전 확률</div>
+              </div>
+              <div class="probability-item uncertainty">
+                <div class="probability-value">{{ reading.probabilityAnalysis.uncertaintyLevel }}%</div>
+                <div class="probability-label">불확실성</div>
+              </div>
+            </div>
+            <div class="probability-recommendation">
+              <span class="rec-icon">💡</span>
+              {{ reading.probabilityAnalysis.recommendation }}
+            </div>
+          </div>
+        </div>
+        
+        <!-- AI 심층 해석 -->
+        <div v-if="reading.deepInterpretation" class="analysis-section deep-interpretation">
+          <h3>🧠 AI 심층 해석</h3>
+          
+          <!-- 다층적 분석 -->
+          <div v-if="reading.deepInterpretation.layers" class="layers-analysis">
+            <h4>다층적 분석</h4>
+            
+            <!-- 심리적 층위 -->
+            <div v-if="reading.deepInterpretation.layers.psychological" class="layer-item psychological">
+              <h5>심리적 통찰</h5>
+              <div class="layer-content">
+                <p v-if="reading.deepInterpretation.layers.psychological.consciousPatterns?.length">
+                  <strong>의식적 패턴:</strong> {{ reading.deepInterpretation.layers.psychological.consciousPatterns.join(', ') }}
+                </p>
+                <p v-if="reading.deepInterpretation.layers.psychological.unconsciousPatterns?.length">
+                  <strong>무의식적 패턴:</strong> {{ reading.deepInterpretation.layers.psychological.unconsciousPatterns.join(', ') }}
+                </p>
+                <p v-if="reading.deepInterpretation.layers.psychological.growthOpportunities?.length">
+                  <strong>성장 기회:</strong> {{ reading.deepInterpretation.layers.psychological.growthOpportunities.join(', ') }}
+                </p>
+              </div>
+            </div>
+            
+            <!-- 영적 층위 -->
+            <div v-if="reading.deepInterpretation.layers.spiritual" class="layer-item spiritual">
+              <h5>영적 메시지</h5>
+              <div class="layer-content">
+                <p v-if="reading.deepInterpretation.layers.spiritual.soulLessons?.length">
+                  <strong>영혼의 교훈:</strong> {{ reading.deepInterpretation.layers.spiritual.soulLessons.join(', ') }}
+                </p>
+                <p v-if="reading.deepInterpretation.layers.spiritual.spiritualGifts?.length">
+                  <strong>영적 재능:</strong> {{ reading.deepInterpretation.layers.spiritual.spiritualGifts.join(', ') }}
+                </p>
+                <p v-if="reading.deepInterpretation.layers.spiritual.chakraActivations?.length">
+                  <strong>차크라 활성화:</strong> {{ reading.deepInterpretation.layers.spiritual.chakraActivations.join(', ') }}
+                </p>
+              </div>
+            </div>
+            
+            <!-- 그림자 작업 -->
+            <div v-if="reading.deepInterpretation.layers.shadow" class="layer-item shadow">
+              <h5>그림자 작업</h5>
+              <div class="layer-content">
+                <div v-for="(aspect, idx) in reading.deepInterpretation.layers.shadow.hiddenAspects" :key="idx" class="shadow-aspect">
+                  <p><strong>{{ aspect.card }}:</strong> {{ aspect.message }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 종합 통찰 -->
+          <div v-if="reading.deepInterpretation.synthesis" class="synthesis">
+            <h4>종합 통찰</h4>
+            <p>{{ reading.deepInterpretation.synthesis }}</p>
+          </div>
+          
+          <!-- 핵심 인사이트 -->
+          <div v-if="reading.deepInterpretation.keyInsights?.length" class="key-insights">
+            <h4>핵심 인사이트</h4>
+            <div class="insights-grid">
+              <div v-for="(insight, index) in reading.deepInterpretation.keyInsights" :key="index" class="insight-item">
+                <span class="insight-emoji">{{ getInsightEmoji(insight) }}</span>
+                <span class="insight-text">{{ insight }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 실행 계획 -->
+          <div v-if="reading.deepInterpretation.actionPlan" class="action-plan">
+            <h4>실행 계획</h4>
+            <div class="action-timeline">
+              <div v-if="reading.deepInterpretation.actionPlan.immediate?.length" class="action-phase immediate">
+                <h5>즉시 실행 (24-48시간)</h5>
+                <ul>
+                  <li v-for="(action, idx) in reading.deepInterpretation.actionPlan.immediate" :key="idx">
+                    {{ action }}
+                  </li>
+                </ul>
+              </div>
+              <div v-if="reading.deepInterpretation.actionPlan.weekly?.length" class="action-phase weekly">
+                <h5>주간 실행</h5>
+                <ul>
+                  <li v-for="(action, idx) in reading.deepInterpretation.actionPlan.weekly" :key="idx">
+                    {{ action }}
+                  </li>
+                </ul>
+              </div>
+              <div v-if="reading.deepInterpretation.actionPlan.monthly?.length" class="action-phase monthly">
+                <h5>월간 실행</h5>
+                <ul>
+                  <li v-for="(action, idx) in reading.deepInterpretation.actionPlan.monthly" :key="idx">
+                    {{ action }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 확언 -->
+          <div v-if="reading.deepInterpretation.affirmations?.length" class="affirmations">
+            <h4>오늘의 확언</h4>
+            <div class="affirmation-list">
+              <p v-for="(affirmation, index) in reading.deepInterpretation.affirmations" :key="index" class="affirmation-item">
+                "{{ affirmation }}"
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 향상된 해석 (프리미엄 - seven_star, cup_of_relationship) -->
+      <EnhancedInterpretation
+        v-if="userStore.isPremium && (reading.spreadId === 'seven_star' || reading.spreadId === 'cup_of_relationship') && (reading.enhancedInterpretation || reading.improvedInterpretation)"
+        :interpretation="reading.enhancedInterpretation || reading.improvedInterpretation"
+        :topic="reading.topic || 'general'"
+        :show-position-meanings="true"
+        :spread-id="reading.spreadId"
+      />
       
-      <!-- 프리미엄 인사이트 (프리미엄 사용자만) -->
-      <section v-if="reading.premiumInsights && reading.spreadId !== 'celtic_cross'" class="premium-insights">
+      <!-- 프리미엄 인사이트 (프리미엄 사용자만 - 기타 스프레드) -->
+      <section v-if="reading.premiumInsights && reading.spreadId !== 'celtic_cross' && userStore.isPremium" class="premium-insights">
         <h2>✨ 프리미엄 인사이트</h2>
         
         <!-- 영혼의 교훈 -->
@@ -811,10 +988,18 @@ onMounted(() => {
   console.log('readingId:', readingId.value);
   console.log('reading:', reading.value);
   console.log('프리미엄 상태:', userStore.isPremium);
-  console.log('프리미엄 인사이트:', reading.value?.premiumInsights);
-  console.log('카드 조합:', reading.value?.cardCombinations);
-  console.log('심층 해석:', reading.value?.deepInterpretation);
-  console.log('확률 분석:', reading.value?.probabilityAnalysis);
+  console.log('스프레드 ID:', reading.value?.spreadId);
+  
+  if (reading.value) {
+    console.log('프리미엄 데이터 체크:');
+    console.log('- 프리미엄 인사이트:', reading.value.premiumInsights);
+    console.log('- 카드 조합:', reading.value.cardCombinations);
+    console.log('- 심층 해석:', reading.value.deepInterpretation);
+    console.log('- 확률 분석:', reading.value.probabilityAnalysis);
+    console.log('- 카드 패턴:', reading.value.cardPattern);
+    console.log('- 향상된 해석:', reading.value.enhancedInterpretation);
+    console.log('- 개선된 해석:', reading.value.improvedInterpretation);
+  }
   
   if (!reading.value && !readingId.value) {
     console.warn('점괘 데이터가 없습니다. 홈으로 리다이렉트');
@@ -862,26 +1047,7 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-.overall-message {
-  background: rgba(168, 85, 247, 0.1);
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  border-radius: 16px;
-  padding: 30px;
-  margin-bottom: 30px;
-  text-align: center;
-}
 
-.overall-message h2 {
-  color: #A855F7;
-  margin-bottom: 20px;
-  font-size: 24px;
-}
-
-.overall-message p {
-  font-size: 18px;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
-}
 
 .cards-section {
   margin-bottom: 40px;
