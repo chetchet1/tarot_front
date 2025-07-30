@@ -18,102 +18,114 @@
         
         <!-- 켈틱 크로스 특별 레이아웃 -->
         <div v-if="reading.spreadId === 'celtic_cross'" class="celtic-cross-layout">
-          <div class="celtic-cross-container">
-            <!-- 중앙 크로스 -->
-            <div class="celtic-center">
-              <div class="celtic-card position-1" @click="showCardDetail(0)">
-                <div class="card-mini" :class="reading.cards[0].orientation">
-                  <img :src="getCardImageUrl(reading.cards[0])" 
-                       :alt="reading.cards[0].nameKr" 
-                       @error="onImageError" 
-                       :class="{ reversed: reading.cards[0].orientation === 'reversed' }" />
-                  <span class="position-label">1</span>
-                </div>
-              </div>
-              <div class="celtic-card position-2 cross-card" @click="showCardDetail(1)">
-                <div class="card-mini" :class="reading.cards[1].orientation">
-                  <img :src="getCardImageUrl(reading.cards[1])" 
-                       :alt="reading.cards[1].nameKr" 
-                       @error="onImageError" 
-                       :class="{ reversed: reading.cards[1].orientation === 'reversed' }" />
-                  <span class="position-label">2</span>
-                </div>
-              </div>
-              <div class="celtic-card position-3" @click="showCardDetail(2)">
-                <div class="card-mini" :class="reading.cards[2].orientation">
-                  <img :src="getCardImageUrl(reading.cards[2])" 
-                       :alt="reading.cards[2].nameKr" 
-                       @error="onImageError" 
-                       :class="{ reversed: reading.cards[2].orientation === 'reversed' }" />
-                  <span class="position-label">3</span>
-                </div>
-              </div>
-              <div class="celtic-card position-4" @click="showCardDetail(3)">
-                <div class="card-mini" :class="reading.cards[3].orientation">
-                  <img :src="getCardImageUrl(reading.cards[3])" 
-                       :alt="reading.cards[3].nameKr" 
-                       @error="onImageError" 
-                       :class="{ reversed: reading.cards[3].orientation === 'reversed' }" />
-                  <span class="position-label">4</span>
-                </div>
-              </div>
-              <div class="celtic-card position-5" @click="showCardDetail(4)">
-                <div class="card-mini" :class="reading.cards[4].orientation">
-                  <img :src="getCardImageUrl(reading.cards[4])" 
-                       :alt="reading.cards[4].nameKr" 
-                       @error="onImageError" 
-                       :class="{ reversed: reading.cards[4].orientation === 'reversed' }" />
-                  <span class="position-label">5</span>
-                </div>
-              </div>
-              <div class="celtic-card position-6" @click="showCardDetail(5)">
-                <div class="card-mini" :class="reading.cards[5].orientation">
-                  <img :src="getCardImageUrl(reading.cards[5])" 
-                       :alt="reading.cards[5].nameKr" 
-                       @error="onImageError" 
-                       :class="{ reversed: reading.cards[5].orientation === 'reversed' }" />
-                  <span class="position-label">6</span>
-                </div>
+          <div class="cards-container">
+            <!-- Position 1: 현재내면 (중앙) -->
+            <div class="card-position position-1" @click="showCardDetail(0)">
+              <div class="card-mini" :class="reading.cards[0].orientation">
+                <img :src="getCardImageUrl(reading.cards[0])" 
+                     :alt="reading.cards[0].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[0].orientation === 'reversed' }" />
+                <span class="position-label">1</span>
               </div>
             </div>
             
-            <!-- 오른쪽 직선 -->
-            <div class="celtic-staff">
-              <div class="celtic-card position-7" @click="showCardDetail(6)">
-                <div class="card-mini" :class="reading.cards[6].orientation">
-                  <img :src="getCardImageUrl(reading.cards[6])" 
-                       :alt="reading.cards[6].nameKr" 
-                       @error="onImageError" 
-                       :class="{ reversed: reading.cards[6].orientation === 'reversed' }" />
-                  <span class="position-label">7</span>
-                </div>
+            <!-- Position 2: 현재외부 (중앙, 위에 겹침) -->
+            <div class="card-position position-2" @click="showCardDetail(1)">
+              <div class="card-mini" :class="reading.cards[1].orientation">
+                <img :src="getCardImageUrl(reading.cards[1])" 
+                     :alt="reading.cards[1].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[1].orientation === 'reversed' }" />
+                <span class="position-label">2</span>
               </div>
-              <div class="celtic-card position-8" @click="showCardDetail(7)">
-                <div class="card-mini" :class="reading.cards[7].orientation">
-                  <img :src="getCardImageUrl(reading.cards[7])" 
-                       :alt="reading.cards[7].nameKr" 
-                       @error="onImageError" 
-                       :class="{ reversed: reading.cards[7].orientation === 'reversed' }" />
-                  <span class="position-label">8</span>
-                </div>
+            </div>
+            
+            <!-- Position 3: 근본 (아래) -->
+            <div class="card-position position-3" @click="showCardDetail(2)">
+              <div class="card-mini" :class="reading.cards[2].orientation">
+                <img :src="getCardImageUrl(reading.cards[2])" 
+                     :alt="reading.cards[2].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[2].orientation === 'reversed' }" />
+                <span class="position-label">3</span>
               </div>
-              <div class="celtic-card position-9" @click="showCardDetail(8)">
-                <div class="card-mini" :class="reading.cards[8].orientation">
-                  <img :src="getCardImageUrl(reading.cards[8])" 
-                       :alt="reading.cards[8].nameKr" 
-                       @error="onImageError" 
-                       :class="{ reversed: reading.cards[8].orientation === 'reversed' }" />
-                  <span class="position-label">9</span>
-                </div>
+            </div>
+            
+            <!-- Position 4: 과거 (왼쪽) -->
+            <div class="card-position position-4" @click="showCardDetail(3)">
+              <div class="card-mini" :class="reading.cards[3].orientation">
+                <img :src="getCardImageUrl(reading.cards[3])" 
+                     :alt="reading.cards[3].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[3].orientation === 'reversed' }" />
+                <span class="position-label">4</span>
               </div>
-              <div class="celtic-card position-10" @click="showCardDetail(9)">
-                <div class="card-mini" :class="reading.cards[9].orientation">
-                  <img :src="getCardImageUrl(reading.cards[9])" 
-                       :alt="reading.cards[9].nameKr" 
-                       @error="onImageError" 
-                       :class="{ reversed: reading.cards[9].orientation === 'reversed' }" />
-                  <span class="position-label">10</span>
-                </div>
+            </div>
+            
+            <!-- Position 5: 드러나는 모습 (위) -->
+            <div class="card-position position-5" @click="showCardDetail(4)">
+              <div class="card-mini" :class="reading.cards[4].orientation">
+                <img :src="getCardImageUrl(reading.cards[4])" 
+                     :alt="reading.cards[4].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[4].orientation === 'reversed' }" />
+                <span class="position-label">5</span>
+              </div>
+            </div>
+            
+            <!-- Position 6: 미래 (오른쪽) -->
+            <div class="card-position position-6" @click="showCardDetail(5)">
+              <div class="card-mini" :class="reading.cards[5].orientation">
+                <img :src="getCardImageUrl(reading.cards[5])" 
+                     :alt="reading.cards[5].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[5].orientation === 'reversed' }" />
+                <span class="position-label">6</span>
+              </div>
+            </div>
+            
+            <!-- Position 7: 내가보는나 -->
+            <div class="card-position position-7" @click="showCardDetail(6)">
+              <div class="card-mini" :class="reading.cards[6].orientation">
+                <img :src="getCardImageUrl(reading.cards[6])" 
+                     :alt="reading.cards[6].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[6].orientation === 'reversed' }" />
+                <span class="position-label">7</span>
+              </div>
+            </div>
+            
+            <!-- Position 8: 남이보는나 -->
+            <div class="card-position position-8" @click="showCardDetail(7)">
+              <div class="card-mini" :class="reading.cards[7].orientation">
+                <img :src="getCardImageUrl(reading.cards[7])" 
+                     :alt="reading.cards[7].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[7].orientation === 'reversed' }" />
+                <span class="position-label">8</span>
+              </div>
+            </div>
+            
+            <!-- Position 9: 예상하는 결과 -->
+            <div class="card-position position-9" @click="showCardDetail(8)">
+              <div class="card-mini" :class="reading.cards[8].orientation">
+                <img :src="getCardImageUrl(reading.cards[8])" 
+                     :alt="reading.cards[8].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[8].orientation === 'reversed' }" />
+                <span class="position-label">9</span>
+              </div>
+            </div>
+            
+            <!-- Position 10: 실제 결과 -->
+            <div class="card-position position-10" @click="showCardDetail(9)">
+              <div class="card-mini" :class="reading.cards[9].orientation">
+                <img :src="getCardImageUrl(reading.cards[9])" 
+                     :alt="reading.cards[9].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[9].orientation === 'reversed' }" />
+                <span class="position-label">10</span>
               </div>
             </div>
           </div>
@@ -1048,108 +1060,93 @@ onMounted(() => {
 .celtic-cross-layout {
   position: relative;
   min-height: 500px;
+  padding: 10px 10px 5px 10px;
 }
 
-.celtic-cross-container {
-  display: flex;
-  justify-content: center;
-  gap: 80px;
-  margin: 40px 0;
-}
-
-.celtic-center {
+.celtic-cross-layout .cards-container {
   position: relative;
-  width: 300px;
-  height: 400px;
+  width: 100%;
+  max-width: 1200px;
+  height: 500px;
+  margin: 0 auto;
 }
 
-.celtic-staff {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 400px;
-}
-
-.celtic-card {
+/* 카드 위치 */
+.celtic-cross-layout .card-position {
   position: absolute;
-  cursor: pointer;
+  width: 80px;
+  height: 120px;
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-.celtic-card:hover {
+.celtic-cross-layout .card-position:hover {
   transform: scale(1.1);
+  z-index: 100;
+}
+
+/* 각 위치별 좌표 - CelticCrossLayout.vue와 동일하게 */
+.celtic-cross-layout .position-1 { /* 현재내면 - 중앙 왼쪽 */
+  top: 55%;
+  left: calc(40% - 60px);
+  transform: translate(-80%, 25%);
   z-index: 10;
 }
 
-/* 켈틱 크로스 카드 위치 */
-.celtic-card.position-1 { /* 현재내면 - 중앙 */
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2;
+.celtic-cross-layout .position-2 { /* 현재외부 - 중앙 오른쪽 */
+  top: 51%;
+  left: calc(40% + 60px);
+  transform: translate(-105%, 0%);
+  z-index: 10;
 }
 
-.celtic-card.position-2 { /* 현재외부 - 중앙에 겹침 (십자가) */
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) rotate(90deg);
-  z-index: 3;
+.celtic-cross-layout .position-3 { /* 근본 - 아래 */
+  top: 98%;
+  left: 40%;
+  transform: translate(-90%, 65%);
 }
 
-.celtic-card.position-3 { /* 근본 - 아래 */
-  top: 75%;
-  left: 50%;
-  transform: translateX(-50%);
+.celtic-cross-layout .position-4 { /* 과거 - 왼쪽 */
+  top: 53%;
+  left: -5%;
+  transform: translate(-140%, 15%);
 }
 
-.celtic-card.position-4 { /* 과거 - 왼쪽 */
-  top: 50%;
-  left: 25%;
-  transform: translateY(-50%);
+.celtic-cross-layout .position-5 { /* 드러나는 모습 - 위 */
+  top: 21%;
+  left: 40%;
+  transform: translate(-90%, -15%);
 }
 
-.celtic-card.position-5 { /* 드러나는 모습 - 위 */
-  top: 25%;
-  left: 50%;
-  transform: translateX(-50%);
+.celtic-cross-layout .position-6 { /* 미래 - 오른쪽 */
+  top: 53%;
+  left: 85%;
+  transform: translate(-40%, 15%);
 }
 
-.celtic-card.position-6 { /* 미래 - 오른쪽 */
-  top: 50%;
-  left: 75%;
-  transform: translateY(-50%);
+/* 오른쪽 기둥 */
+.celtic-cross-layout .position-7 { /* 내가보는나 - 맨 아래 */
+  top: 85%;
+  left: 95%;
+  transform: translate(0%, 125%);
 }
 
-/* 오른쪽 기둥 위치 조정 */
-.celtic-staff {
-  position: absolute;
-  right: -20px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.celtic-cross-layout .position-8 { /* 남이보는나 */
+  top: 62%;
+  left: 95%;
+  transform: translate(30%, 60%);
 }
 
-.celtic-staff .celtic-card {
-  position: relative;
-  margin: 0;
+.celtic-cross-layout .position-9 { /* 예상하는 결과 */
+  top: 38%;
+  left: 95%;
+  transform: translate(0%, 0%);
 }
 
-.celtic-staff .celtic-card.position-7 { /* 내가보는나 - 맨 아래 */
-  order: 4;
-}
-
-.celtic-staff .celtic-card.position-8 { /* 남이보는나 */
-  order: 3;
-}
-
-.celtic-staff .celtic-card.position-9 { /* 예상하는 결과 */
-  order: 2;
-}
-
-.celtic-staff .celtic-card.position-10 { /* 실제 결과 - 맨 위 */
-  order: 1;
+.celtic-cross-layout .position-10 { /* 실제 결과 - 맨 위 */
+  top: 15%;
+  left: 95%;
+  transform: translate(30%, -65%);
 }
 
 .card-mini {
@@ -1614,6 +1611,46 @@ onMounted(() => {
   box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
+@media (max-width: 480px) {
+  .celtic-cross-layout .cards-container {
+    transform: scale(0.65);
+  }
+  
+  /* 더 작은 화면에서 카드 위치 더 조정 */
+  .celtic-cross-layout .position-1 {
+    left: calc(40% - 60px);
+  }
+  
+  .celtic-cross-layout .position-2 {
+    left: calc(40% + 60px);
+  }
+  
+  /* 더 작은 화면에서 상하좌우 카드 위치 조정 */
+  .celtic-cross-layout .position-3 {
+    top: 85%;
+  }
+  
+  .celtic-cross-layout .position-4 {
+    left: 10%;
+  }
+  
+  .celtic-cross-layout .position-5 {
+    top: 15%;
+  }
+  
+  .celtic-cross-layout .position-6 {
+    left: 70%;
+  }
+  
+  /* 더 작은 화면에서 오른쪽 기둥 조정 */
+  .celtic-cross-layout .position-7,
+  .celtic-cross-layout .position-8,
+  .celtic-cross-layout .position-9,
+  .celtic-cross-layout .position-10 {
+    right: 0;
+  }
+}
+
 @media (max-width: 768px) {
   .card-content {
     grid-template-columns: 1fr;
@@ -1631,21 +1668,59 @@ onMounted(() => {
   }
   
   /* 켈틱 크로스 모바일 스타일 */
-  .celtic-cross-container {
-    flex-direction: column;
-    gap: 40px;
-    align-items: center;
+  .celtic-cross-layout {
+    min-height: 400px;
+    padding: 5px;
   }
   
-  .celtic-center {
-    transform: scale(0.8);
+  .celtic-cross-layout .cards-container {
+    height: 400px;
+    transform: scale(0.75);
+    transform-origin: top center;
   }
   
-  .celtic-staff {
-    flex-direction: row;
-    width: 100%;
-    height: auto;
-    justify-content: space-around;
+  /* 모바일에서 중앙 카드 위치 조정 */
+  .celtic-cross-layout .position-1,
+  .celtic-cross-layout .position-2 {
+    left: calc(40% - 20px);
+  }
+  
+  /* 모바일에서 상하좌우 카드 위치 조정 */
+  .celtic-cross-layout .position-3 {
+    top: 82%;
+  }
+  
+  .celtic-cross-layout .position-4 {
+    left: 8%;
+  }
+  
+  .celtic-cross-layout .position-5 {
+    top: 18%;
+  }
+  
+  .celtic-cross-layout .position-6 {
+    left: 65%;
+  }
+  
+  /* 모바일에서 오른쪽 기둥 조정 */
+  .celtic-cross-layout .position-7 {
+    top: 80%;
+    right: 2px;
+  }
+  
+  .celtic-cross-layout .position-8 {
+    top: 60%;
+    right: 2px;
+  }
+  
+  .celtic-cross-layout .position-9 {
+    top: 40%;
+    right: 2px;
+  }
+  
+  .celtic-cross-layout .position-10 {
+    top: 20%;
+    right: 2px;
   }
   
   .card-detail-content {
