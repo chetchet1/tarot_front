@@ -1,0 +1,345 @@
+import { supabase } from '@/config/supabase';
+import { BaseEnhancedInterpreter } from './BaseEnhancedInterpreter.js';
+
+export class EnhancedCupOfRelationshipInterpreter extends BaseEnhancedInterpreter {
+  constructor(topic, positions) {
+    super(topic, positions);
+    this.positions = positions;
+  }
+
+  // 컵 오브 릴레이션십 특화 패턴 분석
+  analyzePatterns() {
+    const basePatterns = super.analyzePatterns();
+    const relationshipPatterns = [];
+
+    // 나와 상대방 카드 분석 (1, 2번 위치)
+    const myCard = this.cards.find(c => c.position.position === 1);
+    const partnerCard = this.cards.find(c => c.position.position === 2);
+    
+    if (myCard && partnerCard) {
+      // 같은 수트인 경우
+      if (myCard.suit && partnerCard.suit && myCard.suit === partnerCard.suit) {
+        relationshipPatterns.push({
+          pattern_name: '에너지의 공명',
+          description: `두 사람이 ${this.getSuitName(myCard.suit)} 에너지를 공유하고 있습니다.`,
+          positions: [1, 2],
+          topicMeaning: this.getSuitHarmonyMeaning(myCard.suit)
+        });
+      }
+      
+      // 메이저 아르카나 조합
+      if (myCard.arcana === 'major' && partnerCard.arcana === 'major') {
+        relationshipPatterns.push({
+          pattern_name: '운명적 만남',
+          description: '두 사람 사이에 깊은 영적 연결이 있습니다.',
+          positions: [1, 2],
+          topicMeaning: '이 관계는 단순한 만남을 넘어 영혼의 성장을 위한 것입니다.'
+        });
+      }
+    }
+
+    // 과거-현재-미래 흐름 분석 (3, 4, 5번 위치)
+    const past = this.cards.find(c => c.position.position === 3);
+    const present = this.cards.find(c => c.position.position === 4);
+    const future = this.cards.find(c => c.position.position === 5);
+    
+    if (past && present && future) {
+      const timelinePattern = this.analyzeTimeline(past, present, future);
+      if (timelinePattern) {
+        relationshipPatterns.push(timelinePattern);
+      }
+    }
+
+    return [...basePatterns, ...relationshipPatterns];
+  }
+
+  getSuitHarmonyMeaning(suit) {
+    const meanings = {
+      'wands': '열정적이고 역동적인 관계입니다. 서로를 성장시키는 에너지가 있습니다.',
+      'cups': '깊은 감정적 유대와 공감이 있습니다. 서로의 마음을 잘 이해합니다.',
+      'swords': '지적인 교감과 소통이 활발합니다. 서로의 생각을 존중합니다.',
+      'pentacles': '현실적이고 안정적인 관계입니다. 함께 미래를 건설할 수 있습니다.'
+    };
+    return meanings[suit] || '특별한 조화를 이루고 있습니다.';
+  }
+
+  analyzeTimeline(past, present, future) {
+    // 상승하는 에너지 (숫자가 증가하는 경우)
+    if (past.number < present.number && present.number < future.number) {
+      return {
+        pattern_name: '성장하는 관계',
+        description: '관계가 점진적으로 발전하고 있습니다.',
+        positions: [3, 4, 5],
+        topicMeaning: '시간이 지날수록 더 깊고 의미 있는 관계로 발전할 것입니다.'
+      };
+    }
+    
+    // 정화되는 관계 (메이저에서 마이너로)
+    if (past.arcana === 'major' && future.arcana === 'minor') {
+      return {
+        pattern_name: '안정을 찾아가는 관계',
+        description: '격정적인 시기를 지나 안정적인 단계로 접어들고 있습니다.',
+        positions: [3, 4, 5],
+        topicMeaning: '관계가 성숙해지고 일상적인 행복을 찾아가고 있습니다.'
+      };
+    }
+    
+    return null;
+  }
+
+  // 주제별 전체 메시지 생성
+  generateTopicMessage() {
+    const myCard = this.cards.find(c => c.position.position === 1);
+    const partnerCard = this.cards.find(c => c.position.position === 2);
+    const relationCard = this.cards.find(c => c.position.position === 4);
+    
+    let message = '두 영혼의 만남이 펼쳐진 컵 오브 릴레이션십입니다. ';
+    
+    if (myCard && partnerCard) {
+      message += `당신은 ${myCard.nameKr}의 에너지를, 상대방은 ${partnerCard.nameKr}의 에너지를 가지고 있습니다. `;
+    }
+    
+    if (relationCard) {
+      message += `현재 관계는 ${relationCard.nameKr}의 상태에 있으며, `;
+      
+      if (relationCard.suit === 'cups') {
+        message += '감정적으로 깊은 연결이 이루어지고 있습니다. ';
+      } else if (relationCard.arcana === 'major') {
+        message += '중요한 전환점을 맞이하고 있습니다. ';
+      }
+    }
+    
+    // 조언 카드 분석
+    const adviceCard = this.cards.find(c => c.position.position === 7);
+    if (adviceCard) {
+      message += `이 관계를 위한 우주의 조언은 ${adviceCard.nameKr}입니다.`;
+    }
+    
+    return message;
+  }
+
+  // 위치별 의미 생성
+  async generatePositionMeanings() {
+    const meanings = [];
+    
+    for (const card of this.cards) {
+      const positionName = this.getPositionName(card.position.position);
+      const meaning = await this.getRelationshipPositionMeaning(card, positionName);
+      
+      meanings.push({
+        position: card.position.position,
+        positionName,
+        cardName: card.nameKr,
+        meaning
+      });
+    }
+    
+    return meanings;
+  }
+
+  getPositionName(position) {
+    const names = {
+      1: '나의 마음',
+      2: '상대의 마음',
+      3: '과거의 인연',
+      4: '현재의 관계',
+      5: '미래의 가능성',
+      6: '관계의 장애물',
+      7: '우주의 조언'
+    };
+    return names[position] || `${position}번 위치`;
+  }
+
+  async getRelationshipPositionMeaning(card, positionName) {
+    const position = card.position.position;
+    
+    switch (position) {
+      case 1:
+        return `${card.nameKr} 카드는 당신이 이 관계에서 ${this.getMyEnergy(card)}을 보여줍니다.`;
+      case 2:
+        return `${card.nameKr} 카드는 상대방이 ${this.getPartnerEnergy(card)}을 나타냅니다.`;
+      case 3:
+        return `${card.nameKr} 카드는 과거에 ${this.getPastInfluence(card)}이 있었음을 보여줍니다.`;
+      case 4:
+        return `${card.nameKr} 카드는 현재 관계가 ${this.getCurrentRelationship(card)} 상태임을 나타냅니다.`;
+      case 5:
+        return `${card.nameKr} 카드는 미래에 ${this.getFuturePotential(card)}을 암시합니다.`;
+      case 6:
+        return `${card.nameKr} 카드는 ${this.getObstacle(card)}이 도전 과제임을 보여줍니다.`;
+      case 7:
+        return `${card.nameKr} 카드는 ${this.getAdvice(card)}라는 조언을 전합니다.`;
+      default:
+        return `${positionName}의 ${card.nameKr} 카드입니다.`;
+    }
+  }
+
+  getMyEnergy(card) {
+    if (card.suit === 'cups') return '깊은 감정과 사랑';
+    if (card.suit === 'wands') return '열정과 적극성';
+    if (card.suit === 'swords') return '명확한 의사소통';
+    if (card.suit === 'pentacles') return '안정과 헌신';
+    if (card.arcana === 'major') return '강력한 개성과 영향력';
+    return '특별한 에너지';
+  }
+
+  getPartnerEnergy(card) {
+    if (card.suit === 'cups') return '감정적이고 배려심 깊은 마음';
+    if (card.suit === 'wands') return '적극적이고 열정적인 태도';
+    if (card.suit === 'swords') return '이성적이고 분석적인 접근';
+    if (card.suit === 'pentacles') return '현실적이고 안정을 추구하는 성향';
+    if (card.arcana === 'major') return '깊은 영향력과 특별한 역할';
+    return '독특한 에너지';
+  }
+
+  getPastInfluence(card) {
+    if (card.number >= 1 && card.number <= 3) return '새로운 시작이나 초기 단계';
+    if (card.number >= 4 && card.number <= 6) return '안정과 조화를 찾던 시기';
+    if (card.number >= 7 && card.number <= 9) return '도전과 성장의 경험';
+    if (card.number === 10) return '완성이나 전환점';
+    if (card.arcana === 'major') return '중요한 인생 사건이나 만남';
+    return '특별한 경험';
+  }
+
+  getCurrentRelationship(card) {
+    if (card.suit === 'cups') return '감정적으로 연결된';
+    if (card.suit === 'wands') return '열정적이고 역동적인';
+    if (card.suit === 'swords') return '소통과 이해가 중요한';
+    if (card.suit === 'pentacles') return '안정적이고 실질적인';
+    if (card.arcana === 'major') return '중요한 전환기에 있는';
+    return '특별한';
+  }
+
+  getFuturePotential(card) {
+    if (card.orientation === 'upright') {
+      if (card.suit === 'cups') return '더 깊은 사랑과 이해';
+      if (card.suit === 'wands') return '새로운 모험과 성장';
+      if (card.suit === 'swords') return '명확한 소통과 이해';
+      if (card.suit === 'pentacles') return '안정적인 미래 건설';
+      if (card.arcana === 'major') return '중요한 변화와 성장';
+    } else {
+      return '극복해야 할 도전과 성장의 기회';
+    }
+    return '새로운 가능성';
+  }
+
+  getObstacle(card) {
+    if (card.suit === 'cups') return '감정적 오해나 상처';
+    if (card.suit === 'wands') return '성급함이나 충돌';
+    if (card.suit === 'swords') return '의사소통의 어려움';
+    if (card.suit === 'pentacles') return '현실적 제약이나 차이';
+    if (card.arcana === 'major') return '큰 인생의 과제';
+    return '극복해야 할 과제';
+  }
+
+  getAdvice(card) {
+    if (card.suit === 'cups') return '서로의 감정을 깊이 이해하고 공감하세요';
+    if (card.suit === 'wands') return '열정을 유지하되 서로를 존중하세요';
+    if (card.suit === 'swords') return '솔직하고 명확한 소통을 하세요';
+    if (card.suit === 'pentacles') return '현실적인 기반을 함께 만들어가세요';
+    if (card.arcana === 'major') return '이 관계의 더 큰 의미를 이해하세요';
+    return '서로를 이해하고 성장하세요';
+  }
+
+  // 행동 제안 생성
+  async generateActionSuggestions() {
+    const suggestions = [];
+    
+    // 각 위치별 구체적 조언
+    const positionActions = {
+      1: { 
+        action: '자신의 진정한 마음을 탐구하고 표현하세요',
+        context: '진정성 있는 자기표현이 관계의 기초입니다'
+      },
+      2: {
+        action: '상대방의 입장에서 생각하고 공감하세요',
+        context: '이해와 공감이 관계를 깊게 만듭니다'
+      },
+      3: {
+        action: '과거의 패턴을 인식하고 필요하면 놓아주세요',
+        context: '과거에서 배우되 얽매이지 마세요'
+      },
+      4: {
+        action: '현재 관계의 장점을 감사하고 키워나가세요',
+        context: '현재에 충실할 때 미래가 열립니다'
+      },
+      5: {
+        action: '함께 미래를 그려보고 목표를 공유하세요',
+        context: '공동의 비전이 관계를 강화합니다'
+      },
+      6: {
+        action: '장애물을 함께 극복할 방법을 찾으세요',
+        context: '도전은 관계를 더 강하게 만드는 기회입니다'
+      },
+      7: {
+        action: '우주의 조언을 일상에서 실천하세요',
+        context: '작은 실천이 큰 변화를 만듭니다'
+      }
+    };
+    
+    for (const card of this.cards) {
+      const position = card.position.position;
+      const actionInfo = positionActions[position];
+      
+      if (actionInfo) {
+        suggestions.push({
+          position,
+          cardName: card.nameKr,
+          action: actionInfo.action,
+          context: actionInfo.context
+        });
+      }
+    }
+    
+    return suggestions;
+  }
+
+  // 관계 시너지 특별 분석
+  findSynergies() {
+    const synergies = super.findSynergies();
+    
+    // 나와 상대방 카드의 특별한 시너지
+    const myCard = this.cards.find(c => c.position.position === 1);
+    const partnerCard = this.cards.find(c => c.position.position === 2);
+    
+    if (myCard && partnerCard) {
+      // 보완적 에너지
+      if (this.areComplementary(myCard, partnerCard)) {
+        synergies.push({
+          card1Name: myCard.nameKr,
+          card2Name: partnerCard.nameKr,
+          positions: [1, 2],
+          description: '서로를 완벽하게 보완하는 에너지를 가지고 있습니다. 각자의 강점이 상대의 약점을 채워줍니다.'
+        });
+      }
+      
+      // 같은 숫자 - 공명
+      if (myCard.number === partnerCard.number && myCard.arcana === 'minor') {
+        synergies.push({
+          card1Name: myCard.nameKr,
+          card2Name: partnerCard.nameKr,
+          positions: [1, 2],
+          description: `${myCard.number}번의 에너지가 공명합니다. 비슷한 발달 단계에서 서로를 이해할 수 있습니다.`
+        });
+      }
+    }
+    
+    return synergies;
+  }
+
+  areComplementary(card1, card2) {
+    // 불과 물, 공기와 흙은 서로 보완적
+    const complementPairs = [
+      ['wands', 'cups'],
+      ['swords', 'pentacles']
+    ];
+    
+    for (const [suit1, suit2] of complementPairs) {
+      if ((card1.suit === suit1 && card2.suit === suit2) ||
+          (card1.suit === suit2 && card2.suit === suit1)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+}

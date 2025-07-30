@@ -191,7 +191,7 @@
       </section>
 
       <!-- 프리미엄 사용자를 위한 고급 분석 -->
-      <section v-if="userStore.isPremium && (reading.cardCombinations || reading.deepInterpretation || reading.probabilityAnalysis || reading.cardPattern)" class="premium-analysis">
+      <section v-if="userStore.isPremium && (reading.cardCombinations || reading.deepInterpretation || reading.probabilityAnalysis || reading.cardPattern || reading.enhancedInterpretation)" class="premium-analysis">
         <h2>🌟 프리미엄 AI 심층 분석</h2>
         
         <!-- 카드 조합 분석 -->
@@ -363,8 +363,17 @@
         </div>
       </section>
 
+      <!-- 향상된 해석 (프리미엄) -->
+      <EnhancedInterpretation
+        v-if="userStore.isPremium && (reading.enhancedInterpretation || reading.improvedInterpretation) && (reading.spreadId === 'celtic_cross' || reading.spreadId === 'seven_star' || reading.spreadId === 'cup_of_relationship')"
+        :interpretation="reading.enhancedInterpretation || reading.improvedInterpretation"
+        :topic="reading.topic || 'general'"
+        :show-position-meanings="true"
+        :spread-id="reading.spreadId"
+      />
+
       <!-- 켈틱 크로스 전용 해석 섹션 -->
-      <section v-if="reading.spreadId === 'celtic_cross' && reading.premiumInsights" class="celtic-cross-insights">
+      <section v-if="reading.spreadId === 'celtic_cross' && reading.premiumInsights && !reading.enhancedInterpretation && !reading.improvedInterpretation" class="celtic-cross-insights">
         <h2>🔮 켈틱 크로스 심층 해석</h2>
         
         <!-- 카드 관계 분석 -->
@@ -549,6 +558,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useTarotStore } from '../store/tarot';
 import { useUserStore } from '../store/user';
 import { aiAnalysisService, AIAnalysisResult } from '../services/ai/aiAnalysisService';
+import EnhancedInterpretation from '../components/interpretation/EnhancedInterpretation.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -571,6 +581,8 @@ const selectedCardIndex = ref<number | null>(null);
 const aiAnalysis = ref<AIAnalysisResult | null>(null);
 const isLoadingAI = ref(false);
 const showAIAnalysis = ref(false);
+
+// 향상된 켈틱 크로스 해석은 reading 객체에 포함됨
 
 // 카드 상세 정보 표시
 const showCardDetail = (index: number) => {

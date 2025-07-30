@@ -17,6 +17,9 @@ import { CardCombinationAnalyzer, TopicSpecificInterpretation } from '../service
 import { PersonalizedInterpretation, LifePathCalculator, ZodiacCalculator } from '../services/interpretation/personalizedInterpretation';
 import { AIInterpretationEnhancer, ProbabilityInterpreter } from '../services/interpretation/aiEnhancer';
 import { DeepInterpretationService } from '../services/premium/deepInterpretation';
+import { EnhancedCelticCrossInterpreter } from '../services/interpretation/EnhancedCelticCrossInterpreter.js';
+import { EnhancedSevenStarInterpreter } from '../services/interpretation/EnhancedSevenStarInterpreter.js';
+import { EnhancedCupOfRelationshipInterpreter } from '../services/interpretation/EnhancedCupOfRelationshipInterpreter.js';
 
 interface DailyCard {
   date: string;
@@ -439,8 +442,33 @@ export const useTarotStore = defineStore('tarot', () => {
       let interpretation: any;
       
       // 1. 기본 해석 생성
-      if (spreadId === 'celtic_cross') {
-        // 켈틱 크로스 전용 해석기 사용
+      if (spreadId === 'celtic_cross' && userStore.isPremium) {
+        // 프리미엄 사용자는 향상된 켈틱 크로스 해석기 사용
+        const enhancedInterpreter = new EnhancedCelticCrossInterpreter(topic, cardsWithPositions);
+        const enhancedInterpretation = await enhancedInterpreter.generateInterpretation();
+        
+        interpretation = {
+          cards: cardsWithPositions.map((card, index) => {
+            const positionMeaning = enhancedInterpretation.positionMeanings?.find(pm => pm.position === index + 1);
+            return {
+              ...card,
+              interpretation: {
+                basic: positionMeaning?.meaning || `${card.position.name}에서 ${card.nameKr}`,
+                advice: enhancedInterpretation.actionSuggestions?.find(as => as.position === index + 1)?.action || ''
+              }
+            };
+          }),
+          overallMessage: enhancedInterpretation.overallMessage,
+          enhancedInterpretation: enhancedInterpretation,
+          premiumInsights: {
+            combinationPatterns: enhancedInterpretation.combinationPatterns,
+            synergies: enhancedInterpretation.synergies,
+            actionSuggestions: enhancedInterpretation.actionSuggestions,
+            positionMeanings: enhancedInterpretation.positionMeanings
+          }
+        };
+      } else if (spreadId === 'celtic_cross') {
+        // 무료 사용자는 기존 켈틱 크로스 해석기 사용
         const celticInterpreter = new CelticCrossInterpreter(cardsWithPositions, topic);
         const celticInterpretation = await celticInterpreter.generateInterpretation();
         
@@ -453,13 +481,57 @@ export const useTarotStore = defineStore('tarot', () => {
             }
           })),
           overallMessage: celticInterpretation.overallPattern,
-          premiumInsights: userStore.isPremium ? {
-            relationships: celticInterpretation.relationships,
-            keywords: celticInterpretation.keywords,
-            elementAnalysis: celticInterpretation.relationships.filter(r => r.includes('원소')),
-            timelineAnalysis: celticInterpretation.relationships.find(r => r.includes('과거') || r.includes('현재') || r.includes('미래')),
-            advice: celticInterpretation.advice
-          } : undefined
+          premiumInsights: undefined
+        };
+      } else if (spreadId === 'seven_star' && userStore.isPremium) {
+        // 프리미엄 사용자는 향상된 세븐 스타 해석기 사용
+        const sevenStarInterpreter = new EnhancedSevenStarInterpreter(topic, cardsWithPositions);
+        const sevenStarInterpretation = await sevenStarInterpreter.generateInterpretation();
+        
+        interpretation = {
+          cards: cardsWithPositions.map((card, index) => {
+            const positionMeaning = sevenStarInterpretation.positionMeanings?.find(pm => pm.position === index + 1);
+            return {
+              ...card,
+              interpretation: {
+                basic: positionMeaning?.meaning || `${card.position.name}에서 ${card.nameKr}`,
+                advice: sevenStarInterpretation.actionSuggestions?.find(as => as.position === index + 1)?.action || ''
+              }
+            };
+          }),
+          overallMessage: sevenStarInterpretation.overallMessage,
+          enhancedInterpretation: sevenStarInterpretation,
+          premiumInsights: {
+            combinationPatterns: sevenStarInterpretation.combinationPatterns,
+            synergies: sevenStarInterpretation.synergies,
+            actionSuggestions: sevenStarInterpretation.actionSuggestions,
+            positionMeanings: sevenStarInterpretation.positionMeanings
+          }
+        };
+      } else if (spreadId === 'cup_of_relationship' && userStore.isPremium) {
+        // 프리미엄 사용자는 향상된 컵 오브 릴레이션십 해석기 사용
+        const cupInterpreter = new EnhancedCupOfRelationshipInterpreter(topic, cardsWithPositions);
+        const cupInterpretation = await cupInterpreter.generateInterpretation();
+        
+        interpretation = {
+          cards: cardsWithPositions.map((card, index) => {
+            const positionMeaning = cupInterpretation.positionMeanings?.find(pm => pm.position === index + 1);
+            return {
+              ...card,
+              interpretation: {
+                basic: positionMeaning?.meaning || `${card.position.name}에서 ${card.nameKr}`,
+                advice: cupInterpretation.actionSuggestions?.find(as => as.position === index + 1)?.action || ''
+              }
+            };
+          }),
+          overallMessage: cupInterpretation.overallMessage,
+          enhancedInterpretation: cupInterpretation,
+          premiumInsights: {
+            combinationPatterns: cupInterpretation.combinationPatterns,
+            synergies: cupInterpretation.synergies,
+            actionSuggestions: cupInterpretation.actionSuggestions,
+            positionMeanings: cupInterpretation.positionMeanings
+          }
         };
       } else {
         // 기존 해석 생성 로직
@@ -1108,6 +1180,19 @@ export const useTarotStore = defineStore('tarot', () => {
   const setSelectedSpread = (spread: any) => {
     selectedSpread.value = spread;
   };
+  
+  // 개선된 해석 저장 (켈틱 크로스 등)
+  const improvedInterpretation = ref<any>(null);
+  
+  const setImprovedInterpretation = (interpretation: any) => {
+    improvedInterpretation.value = interpretation;
+  };
+  
+  const getImprovedInterpretation = () => improvedInterpretation.value;
+  
+  const clearImprovedInterpretation = () => {
+    improvedInterpretation.value = null;
+  };
 
   return {
     readings,
@@ -1119,6 +1204,7 @@ export const useTarotStore = defineStore('tarot', () => {
     spreads,
     selectedTopic,
     selectedSpread,
+    improvedInterpretation,
     initialize,
     loadTarotCards,
     drawDailyCard,
@@ -1135,6 +1221,9 @@ export const useTarotStore = defineStore('tarot', () => {
     setSelectedTopic,
     setSelectedSpread,
     setTempDrawnCards,
-    getTempDrawnCards
+    getTempDrawnCards,
+    setImprovedInterpretation,
+    getImprovedInterpretation,
+    clearImprovedInterpretation
   };
 });

@@ -145,6 +145,8 @@
             :cards="drawnCards"
             :isDrawing="false"
             :drawProgress="100"
+            :improvedInterpretation="improvedInterpretation"
+            :showInterpretation="allCardsRevealed"
             @card-click="revealCard"
             @reveal-all="revealAllCards"
           >
@@ -258,6 +260,7 @@ import { useUserStore } from '@/store/user';
 import { useTarotStore } from '@/store/tarot';
 import { nativeUtils } from '@/utils/capacitor';
 import { getAdManager } from '@/services/adManagerSingleton';
+import { ImprovedCelticCrossInterpreter } from '@/utils/ImprovedCelticCrossInterpreter';
 
 // AdModal을 동적 import로 변경
 const AdModal = defineAsyncComponent(() => import('@/components/AdModal.vue'));
@@ -284,6 +287,7 @@ const drawnCards = ref<DrawnCardData[]>([]);
 const showAdModal = ref(false);
 const manualSelectedCards = ref<any[]>([]);
 const shuffledDeck = ref<any[]>([]);
+const improvedInterpretation = ref<any>(null);
 
 const allCardsRevealed = computed(() => {
   return drawnCards.value.length > 0 && drawnCards.value.every(card => card.revealed);
@@ -715,6 +719,11 @@ const revealCard = async (index: number) => {
   // 카드 공개 햇틱 피드백
   await nativeUtils.buttonTapHaptic();
   drawnCards.value[index].revealed = true;
+  
+  // 켈틱 크로스인 경우, 모든 카드가 공개되면 해석 생성
+  if (isCelticCross.value && allCardsRevealed.value && !improvedInterpretation.value) {
+    generateCelticCrossInterpretation();
+  }
 };
 
 // 모든 카드 일괄 뒤집기
@@ -728,10 +737,40 @@ const revealAllCards = async () => {
     // 카드 사이에 약간의 딜레이 추가
     await new Promise(resolve => setTimeout(resolve, 100));
   }
+  
+  // 켈틱 크로스인 경우 해석 생성
+  if (isCelticCross.value && !improvedInterpretation.value) {
+    generateCelticCrossInterpretation();
+  }
+};
+
+// 켈틱 크로스 해석 생성
+const generateCelticCrossInterpretation = async () => {
+  if (!isCelticCross.value || drawnCards.value.length !== 10) return;
+  
+  try {
+    const interpreter = new ImprovedCelticCrossInterpreter();
+    const cardsData = drawnCards.value.map((drawn, index) => ({
+      position: index,
+      card: drawn.card,
+      orientation: drawn.orientation,
+      positionName: interpreter.getPositionName(index)
+    }));
+    
+    const interpretation = await interpreter.generateInterpretation(cardsData);
+    improvedInterpretation.value = interpretation;
+  } catch (error) {
+    console.error('켈틱 크로스 해석 생성 오류:', error);
+  }
 };
 
 const goToResult = async () => {
   try {
+    // 켈틱 크로스의 경우 개선된 해석을 함께 저장
+    if (isCelticCross.value && improvedInterpretation.value) {
+      tarotStore.setImprovedInterpretation(improvedInterpretation.value);
+    }
+    
     // 뽑힌 카드로 점괴 생성
     const reading = await tarotStore.createReading(
       tarotStore.selectedSpread?.spreadId || 'one_card',
@@ -744,7 +783,7 @@ const goToResult = async () => {
     router.push(`/reading-result?readingId=${reading.id}`);
   } catch (error) {
     console.error('점괴 생성 실패:', error);
-    alert('점괴 생성에 실패했습니다. 다시 시도해주세요.');
+    alert('점괃4 생성에 실패했습니다. 다시 시도해주세요.');
   }
 };
 

@@ -418,6 +418,77 @@
         <div class="progress-fill" :style="{ width: drawProgress + '%' }"></div>
       </div>
     </div>
+
+    <!-- 해석 결과 섹션 (모든 카드가 공개된 후) -->
+    <div v-if="showInterpretation && interpretation && !hasUnrevealedCards" class="interpretation-section">
+      <div class="interpretation-container">
+        <h3>🔮 켈틱 크로스 해석</h3>
+        
+        <!-- 긍정적 측면 -->
+        <div v-if="interpretation.positiveAspects?.length > 0" class="aspect-section positive">
+          <h4>✨ 긍정적 측면</h4>
+          <ul>
+            <li v-for="(aspect, index) in interpretation.positiveAspects" :key="'positive-' + index">
+              {{ aspect }}
+            </li>
+          </ul>
+        </div>
+        
+        <!-- 부정적 측면 -->
+        <div v-if="interpretation.negativeAspects?.length > 0" class="aspect-section negative">
+          <h4>⚠️ 주의할 측면</h4>
+          <ul>
+            <li v-for="(aspect, index) in interpretation.negativeAspects" :key="'negative-' + index">
+              {{ aspect }}
+            </li>
+          </ul>
+        </div>
+        
+        <!-- 조언 -->
+        <div v-if="interpretation.advice" class="advice-section">
+          <h4>💡 조언</h4>
+          <p>{{ interpretation.advice }}</p>
+        </div>
+        
+        <!-- 핵심 테마 -->
+        <div v-if="interpretation.keyThemes?.length > 0" class="themes-section">
+          <h4>🎯 핵심 테마</h4>
+          <div class="theme-tags">
+            <span v-for="(theme, index) in interpretation.keyThemes" :key="'theme-' + index" class="theme-tag">
+              {{ theme }}
+            </span>
+          </div>
+        </div>
+        
+        <!-- 원소 균형 -->
+        <div v-if="interpretation.elementalBalance" class="elemental-section">
+          <h4>🌟 원소의 균형</h4>
+          <div class="elemental-grid">
+            <div class="element-item fire">
+              <span class="element-icon">🔥</span>
+              <span class="element-name">불</span>
+              <span class="element-count">{{ interpretation.elementalBalance.fire }}</span>
+            </div>
+            <div class="element-item water">
+              <span class="element-icon">💧</span>
+              <span class="element-name">물</span>
+              <span class="element-count">{{ interpretation.elementalBalance.water }}</span>
+            </div>
+            <div class="element-item air">
+              <span class="element-icon">🌬️</span>
+              <span class="element-name">공기</span>
+              <span class="element-count">{{ interpretation.elementalBalance.air }}</span>
+            </div>
+            <div class="element-item earth">
+              <span class="element-icon">🌍</span>
+              <span class="element-name">땅</span>
+              <span class="element-count">{{ interpretation.elementalBalance.earth }}</span>
+            </div>
+          </div>
+          <p class="elemental-analysis">{{ interpretation.elementalBalance.analysis }}</p>
+        </div>
+      </div>
+    </div>
   </div>
   
   <!-- 포지션 의미 인라인 표시 (프리미엄 사용자용) -->
@@ -445,6 +516,8 @@ interface Props {
   cards: CardData[];
   isDrawing: boolean;
   drawProgress: number;
+  interpretation?: any; // 해석 결과
+  showInterpretation?: boolean; // 해석 표시 여부
 }
 
 const props = defineProps<Props>();
@@ -1399,6 +1472,227 @@ const onImageError = (event: Event) => {
   .button-placeholder {
     width: 140px;
     height: 40px;
+  }
+}
+
+/* 해석 결과 섹션 */
+.interpretation-section {
+  margin-top: 80px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(88, 28, 135, 0.15) 0%, rgba(168, 85, 247, 0.1) 100%);
+  border: 2px solid rgba(168, 85, 247, 0.3);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.interpretation-section::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, transparent 70%);
+  animation: pulse 4s ease-in-out infinite;
+}
+
+.interpretation-container {
+  position: relative;
+  z-index: 1;
+}
+
+.interpretation-container h3 {
+  text-align: center;
+  color: #A855F7;
+  font-size: 28px;
+  margin-bottom: 30px;
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+}
+
+.aspect-section,
+.advice-section,
+.themes-section,
+.elemental-section {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.aspect-section:hover,
+.advice-section:hover,
+.themes-section:hover,
+.elemental-section:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(168, 85, 247, 0.3);
+}
+
+.aspect-section.positive {
+  border-left: 3px solid #22C55E;
+}
+
+.aspect-section.negative {
+  border-left: 3px solid #EF4444;
+}
+
+.aspect-section h4,
+.advice-section h4,
+.themes-section h4,
+.elemental-section h4 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aspect-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.aspect-section li {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  padding-left: 25px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.aspect-section li:last-child {
+  border-bottom: none;
+}
+
+.aspect-section li::before {
+  content: '•';
+  position: absolute;
+  left: 8px;
+  color: #A855F7;
+}
+
+.advice-section p {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.8;
+  font-size: 16px;
+}
+
+.theme-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.theme-tag {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.3) 0%, rgba(236, 72, 153, 0.3) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.5);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.theme-tag:hover {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.5) 0%, rgba(236, 72, 153, 0.5) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+}
+
+.elemental-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.element-item {
+  text-align: center;
+  padding: 15px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.element-item:hover {
+  transform: translateY(-5px);
+}
+
+.element-item.fire {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.element-item.water {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.element-item.air {
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.element-item.earth {
+  background: rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.element-icon {
+  display: block;
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.element-name {
+  display: block;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 4px;
+}
+
+.element-count {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+}
+
+.elemental-analysis {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.8);
+  font-style: italic;
+  font-size: 14px;
+  padding: 10px;
+  background: rgba(168, 85, 247, 0.1);
+  border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .interpretation-section {
+    margin-top: 60px;
+    padding: 15px;
+  }
+  
+  .interpretation-container h3 {
+    font-size: 24px;
+  }
+  
+  .elemental-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .element-icon {
+    font-size: 24px;
+  }
+  
+  .element-count {
+    font-size: 20px;
   }
 }
 </style>
