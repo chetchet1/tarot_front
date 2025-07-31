@@ -315,13 +315,14 @@ ${message.ending}`;
   }
   
   // 평점 제출
-  async submitRating(interpretationId: string, rating: number): Promise<void> {
+  async submitRating(interpretationId: string, rating: number, editedInterpretation?: string): Promise<void> {
     try {
-      const { data, error } = await supabase.functions.invoke('submit-rating', {
+      const { data, error } = await supabase.functions.invoke('submit-feedback', {
         body: {
           interpretationId,
           rating,
-          userId: (await supabase.auth.getUser()).data.user?.id
+          userId: (await supabase.auth.getUser()).data.user?.id,
+          editedInterpretation
         }
       });
       
