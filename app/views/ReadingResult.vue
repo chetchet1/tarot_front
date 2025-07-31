@@ -6,7 +6,13 @@
     </header>
 
     <div class="container" v-if="reading">
-
+      <!-- 커스텀 질문 표시 -->
+      <section v-if="customQuestion" class="custom-question-section">
+        <h2>📌 당신의 질문</h2>
+        <div class="custom-question-content">
+          <p>{{ customQuestion }}</p>
+        </div>
+      </section>
 
       <!-- AI 해석 (프리미엄 사용자 + 켈틱 크로스) -->
       <section v-if="userStore.isPremium && reading.spreadId === 'celtic_cross' && reading.aiInterpretation" class="ai-interpretation-section">
@@ -263,14 +269,23 @@
               <div class="probability-item success">
                 <div class="probability-value">{{ reading.probabilityAnalysis.successProbability }}%</div>
                 <div class="probability-label">성공 확률</div>
+                <div class="probability-reason" v-if="reading.probabilityAnalysis.successReason">
+                  {{ reading.probabilityAnalysis.successReason }}
+                </div>
               </div>
               <div class="probability-item challenge">
                 <div class="probability-value">{{ reading.probabilityAnalysis.challengeProbability }}%</div>
                 <div class="probability-label">도전 확률</div>
+                <div class="probability-reason" v-if="reading.probabilityAnalysis.challengeReason">
+                  {{ reading.probabilityAnalysis.challengeReason }}
+                </div>
               </div>
               <div class="probability-item uncertainty">
                 <div class="probability-value">{{ reading.probabilityAnalysis.uncertaintyLevel }}%</div>
                 <div class="probability-label">불확실성</div>
+                <div class="probability-reason" v-if="reading.probabilityAnalysis.uncertaintyReason">
+                  {{ reading.probabilityAnalysis.uncertaintyReason }}
+                </div>
               </div>
             </div>
             <div class="probability-recommendation">
@@ -784,6 +799,11 @@ const reading = computed(() => {
   return tarotStore.getReadingById(readingId.value) || tarotStore.getCurrentReading();
 });
 
+// 커스텀 질문 가져오기
+const customQuestion = computed(() => {
+  return tarotStore.getCustomQuestion();
+});
+
 // 켈틱 크로스에서 선택된 카드 인덱스
 const selectedCardIndex = ref<number | null>(null);
 
@@ -1056,6 +1076,7 @@ onMounted(() => {
   console.log('reading:', reading.value);
   console.log('프리미엄 상태:', userStore.isPremium);
   console.log('스프레드 ID:', reading.value?.spreadId);
+  console.log('커스텀 질문:', customQuestion.value);
   
   if (reading.value) {
     console.log('프리미엄 데이터 체크:');
@@ -1112,6 +1133,56 @@ onMounted(() => {
 .container {
   max-width: 800px;
   margin: 0 auto;
+}
+
+/* 커스텀 질문 섹션 */
+.custom-question-section {
+  margin-bottom: 30px;
+  padding: 25px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%);
+  border: 2px solid rgba(245, 158, 11, 0.3);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.custom-question-section::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  left: -50px;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, transparent 70%);
+  animation: pulse 4s ease-in-out infinite;
+}
+
+.custom-question-section h2 {
+  color: #F59E0B;
+  font-size: 20px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.custom-question-content {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.custom-question-content p {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 0;
+  font-style: italic;
 }
 
 
@@ -2228,6 +2299,16 @@ onMounted(() => {
 .probability-label {
   font-size: 14px;
   color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 8px;
+}
+
+.probability-reason {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.4;
+  margin-top: 5px;
+  text-align: center;
+  font-style: italic;
 }
 
 .probability-recommendation {

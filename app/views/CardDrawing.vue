@@ -260,6 +260,8 @@ import { useTarotStore } from '@/store/tarot';
 import { nativeUtils } from '@/utils/capacitor';
 import { getAdManager } from '@/services/adManagerSingleton';
 import { ImprovedCelticCrossInterpreter } from '@/utils/ImprovedCelticCrossInterpreter';
+import { customInterpretationService } from '@/services/ai/customInterpretationService';
+import { AIInterpretationService } from '@/services/ai/AIInterpretationService';
 
 // 컴포넌트 직접 import로 변경
 import AdModal from '@/components/AdModal.vue';
@@ -784,11 +786,56 @@ const goToResult = async () => {
       tarotStore.getTempDrawnCards() || undefined
     );
     
-    // 프리미엄 사용자인 경우 켈틱 크로스 AI 해석 생성
-    if (userStore.isPremium && isCelticCross.value && reading) {
+    // 커스텀 질문이 있는 경우 AI 해석 생성
+    const customQuestion = tarotStore.getCustomQuestion();
+    if (userStore.isPremium && customQuestion && reading) {
+      try {
+        // 커스텀 AI 해석 요청
+        const interpretationRequest = {
+          readingId: reading.id,
+          cards: reading.cards.map((card: any, index: number) => ({
+            id: card.id,
+            name: card.name || card.nameEn || '',
+            nameKr: card.nameKr || card.name_kr || card.name || '',
+            arcana: card.arcana || 'unknown',
+            suit: card.suit || null,
+            number: card.number || null,
+            orientation: card.orientation || 'upright',
+            position: {
+              name: card.position?.name || `위치 ${index + 1}`,
+              description: card.position?.description || ''
+            },
+            meanings: card.meanings || {}
+          })),
+          spreadId: tarotStore.selectedSpread?.spreadId || 'three_cards',
+          topic: tarotStore.selectedTopic?.id || 'general',
+          customQuestion: customQuestion,
+          userId: userStore.user?.id
+        };
+
+        const interpretationResult = await customInterpretationService.generateInterpretation(interpretationRequest);
+        
+        if (interpretationResult.success && interpretationResult.interpretation) {
+          // AI 해석을 reading에 추가
+          reading.aiInterpretation = interpretationResult.interpretation;
+          reading.aiInterpretationId = interpretationResult.interpretationId || null;
+          
+          // 확률 분석도 추가
+          if (interpretationResult.probabilityAnalysis) {
+            reading.probabilityAnalysis = interpretationResult.probabilityAnalysis;
+          }
+        }
+        
+        // reading을 store에 업데이트
+        tarotStore.updateReading(reading);
+      } catch (aiError) {
+        console.error('커스텀 AI 해석 생성 실패:', aiError);
+      }
+    }
+    // 프리미엄 사용자인 경우 켈틱 크로스 AI 해석 생성 (커스텀 질문이 없는 경우)
+    else if (userStore.isPremium && isCelticCross.value && reading && !customQuestion) {
       try {
         // AI 해석 서비스 인스턴스 생성
-        const { AIInterpretationService } = await import('@/services/ai/AIInterpretationService');
         const aiService = new AIInterpretationService(userStore.isPremium);
         
         // AI 해석 생성을 위한 카드 데이터 준비

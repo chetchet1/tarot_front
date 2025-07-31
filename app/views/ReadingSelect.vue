@@ -14,12 +14,21 @@
             v-for="topic in topics" 
             :key="topic.id"
             class="topic-card card"
-            :class="{ selected: selectedTopic === topic.id }"
+            :class="{ 
+              selected: selectedTopic === topic.id,
+              premium: topic.id === 'custom' && !userStore.isPremium
+            }"
             @click="selectTopic(topic.id)"
           >
             <div class="topic-icon">{{ topic.icon }}</div>
-            <h3>{{ topic.name }}</h3>
-            <p>{{ topic.description }}</p>
+            <h3>
+              {{ topic.name }}
+              <span v-if="topic.id === 'custom'" class="premium-badge">👑</span>
+            </h3>
+            <p v-if="topic.id === 'custom' && customQuestion">
+              {{ customQuestion }}
+            </p>
+            <p v-else>{{ topic.description }}</p>
           </div>
         </div>
       </section>
@@ -96,6 +105,14 @@
         </div>
       </div>
     </div>
+    
+    <!-- 질문 입력 모달 -->
+    <CustomQuestionModal
+      v-if="showQuestionModal"
+      :is-open="showQuestionModal"
+      @close="handleQuestionCancel"
+      @confirm="handleQuestionConfirm"
+    />
   </div>
 </template>
 
@@ -105,6 +122,7 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
 import { getSpreadsByTopic } from '../data/spreads';
+import CustomQuestionModal from '../components/CustomQuestionModal.vue';
 
 interface Topic {
   id: string;
@@ -128,45 +146,63 @@ const tarotStore = useTarotStore();
 
 const selectedTopic = ref<string>('');
 const selectedSpread = ref<string>('');
+const showQuestionModal = ref(false);
+const customQuestion = ref<string>('');
 
 // 주제 목록
-const topics: Topic[] = [
-  {
-    id: 'love',
-    name: '연애/사랑',
-    description: '연인, 짝사랑, 이별 등 사랑에 관한 고민',
-    icon: '💕'
-  },
-  {
-    id: 'career',
-    name: '직업/진로',
-    description: '취업, 이직, 승진, 사업 등 일에 관한 고민',
-    icon: '💼'
-  },
-  {
-    id: 'money',
-    name: '금전/재물',
-    description: '투자, 재정관리, 금전운 등 돈에 관한 고민',
-    icon: '💰'
-  },
-  {
-    id: 'health',
-    name: '건강/관계',
-    description: '건강, 인간관계, 가족 등에 관한 고민',
-    icon: '🌿'
-  },
-  {
-    id: 'general',
-    name: '종합운세',
-    description: '전반적인 운세와 앞으로의 길잡이',
-    icon: '🔮'
+const topics = computed<Topic[]>(() => {
+  const baseTopics = [
+    {
+      id: 'love',
+      name: '연애/사랑',
+      description: '연인, 짝사랑, 이별 등 사랑에 관한 고민',
+      icon: '💕'
+    },
+    {
+      id: 'career',
+      name: '직업/진로',
+      description: '취업, 이직, 승진, 사업 등 일에 관한 고민',
+      icon: '💼'
+    },
+    {
+      id: 'money',
+      name: '금전/재물',
+      description: '투자, 재정관리, 금전운 등 돈에 관한 고민',
+      icon: '💰'
+    },
+    {
+      id: 'health',
+      name: '건강/관계',
+      description: '건강, 인간관계, 가족 등에 관한 고민',
+      icon: '🌿'
+    },
+    {
+      id: 'general',
+      name: '종합운세',
+      description: '전반적인 운세와 앞으로의 길잡이',
+      icon: '🔮'
+    }
+  ];
+
+  // 프리미엄 사용자만 커스텀 질문 추가
+  if (userStore.isPremium) {
+    baseTopics.push({
+      id: 'custom',
+      name: '질문 직접 입력',
+      description: '구체적인 질문을 직접 입력해서 물어보세요',
+      icon: '✍️'
+    });
   }
-];
+
+  return baseTopics;
+});
 
 // 스프레드 목록 (동적 생성)
 const spreads = computed(() => {
   if (!selectedTopic.value) return [];
-  return getSpreadsByTopic(selectedTopic.value).map(spread => ({
+  // 커스텀 질문인 경우 일반 운세의 스프레드를 사용
+  const topicForSpreads = selectedTopic.value === 'custom' ? 'general' : selectedTopic.value;
+  return getSpreadsByTopic(topicForSpreads).map(spread => ({
     id: spread.spreadId,
     name: spread.nameKr,
     description: spread.description,
@@ -194,7 +230,29 @@ const canStartReading = computed(() => {
 });
 
 const selectTopic = (topicId: string) => {
-  selectedTopic.value = topicId;
+  if (topicId === 'custom') {
+    if (!userStore.isPremium) {
+      router.push('/premium');
+      return;
+    }
+    showQuestionModal.value = true;
+  } else {
+    selectedTopic.value = topicId;
+    customQuestion.value = '';
+  }
+};
+
+const handleQuestionConfirm = (question: string) => {
+  customQuestion.value = question;
+  selectedTopic.value = 'custom';
+  showQuestionModal.value = false;
+};
+
+const handleQuestionCancel = () => {
+  showQuestionModal.value = false;
+  if (selectedTopic.value === 'custom' && !customQuestion.value) {
+    selectedTopic.value = '';
+  }
 };
 
 const selectSpread = (spread: Spread) => {
@@ -212,7 +270,10 @@ const selectSpread = (spread: Spread) => {
 };
 
 const getTopicName = (topicId: string) => {
-  return topics.find(t => t.id === topicId)?.name || '';
+  if (topicId === 'custom' && customQuestion.value) {
+    return `질문: ${customQuestion.value.substring(0, 30)}${customQuestion.value.length > 30 ? '...' : ''}`;
+  }
+  return topics.value.find(t => t.id === topicId)?.name || '';
 };
 
 const getSpreadName = (spreadId: string) => {
@@ -257,8 +318,8 @@ const startReading = async () => {
     return;
   }
   
-  const selectedTopicData = topics.find(t => t.id === selectedTopic.value);
-  const selectedSpreadData = getSpreadsByTopic(selectedTopic.value || 'general').find(s => s.spreadId === selectedSpread.value);
+  const selectedTopicData = topics.value.find(t => t.id === selectedTopic.value);
+  const selectedSpreadData = getSpreadsByTopic(selectedTopic.value === 'custom' ? 'general' : selectedTopic.value).find(s => s.spreadId === selectedSpread.value);
   
   if (selectedTopicData && selectedSpreadData) {
     try {
@@ -266,8 +327,16 @@ const startReading = async () => {
       tarotStore.setSelectedTopic(selectedTopicData);
       tarotStore.setSelectedSpread(selectedSpreadData);
       
+      // 커스텀 질문이 있다면 저장
+      if (selectedTopic.value === 'custom' && customQuestion.value) {
+        tarotStore.setCustomQuestion(customQuestion.value);
+      } else {
+        tarotStore.setCustomQuestion('');
+      }
+      
       console.log('선택된 주제:', selectedTopicData);
       console.log('선택된 스프레드:', selectedSpreadData);
+      console.log('커스텀 질문:', customQuestion.value);
       
       // 카드 뽑기 페이지로 이동
       await router.push('/card-drawing');

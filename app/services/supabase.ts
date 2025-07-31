@@ -1,19 +1,62 @@
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_CONFIG } from '../config/env';
 
-console.log('Supabase 설정:', SUPABASE_CONFIG);
-console.log('SUPABASE_CONFIG.url:', SUPABASE_CONFIG.url);
-console.log('SUPABASE_CONFIG.anonKey 길이:', SUPABASE_CONFIG.anonKey?.length);
-console.log('SUPABASE_CONFIG.anonKey 시작:', SUPABASE_CONFIG.anonKey?.substring(0, 20) + '...');
-
-// Supabase 클라이언트 설정 - 보다 안전한 옵션 추가
-export const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
+// Supabase 클라이언트 생성 (싱글톤)
+export const supabase = createClient(
+  SUPABASE_CONFIG.url,
+  SUPABASE_CONFIG.anonKey,
+  {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
   }
-});
+);
+
+// 타입 정의
+export type Database = {
+  public: {
+    Tables: {
+      tarot_cards: {
+        Row: {
+          id: number
+          name: string
+          name_kr: string
+          arcana: string
+          suit: string | null
+          number: number
+          image_url: string
+          meaning_upright: string
+          meaning_reversed: string
+          keywords: string
+          created_at: string
+        }
+      }
+      readings: {
+        Row: {
+          id: string
+          user_id: string
+          spread_id: string
+          topic: string
+          cards: any
+          overall_message: string | null
+          created_at: string
+        }
+      }
+      ai_interpretations: {
+        Row: {
+          id: number
+          reading_id: string
+          user_id: string
+          interpretation_text: string
+          rating: number | null
+          created_at: string
+        }
+      }
+    }
+  }
+};
 
 console.log('Supabase 클라이언트 생성 완료:', !!supabase);
 console.log('Supabase auth:', !!supabase.auth);

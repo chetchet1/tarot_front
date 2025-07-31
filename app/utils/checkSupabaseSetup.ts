@@ -23,8 +23,21 @@ export async function checkSupabaseSetup() {
   // 4. Edge Function 테스트
   console.log('\n=== Edge Function 테스트 ===')
   try {
+    // 세션 확인
+    const { data: { session } } = await supabase.auth.getSession()
+    
     const { data, error } = await supabase.functions.invoke('generate-interpretation', {
-      body: { test: true }
+      body: { 
+        test: true,
+        cards: [],
+        topic: 'general',
+        spreadId: 'three_cards',
+        userId: session?.user?.id,
+        isPremium: false
+      },
+      headers: session ? {
+        Authorization: `Bearer ${session.access_token}`
+      } : {}
     })
     
     if (error) {
@@ -34,6 +47,8 @@ export async function checkSupabaseSetup() {
         console.log('💡 Edge Function이 배포되지 않았습니다.')
         console.log('   다음 명령어로 배포하세요:')
         console.log('   supabase functions deploy generate-interpretation')
+      } else if (error.message.includes('403')) {
+        console.log('🔒 인증 오류 - 로그인이 필요합니다.')
       }
     } else {
       console.log('✅ Edge Function 응답:', data)

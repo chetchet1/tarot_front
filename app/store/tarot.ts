@@ -41,6 +41,7 @@ export const useTarotStore = defineStore('tarot', () => {
   const selectedTopic = ref<any>(null);
   const selectedSpread = ref<any>(null);
   const tempDrawnCards = ref<DrawnCard[] | null>(null);
+  const customQuestion = ref<string>('');  // 커스텀 질문 저장
 
   // 로컬 스토리지 관련 함수들
   const saveReadingsToStorage = () => {
@@ -1196,6 +1197,17 @@ export const useTarotStore = defineStore('tarot', () => {
     selectedSpread.value = spread;
   };
   
+  // 커스텀 질문 관련 함수
+  const setCustomQuestion = (question: string) => {
+    customQuestion.value = question;
+  };
+  
+  const getCustomQuestion = () => customQuestion.value;
+  
+  const clearCustomQuestion = () => {
+    customQuestion.value = '';
+  };
+  
   // 개선된 해석 저장 (켈틱 크로스 등)
   const improvedInterpretation = ref<any>(null);
   
@@ -1230,6 +1242,7 @@ export const useTarotStore = defineStore('tarot', () => {
     selectedTopic,
     selectedSpread,
     improvedInterpretation,
+    customQuestion,
     initialize,
     loadTarotCards,
     drawDailyCard,
@@ -1245,6 +1258,9 @@ export const useTarotStore = defineStore('tarot', () => {
     getReadingById,
     setSelectedTopic,
     setSelectedSpread,
+    setCustomQuestion,
+    getCustomQuestion,
+    clearCustomQuestion,
     setTempDrawnCards,
     getTempDrawnCards,
     setImprovedInterpretation,

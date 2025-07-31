@@ -58,11 +58,11 @@
 import { ref, computed, onMounted } from 'vue';
 import { useUserStore } from '../store/user';
 
-const userStore = useUserStore();
 const showPanel = ref(false);
+let userStore: any = null;
 
-const isPremium = computed(() => userStore.isPremium);
-const currentUser = computed(() => userStore.currentUser);
+const isPremium = computed(() => userStore?.isPremium || false);
+const currentUser = computed(() => userStore?.currentUser || null);
 
 const userInfo = computed(() => {
   if (!currentUser.value) return '미확인';
@@ -70,7 +70,7 @@ const userInfo = computed(() => {
   return `${currentUser.value.email} (${currentUser.value.name})`;
 });
 
-const freeReadingStatus = computed(() => userStore.getFreeReadingStatus());
+const freeReadingStatus = computed(() => userStore?.getFreeReadingStatus() || { used: 0, total: 0, remaining: 0 });
 
 const togglePanel = () => {
   showPanel.value = !showPanel.value;
@@ -82,6 +82,7 @@ window.addEventListener('toggle-test-panel', () => {
 });
 
 const upgradeToPremium = async () => {
+  if (!userStore) return;
   try {
     await userStore.upgradeToPremium();
     alert('프리미엄으로 업그레이드되었습니다! 🌟');
@@ -91,6 +92,7 @@ const upgradeToPremium = async () => {
 };
 
 const downgradeToFree = async () => {
+  if (!userStore) return;
   try {
     await userStore.downgradeToPremium();
     alert('무료 계정으로 다운그레이드되었습니다! 📱');
@@ -100,6 +102,7 @@ const downgradeToFree = async () => {
 };
 
 const refreshStatus = async () => {
+  if (!userStore) return;
   try {
     await userStore.refreshPremiumStatus();
     alert('상태가 새로고침되었습니다! 🔄');
@@ -109,12 +112,16 @@ const refreshStatus = async () => {
 };
 
 const resetFreeReadings = () => {
+  if (!userStore) return;
   userStore.resetFreeReadings();
   alert('무료 점괘 횟수가 리셋되었습니다! 🔄');
 };
 
 // 개발 환경에서만 표시
 onMounted(() => {
+  // 마운트 후에 store 초기화
+  userStore = useUserStore();
+  
   // 프로덕션에서는 숨김
   if (import.meta.env.MODE === 'production') {
     // 숨김 처리하지만 완전히 제거하지는 않음 (테스트용)

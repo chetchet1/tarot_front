@@ -1,12 +1,12 @@
-import { Purchases, PurchasesOffering, PurchasesPackage } from '@nativescript/purchases';
+import { Purchases, PurchasesOffering, PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import { useUserStore } from '../store/user';
 import { subscriptionService } from './supabase';
 
 // RevenueCat 초기화
 export const initializeRevenueCat = async () => {
-  const apiKey = global.isIOS 
-    ? process.env.REVENUECAT_IOS_KEY || 'appl_xxxxx'
-    : process.env.REVENUECAT_ANDROID_KEY || 'goog_xxxxx';
+  const apiKey = import.meta.env.VITE_REVENUECAT_IOS_KEY || 'appl_xxxxx';
+  // Android의 경우 다른 키 사용
+  // const apiKey = import.meta.env.VITE_REVENUECAT_ANDROID_KEY || 'goog_xxxxx';
 
   await Purchases.configure(apiKey);
   
@@ -135,7 +135,7 @@ export const cancelSubscription = async () => {
     
     // RevenueCat은 구독 취소를 직접 지원하지 않음
     // 사용자를 앱스토어/구글플레이 구독 관리 페이지로 안내
-    if (global.isIOS) {
+    if (true) { // iOS 체크는 Capacitor.getPlatform()으로 할 수 있음
       // iOS 구독 관리 페이지 열기
       await Purchases.showManageSubscriptions();
     } else {

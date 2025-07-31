@@ -35,6 +35,12 @@ export default defineConfig({
     },
   },
   
+  // 최적화 설정 추가
+  optimizeDeps: {
+    include: ['vue', 'vue-router', 'pinia'],
+    exclude: ['@/services/ai/customInterpretationService']
+  },
+  
   // 경로 별칭 설정
   resolve: {
     alias: {
@@ -43,6 +49,7 @@ export default defineConfig({
       // assets 경로를 직접 매핑
       '/assets': resolve(__dirname, 'assets'),
     },
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.vue', '.json']
   },
   
   // 정적 파일 디렉토리 설정 (기본 public)

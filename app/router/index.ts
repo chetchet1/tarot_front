@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { useUserStore } from '../store/user';
+import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
 
 // Views
 import Home from '../views/Home.vue';
@@ -91,7 +91,9 @@ const router = createRouter({
 });
 
 // 네비게이션 가드
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+  // store를 동적으로 import
+  const { useUserStore } = await import('../store/user');
   const userStore = useUserStore();
   
   // 인증이 필요한 페이지
