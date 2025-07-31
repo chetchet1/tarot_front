@@ -442,6 +442,13 @@ export const useTarotStore = defineStore('tarot', () => {
       // 해석 생성 - 다층적 분석 시스템 적용
       let interpretation: any;
       
+      console.log('해석 생성 시작:', {
+        spreadId,
+        cardCount: cardsWithPositions.length,
+        topic,
+        isPremium: userStore.isPremium
+      });
+      
       // 1. 기본 해석 생성
       if (spreadId === 'celtic_cross' && userStore.isPremium) {
         // 프리미엄 사용자는 향상된 켈틱 크로스 해석기 사용
@@ -547,6 +554,35 @@ export const useTarotStore = defineStore('tarot', () => {
           topic,
           userStore.isPremium
         );
+        
+        // 1장/3장 배열의 경우 기본 해석이 누락될 수 있으므로 추가
+        if ((spreadId === 'one_card' || spreadId === 'three_card_timeline') && interpretation.cards) {
+          console.log('1장/3장 배열 해석 후처리:', interpretation);
+          
+          interpretation.cards = interpretation.cards.map((card, index) => {
+            if (!card.interpretation || !card.interpretation.basic) {
+              const meaning = card.meanings?.[topic]?.[card.orientation] || 
+                            card.meanings?.general?.[card.orientation] ||
+                            `${card.nameKr || card.name} 카드가 나타났습니다.`;
+              
+              console.log(`카드 ${index} 해석 생성:`, {
+                cardName: card.nameKr || card.name,
+                hasInterpretation: !!card.interpretation,
+                meaning
+              });
+              
+              return {
+                ...card,
+                interpretation: {
+                  basic: meaning,
+                  advice: generateAdvice(card, topic),
+                  keywords: card.keywords?.[card.orientation] || []
+                }
+              };
+            }
+            return card;
+          });
+        }
       }
 
       // 2. 카드 조합 분석 추가 (프리미엄)
@@ -698,6 +734,20 @@ export const useTarotStore = defineStore('tarot', () => {
         readingImprovedInterpretation: reading.improvedInterpretation,
         readingEnhancedInterpretation: reading.enhancedInterpretation
       });
+      
+      // 1장/3장 배열의 경우 해석 확인
+      if (spreadId === 'one_card' || spreadId === 'three_card_timeline') {
+        console.log('=== 1장/3장 배열 해석 확인 ===');
+        console.log('전체 메시지:', reading.overallMessage);
+        reading.cards.forEach((card, index) => {
+          console.log(`카드 ${index + 1}:`, {
+            name: card.nameKr || card.name,
+            orientation: card.orientation,
+            hasInterpretation: !!card.interpretation,
+            interpretationBasic: card.interpretation?.basic
+          });
+        });
+      }
 
       // 로컬 저장
       saveReading(reading);
@@ -982,8 +1032,28 @@ export const useTarotStore = defineStore('tarot', () => {
     // 각 포지션별 카드 해석
     let positionAnalysis = [];
     
+    // 1장 스프레드의 경우
+    if (spread.cardCount === 1) {
+      const card = cards[0];
+      
+      if (card.arcana === 'major') {
+        positionAnalysis.push(`${card.nameKr} 카드가 나타내는 중요한 메시지에 주목하세요`);
+      }
+      
+      if (card.orientation === 'upright') {
+        positionAnalysis.push(`이 카드의 긍정적인 에너지를 활용하여 상황을 개선할 수 있습니다`);
+      } else {
+        positionAnalysis.push(`내면의 균형을 찾고 장애물을 극복해야 할 시기입니다`);
+      }
+      
+      // 카드의 의미를 추가
+      if (card.meanings && card.meanings[topic]) {
+        positionAnalysis.push(`${card.meanings[topic][card.orientation]}`);
+      }
+    }
+    
     // 3장 스프레드의 경우 (과거-현재-미래)
-    if (spread.cardCount === 3) {
+    else if (spread.cardCount === 3) {
       const past = cards[0];
       const present = cards[1];
       const future = cards[2];

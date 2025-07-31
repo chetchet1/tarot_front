@@ -154,6 +154,31 @@
         </div>
       </section>
 
+      <!-- 기본 해석 (1장, 3장 배열) -->
+      <section v-if="(reading.spreadId === 'one_card' || reading.spreadId === 'three_card_timeline') && reading.overallMessage" class="basic-interpretation-section">
+        <h2>🔮 점괘 해석</h2>
+        <div class="basic-interpretation-content">
+          <p>{{ reading.overallMessage }}</p>
+        </div>
+        
+        <!-- 각 카드별 해석 -->
+        <div class="card-interpretations" v-if="reading.cards">
+          <div v-for="(card, index) in reading.cards" :key="index" class="card-interpretation-item">
+            <h3>
+              <span class="position-name">{{ card.position?.name || getPositionName(reading.spreadId, index) }}</span>
+              - {{ card.nameKr || card.name }}
+            </h3>
+            <p class="orientation-status" :class="card.orientation">
+              {{ card.orientation === 'upright' ? '정방향' : '역방향' }}
+            </p>
+            <div class="interpretation-text">
+              <p v-if="card.interpretation?.basic">{{ card.interpretation.basic }}</p>
+              <p v-else>{{ getCardMeaning(card, reading.topic) }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- AI 해석 (프리미엄 사용자 + 켈틱 크로스) -->
       <section v-if="userStore.isPremium && reading.spreadId === 'celtic_cross' && reading.aiInterpretation" class="ai-interpretation-section">
         <h2>해석 전문</h2>
@@ -186,8 +211,8 @@
         </div>
       </section>
 
-      <!-- AI 해석이 없는 경우 안내 메시지 -->
-      <section v-if="!userStore.isPremium || reading.spreadId !== 'celtic_cross' || !reading.aiInterpretation" class="no-interpretation-section">
+      <!-- 프리미엄 업그레이드 안내 (켈틱 크로스가 아닌 경우) -->
+      <section v-if="reading.spreadId !== 'one_card' && reading.spreadId !== 'three_card_timeline' && (!userStore.isPremium || reading.spreadId !== 'celtic_cross' || !reading.aiInterpretation)" class="no-interpretation-section">
         <div class="no-interpretation-card">
           <h2>🔮 AI 타로 해석</h2>
           <p>AI 타로 해석은 프리미엄 회원님께 켈틱 크로스 배열법에서만 제공됩니다.</p>
@@ -422,6 +447,27 @@ const getRatingHint = () => {
   if (rating === 4) return '도움이 되었어요';
   if (rating === 5) return '매우 도움이 되었어요!';
   return '';
+};
+
+// 포지션 이름 가져오기
+const getPositionName = (spreadId: string, index: number) => {
+  if (spreadId === 'one_card') {
+    return '조언';
+  } else if (spreadId === 'three_card_timeline') {
+    const positions = ['과거', '현재', '미래'];
+    return positions[index] || '';
+  }
+  return '';
+};
+
+// 카드 의미 가져오기
+const getCardMeaning = (card: any, topic: string) => {
+  if (card.meanings && card.meanings[topic]) {
+    return card.meanings[topic][card.orientation];
+  } else if (card.meanings && card.meanings.general) {
+    return card.meanings.general[card.orientation];
+  }
+  return `${card.nameKr || card.name} 카드가 ${card.orientation === 'upright' ? '정방향' : '역방향'}으로 나왔습니다.`;
 };
 
 onMounted(() => {
@@ -741,6 +787,96 @@ onMounted(() => {
   justify-content: center;
   z-index: 2;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* 기본 해석 섹션 */
+.basic-interpretation-section {
+  margin: 40px 0;
+  padding: 30px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(79, 70, 229, 0.05) 100%);
+  border: 2px solid rgba(99, 102, 241, 0.3);
+  border-radius: 20px;
+  position: relative;
+  overflow: visible !important;
+  animation: slideInUp 0.5s ease-out;
+}
+
+.basic-interpretation-section h2 {
+  text-align: center;
+  color: #6366F1;
+  font-size: 28px;
+  margin-bottom: 25px;
+  text-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+}
+
+.basic-interpretation-content {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 25px;
+  backdrop-filter: blur(10px);
+  margin-bottom: 30px;
+}
+
+.basic-interpretation-content p {
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.8;
+  font-size: 16px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.card-interpretations {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card-interpretation-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.card-interpretation-item h3 {
+  color: #6366F1;
+  font-size: 20px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.position-name {
+  color: #A5B4FC;
+  font-weight: 600;
+}
+
+.orientation-status {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 15px;
+}
+
+.orientation-status.upright {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22C55E;
+}
+
+.orientation-status.reversed {
+  background: rgba(239, 68, 68, 0.2);
+  color: #EF4444;
+}
+
+.interpretation-text {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.7;
+  font-size: 15px;
 }
 
 /* AI 해석 결과 섹션 */

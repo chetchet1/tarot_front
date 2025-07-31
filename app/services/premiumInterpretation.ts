@@ -625,11 +625,22 @@ function analyzeLoveHarmony(cards: CardInterpretation[]): any {
 
 // 보조 함수들...
 function getBasicMeaning(card: any, orientation: string, topic: string): string {
+  // card 객체가 중첩되어 있을 수 있음
+  const cardObj = card.card || card;
+  
   // Supabase의 meanings 데이터 활용
-  if (card.meanings && card.meanings[topic]) {
-    return card.meanings[topic][orientation] || card.meanings.general[orientation];
+  if (cardObj.meanings) {
+    if (cardObj.meanings[topic] && cardObj.meanings[topic][orientation]) {
+      return cardObj.meanings[topic][orientation];
+    }
+    if (cardObj.meanings.general && cardObj.meanings.general[orientation]) {
+      return cardObj.meanings.general[orientation];
+    }
   }
-  return `${card.nameKr}의 기본적인 의미`;
+  
+  // 기본 메시지
+  const cardName = cardObj.nameKr || cardObj.name_kr || cardObj.name || '알 수 없는 카드';
+  return `${cardName} 카드가 ${orientation === 'upright' ? '정방향' : '역방향'}으로 나타났습니다.`;
 }
 
 function getDeeperMeaning(card: any, orientation: string, positionType: string): string {
@@ -1094,6 +1105,28 @@ export function generateEnhancedInterpretation(
   topic: string,
   isPremium: boolean
 ): any {
+  // 1장/3장 배열의 경우 기본 해석 생성
+  if (spread.spreadId === 'one_card' || spread.spreadId === 'three_card_timeline') {
+    return {
+      overallMessage: generateBasicOverallMessage(cards, topic),
+      cards: cards.map((card, index) => {
+        const cardObj = card.card || card;
+        const meaning = cardObj.meanings?.[topic]?.[card.orientation] || 
+                       cardObj.meanings?.general?.[card.orientation] ||
+                       `${cardObj.nameKr || cardObj.name} 카드의 해석입니다.`;
+        
+        return {
+          ...card,
+          interpretation: {
+            basic: meaning,
+            advice: generatePositionAdvice(card, spread.spreadId, index),
+            keywords: cardObj.keywords?.[card.orientation] || []
+          }
+        };
+      })
+    };
+  }
+  
   if (!isPremium) {
     // 무료 사용자를 위한 기본 해석
     return {
@@ -1101,7 +1134,7 @@ export function generateEnhancedInterpretation(
       cards: cards.map(card => ({
         ...card,
         interpretation: {
-          basic: getBasicMeaning(card.card, card.orientation, topic)
+          basic: getBasicMeaning(card.card || card, card.orientation, topic)
         }
       }))
     };
@@ -1139,6 +1172,35 @@ function generateBasicOverallMessage(cards: any[], topic: string): string {
   };
   
   return topicMessages[topic] || topicMessages.general;
+}
+
+// 1장/3장 배열을 위한 포지션별 조언 생성
+function generatePositionAdvice(card: any, spreadId: string, index: number): string {
+  const cardObj = card.card || card;
+  const orientation = card.orientation || 'upright';
+  
+  if (spreadId === 'one_card') {
+    return orientation === 'upright' 
+      ? '이 카드의 긍정적인 에너지를 활용하여 상황을 개선할 수 있습니다.' 
+      : '내면의 균형을 찾고 장애물을 극복해야 할 시기입니다.';
+  }
+  
+  if (spreadId === 'three_card_timeline') {
+    const positions = ['과거', '현재', '미래'];
+    const position = positions[index] || '';
+    
+    if (position === '과거') {
+      return '과거의 경험이 현재에 미치는 영향을 인식하고, 필요하다면 화해하세요.';
+    } else if (position === '현재') {
+      return '현재 상황을 있는 그대로 받아들이고, 여기서 배울 수 있는 교훈을 찾으세요.';
+    } else if (position === '미래') {
+      return orientation === 'upright'
+        ? '긍정적인 결과를 향해 나아가고 있습니다. 현재의 접근 방식을 유지하세요.'
+        : '예상과 다른 결과가 나올 수 있지만, 이 또한 성장의 기회가 될 것입니다.';
+    }
+  }
+  
+  return '이 카드가 주는 지혜를 일상에 적용해보세요.';
 }
 
 // 더미 구현들 (실제로는 더 복잡한 로직 필요)

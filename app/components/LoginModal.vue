@@ -23,18 +23,20 @@
       <div class="social-login-section">
         <button 
           class="social-btn google-btn" 
-          @click="handleGoogleLogin"
+          @click="handleNotImplemented('Google')"
           :disabled="isLoading"
         >
           🌐 Google로 {{ isLoginMode ? '로그인' : '회원가입' }}
+          <span class="coming-soon">구현중</span>
         </button>
 
         <button 
-          class="social-btn github-btn" 
-          @click="handleGitHubLogin"
+          class="social-btn kakao-btn" 
+          @click="handleNotImplemented('카카오')"
           :disabled="isLoading"
         >
-          📁 GitHub로 {{ isLoginMode ? '로그인' : '회원가입' }}
+          💬 카카오로 {{ isLoginMode ? '로그인' : '회원가입' }}
+          <span class="coming-soon">구현중</span>
         </button>
       </div>
 
@@ -310,29 +312,12 @@ export default {
       }
     };
 
-    // 소셜 로그인 처리
-    const handleGoogleLogin = async () => {
-      isLoading.value = true;
-      errorMessage.value = '';
-
-      try {
-        await userStore.signInWithGoogle();
-      } catch (error) {
-        errorMessage.value = getErrorMessage(error.message);
-        isLoading.value = false;
-      }
-    };
-
-    const handleGitHubLogin = async () => {
-      isLoading.value = true;
-      errorMessage.value = '';
-
-      try {
-        await userStore.signInWithGitHub();
-      } catch (error) {
-        errorMessage.value = getErrorMessage(error.message);
-        isLoading.value = false;
-      }
+    // 구현 중 기능 알림
+    const handleNotImplemented = (provider) => {
+      errorMessage.value = `${provider} 로그인 기능은 현재 구현 중입니다.`;
+      setTimeout(() => {
+        errorMessage.value = '';
+      }, 3000);
     };
 
     // 비밀번호 재설정
@@ -424,8 +409,7 @@ export default {
       formData,
       errors,
       handleEmailAuth,
-      handleGoogleLogin,
-      handleGitHubLogin,
+      handleNotImplemented,
       handlePasswordReset,
       toggleMode,
       closeModal,
@@ -540,6 +524,7 @@ export default {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
 }
 
 .social-btn:disabled {
@@ -558,16 +543,39 @@ export default {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
-.github-btn {
-  background: #24292e;
-  color: white;
-  box-shadow: 0 4px 12px rgba(36, 41, 46, 0.3);
+.kakao-btn {
+  background: #FEE500;
+  color: #000000D9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
-.github-btn:hover:not(:disabled) {
-  background: #1a1e22;
+.kakao-btn:hover:not(:disabled) {
+  background: #FDD835;
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(36, 41, 46, 0.4);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.coming-soon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  font-weight: 400;
+}
+
+.google-btn .coming-soon {
+  background: rgba(0, 0, 0, 0.08);
+  color: #666;
+}
+
+.kakao-btn .coming-soon {
+  background: rgba(0, 0, 0, 0.1);
+  color: #666;
 }
 
 .divider {
