@@ -83,6 +83,9 @@ export interface Reading {
   shared: boolean;
   tags?: string[];
   premiumInsights?: any; // 프리미엄 사용자를 위한 추가 인사이트
+  // AI 해석 ID와 텍스트
+  aiInterpretationId?: string;
+  aiInterpretation?: string;
   // 프리미엄 분석 필드들
   cardCombinations?: any[];
   cardPattern?: any;

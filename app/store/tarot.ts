@@ -664,6 +664,9 @@ export const useTarotStore = defineStore('tarot', () => {
         });
       }
 
+      // AI 해석은 CardDrawing 컴포넌트에서 한 번만 생성하도록 변경
+      // (중복 호출 방지)
+
       const reading: Reading = {
         id: `reading_${Date.now()}`,
         userId: userStore.currentUser?.id,
@@ -687,7 +690,7 @@ export const useTarotStore = defineStore('tarot', () => {
         // 개선된 해석 데이터 추가 (켈틱 크로스)
         improvedInterpretation: improvedInterpretation.value
       };
-      
+
       console.log('생성된 점괘:', reading);
       console.log('개선된 해석 저장 상태:', {
         improvedInterpretationFromRef: improvedInterpretation.value,
@@ -705,8 +708,10 @@ export const useTarotStore = defineStore('tarot', () => {
         userStore.incrementFreeReadingCount();
       }
 
+      // 임시 카드 초기화
       tempDrawnCards.value = null;
-      
+
+      console.log('점괘 생성 완료:', reading.id);
       return reading;
     } catch (error) {
       console.error('점괘 생성 실패:', error);

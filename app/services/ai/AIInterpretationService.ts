@@ -317,18 +317,36 @@ ${message.ending}`;
   // 평점 제출
   async submitRating(interpretationId: string, rating: number, editedInterpretation?: string): Promise<void> {
     try {
-      const { data, error } = await supabase.functions.invoke('submit-feedback', {
-        body: {
-          interpretationId,
-          rating,
-          userId: (await supabase.auth.getUser()).data.user?.id,
-          editedInterpretation
-        }
-      });
+      console.log('평점 제출 시작:', { interpretationId, rating });
       
-      if (error) throw error;
+      // AI 해석 테이블에 직접 평점 업데이트
+      const { data: updateData, error: updateError } = await supabase
+        .from('ai_interpretations')
+        .update({ 
+          rating: rating,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', interpretationId)
+        .select();
       
-      console.log('평점 제출 성공:', data);
+      if (updateError) {
+        console.error('평점 업데이트 오류:', updateError);
+        
+        // Edge Function으로 폴백
+        const { data, error } = await supabase.functions.invoke('submit-feedback', {
+          body: {
+            interpretationId,
+            rating,
+            userId: (await supabase.auth.getUser()).data.user?.id,
+            editedInterpretation
+          }
+        });
+        
+        if (error) throw error;
+        console.log('Edge Function을 통한 평점 제출 성공:', data);
+      } else {
+        console.log('평점 업데이트 성공:', updateData);
+      }
     } catch (error) {
       console.error('평점 제출 실패:', error);
       throw error;

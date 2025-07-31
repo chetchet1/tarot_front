@@ -388,17 +388,27 @@ const newReading = () => {
 
 // 평점 제출
 const submitRating = async (rating: number) => {
-  if (!reading.value?.aiInterpretationId || userRating.value > 0) return;
+  console.log('스타 클릭됨:', rating);
+  console.log('현재 reading 데이터:', reading.value);
+  console.log('aiInterpretationId:', reading.value?.aiInterpretationId);
+  console.log('현재 userRating:', userRating.value);
+  
+  if (!reading.value?.aiInterpretationId || userRating.value > 0) {
+    console.log('평점 제출 조건 미충족');
+    return;
+  }
   
   selectedRating.value = rating;
   userRating.value = rating;
   
   try {
+    console.log('평점 제출 시작...');
     const aiService = new AIInterpretationService(userStore.isPremium);
     await aiService.submitRating(reading.value.aiInterpretationId, rating);
     console.log('평점 제출 성공:', rating);
   } catch (error) {
     console.error('평점 제출 오류:', error);
+    // 오류 발생 시에도 UI는 업데이트된 상태로 유지
   }
 };
 

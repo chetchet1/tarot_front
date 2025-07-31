@@ -780,17 +780,31 @@ const generateCelticCrossInterpretation = async () => {
   }
 };
 
+// 중복 호출 방지를 위한 플래그
+const isProcessingResult = ref(false);
+
 const goToResult = async () => {
   console.log('🎯 goToResult 함수 호출됨');
   console.log('- 모든 카드 공개 여부:', allCardsRevealed.value);
   console.log('- 뽑힌 카드 수:', drawnCards.value.length);
   console.log('- 선택된 스프레드:', tarotStore.selectedSpread?.spreadId);
+  console.log('- 커스텀 질문:', tarotStore.getCustomQuestion());
+  console.log('- 프리미엄 사용자:', userStore.isPremium);
+  
+  // 이미 처리 중이면 중복 호출 방지
+  if (isProcessingResult.value) {
+    console.log('⚠️ 이미 결과 화면으로 이동 중...');
+    return;
+  }
   
   // 모든 카드가 공개되지 않았으면 경고
   if (!allCardsRevealed.value) {
     alert('모든 카드를 먼저 공개해주세요!');
     return;
   }
+  
+  // 처리 시작
+  isProcessingResult.value = true;
   
   // 로딩 화면 표시
   isGeneratingInterpretation.value = true;
@@ -809,16 +823,17 @@ const goToResult = async () => {
       tarotStore.setImprovedInterpretation(improvedInterpretation.value);
     }
     
-    // 뽑힌 카드로 점괴 생성
+    // 뽑힌 카드로 점괘 생성
     const reading = await tarotStore.createReading(
       tarotStore.selectedSpread?.spreadId || 'one_card',
       tarotStore.selectedTopic?.id || 'general',
-      undefined, // 질문은 선택사항
+      undefined, // 질문은 나중에 처리
       tarotStore.getTempDrawnCards() || undefined
     );
     
-    // 커스텀 질문이 있는 경우 AI 해석 생성
+    // 커스텀 질문이 있는 경우 별도로 AI 해석 생성 (모든 스프레드에 대해)
     const customQuestion = tarotStore.getCustomQuestion();
+    
     if (userStore.isPremium && customQuestion && reading) {
       try {
         // 프로그레스 업데이트
@@ -963,6 +978,9 @@ const goToResult = async () => {
     interpretationProgress.value = 0;
     
     alert(`점괘 생성에 실패했습니다: ${error.message || '알 수 없는 오류'}`);
+  } finally {
+    // 처리 완료 플래그 리셋
+    isProcessingResult.value = false;
   }
 };
 
