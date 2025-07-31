@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite",
     "copy:assets": "copy-assets.bat",
-    "build": "npm run copy:assets && vue-tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "cap:init": "cap init",
     "cap:add:android": "cap add android",

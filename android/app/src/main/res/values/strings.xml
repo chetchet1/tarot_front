@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">타로의 정원</string>
+    <string name="title_activity_main">타로의 정원</string>
+    <string name="package_name">com.tarotgarden.app</string>
+    <string name="custom_url_scheme">com.tarotgarden.app</string>
+</resources>
