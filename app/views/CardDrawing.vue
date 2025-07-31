@@ -248,6 +248,12 @@
 
       <!-- 광고 모달 (무료 사용자용) -->
       <AdModal v-if="showAdModal" @close="closeAdModal" />
+      
+      <!-- AI 해석 로딩 화면 -->
+      <TarotLoadingScreen 
+        :isVisible="isGeneratingInterpretation" 
+        :progress="interpretationProgress"
+      />
     </div>
   </div>
 </template>
@@ -268,6 +274,7 @@ import AdModal from '@/components/AdModal.vue';
 import CelticCrossLayout from '@/components/spreads/CelticCrossLayout.vue';
 import SevenStarLayout from '@/components/spreads/SevenStarLayout.vue';
 import CupOfRelationshipLayout from '@/components/spreads/CupOfRelationshipLayout.vue';
+import TarotLoadingScreen from '@/components/loading/TarotLoadingScreen.vue';
 
 interface DrawnCardData {
   card: any; // TarotCard type
@@ -288,6 +295,8 @@ const showAdModal = ref(false);
 const manualSelectedCards = ref<any[]>([]);
 const shuffledDeck = ref<any[]>([]);
 const improvedInterpretation = ref<any>(null);
+const isGeneratingInterpretation = ref(false);
+const interpretationProgress = ref(0);
 
 const allCardsRevealed = computed(() => {
   return drawnCards.value.length > 0 && drawnCards.value.every(card => card.revealed);
@@ -783,6 +792,17 @@ const goToResult = async () => {
     return;
   }
   
+  // 로딩 화면 표시
+  isGeneratingInterpretation.value = true;
+  interpretationProgress.value = 0;
+  
+  // 프로그레스 업데이트 시뮬레이션
+  const progressInterval = setInterval(() => {
+    if (interpretationProgress.value < 90) {
+      interpretationProgress.value += Math.random() * 15;
+    }
+  }, 500);
+  
   try {
     // 켈틱 크로스의 경우 개선된 해석을 함께 저장
     if (isCelticCross.value && improvedInterpretation.value) {
@@ -801,6 +821,9 @@ const goToResult = async () => {
     const customQuestion = tarotStore.getCustomQuestion();
     if (userStore.isPremium && customQuestion && reading) {
       try {
+        // 프로그레스 업데이트
+        interpretationProgress.value = 30;
+        
         // 커스텀 AI 해석 요청
         const interpretationRequest = {
           readingId: reading.id,
@@ -825,6 +848,9 @@ const goToResult = async () => {
         };
 
         const interpretationResult = await customInterpretationService.generateInterpretation(interpretationRequest);
+        
+        // 프로그레스 업데이트
+        interpretationProgress.value = 70;
         
         if (interpretationResult.success && interpretationResult.interpretation) {
           console.log('🤖 커스텀 AI 해석 생성 성공!');
@@ -852,6 +878,9 @@ const goToResult = async () => {
     // 프리미엄 사용자인 경우 켈틱 크로스 AI 해석 생성 (커스텀 질문이 없는 경우)
     else if (userStore.isPremium && isCelticCross.value && reading && !customQuestion) {
       try {
+        // 프로그레스 업데이트
+        interpretationProgress.value = 30;
+        
         // AI 해석 서비스 인스턴스 생성
         const aiService = new AIInterpretationService(userStore.isPremium);
         
@@ -889,6 +918,9 @@ const goToResult = async () => {
           'celtic_cross'
         );
         
+        // 프로그레스 업데이트
+        interpretationProgress.value = 70;
+        
         if (result && result.text) {
           console.log('🤖 켈틱 크로스 AI 해석 생성 성공!');
           console.log('- 해석 길이:', result.text.length);
@@ -910,10 +942,26 @@ const goToResult = async () => {
     
     console.log('✅ 점괘 생성 성공:', reading.id);
     
+    // 프로그레스 완료
+    clearInterval(progressInterval);
+    interpretationProgress.value = 100;
+    
+    // 잠시 대기 후 화면 전환
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // 로딩 화면 숨기기
+    isGeneratingInterpretation.value = false;
+    
     // 점괴 결과 화면으로 이동
     router.push(`/reading-result?readingId=${reading.id}`);
   } catch (error) {
     console.error('❌ 점괴 생성 실패:', error);
+    
+    // 프로그레스 정리
+    clearInterval(progressInterval);
+    isGeneratingInterpretation.value = false;
+    interpretationProgress.value = 0;
+    
     alert(`점괘 생성에 실패했습니다: ${error.message || '알 수 없는 오류'}`);
   }
 };

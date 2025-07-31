@@ -4,7 +4,7 @@
     <header class="header">
       <div class="header-content">
         <div class="logo-section">
-          <h1 class="app-title">🔮 타로 카드 점집</h1>
+          <h1 class="app-title">🔮 타로의 정원</h1>
           <p class="tagline">신비로운 타로의 세계에 오신 것을 환영합니다</p>
         </div>
         
@@ -54,7 +54,7 @@
 
       <!-- 특징 섹션 -->
       <section class="features-section">
-        <h3 class="section-title">타로 카드 점집의 특별함</h3>
+        <h3 class="section-title">타로의 정원의 특별함</h3>
         
         <div class="features-grid">
           <div class="feature-card">

@@ -16,7 +16,7 @@
 
       <!-- 카드 배열 이미지만 표시 -->
       <section class="cards-layout-section">
-        <h2>🎴 카드 배열</h2>
+        <h2>카드 배열</h2>
         
         <!-- 켈틱 크로스 레이아웃 -->
         <div v-if="reading.spreadId === 'celtic_cross'" class="celtic-cross-layout">
@@ -156,7 +156,7 @@
 
       <!-- AI 해석 (프리미엄 사용자 + 켈틱 크로스) -->
       <section v-if="userStore.isPremium && reading.spreadId === 'celtic_cross' && reading.aiInterpretation" class="ai-interpretation-section">
-        <h2>🤖 AI 타로 해석</h2>
+        <h2>해석 전문</h2>
         <div class="ai-interpretation-content">
           <p>{{ reading.aiInterpretation }}</p>
         </div>

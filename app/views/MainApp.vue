@@ -4,7 +4,7 @@
     <header class="app-header">
       <div class="header-content">
         <div class="logo-section">
-          <h1 class="app-title">🔮 타로 카드 점집</h1>
+          <h1 class="app-title">🔮 타로의 정원</h1>
         </div>
         
         <div class="user-section">
