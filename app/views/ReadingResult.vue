@@ -2600,6 +2600,86 @@ onMounted(() => {
   font-weight: 500;
 }
 
+/* 해석 수정 버튼 */
+.btn-edit-interpretation {
+  background: rgba(107, 70, 193, 0.2);
+  color: #6b46c1;
+  border: 1px solid #6b46c1;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 15px;
+}
+
+.btn-edit-interpretation:hover {
+  background: rgba(107, 70, 193, 0.3);
+  transform: translateY(-1px);
+}
+
+/* 해석 수정 섹션 */
+.correction-section {
+  margin-top: 30px;
+  padding: 25px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  animation: fadeIn 0.3s ease;
+}
+
+.correction-section h4 {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 20px;
+}
+
+.interpretation-textarea {
+  width: 100%;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.6;
+  resize: vertical;
+  margin-bottom: 15px;
+  font-family: inherit;
+}
+
+.interpretation-textarea:focus {
+  outline: none;
+  border-color: rgba(168, 85, 247, 0.5);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.feedback-input {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.feedback-input:focus {
+  outline: none;
+  border-color: rgba(168, 85, 247, 0.5);
+}
+
+.correction-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.correction-actions .btn {
+  padding: 10px 24px;
+}
+
 @media (max-width: 768px) {
   .ai-interpretation-section {
     margin: 30px 0;
