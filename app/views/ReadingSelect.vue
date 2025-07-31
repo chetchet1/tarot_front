@@ -36,6 +36,9 @@
       <!-- 스프레드 선택 -->
       <section class="section">
         <h2 class="section-title">카드 배열법을 선택하세요</h2>
+        <div v-if="selectedTopic === 'custom'" class="custom-notice">
+          <p>💫 커스텀 질문에는 가장 상세한 답변을 제공하는 켈틱 크로스 배열법을 사용합니다.</p>
+        </div>
         <div class="spread-grid">
           <div 
             v-for="spread in spreads" 
@@ -121,7 +124,7 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
-import { getSpreadsByTopic } from '../data/spreads';
+import { getSpreadsByTopic, getSpreadById } from '../data/spreads';
 import CustomQuestionModal from '../components/CustomQuestionModal.vue';
 
 interface Topic {
@@ -200,9 +203,25 @@ const topics = computed<Topic[]>(() => {
 // 스프레드 목록 (동적 생성)
 const spreads = computed(() => {
   if (!selectedTopic.value) return [];
-  // 커스텀 질문인 경우 일반 운세의 스프레드를 사용
-  const topicForSpreads = selectedTopic.value === 'custom' ? 'general' : selectedTopic.value;
-  return getSpreadsByTopic(topicForSpreads).map(spread => ({
+  
+  // 커스텀 질문인 경우 켈틱 크로스만 표시
+  if (selectedTopic.value === 'custom') {
+    const celticCross = getSpreadById('celtic_cross');
+    if (celticCross) {
+      return [{
+        id: celticCross.spreadId,
+        name: celticCross.nameKr,
+        description: celticCross.description,
+        cardCount: celticCross.cardCount,
+        difficulty: 'hard',
+        isPremium: celticCross.isPremium
+      }];
+    }
+    return [];
+  }
+  
+  // 일반 주제인 경우 기존 로직 사용
+  return getSpreadsByTopic(selectedTopic.value).map(spread => ({
     id: spread.spreadId,
     name: spread.nameKr,
     description: spread.description,
@@ -220,9 +239,19 @@ const canStartReading = computed(() => {
     return false;
   }
   
-  // 커스텀 질문인 경우 general 토픽으로 변환하여 스프레드 찾기
-  const topicForSpreads = selectedTopic.value === 'custom' ? 'general' : selectedTopic.value;
-  const spread = getSpreadsByTopic(topicForSpreads).find(s => s.spreadId === selectedSpread.value);
+  // 커스텀 질문인 경우 켈틱 크로스만 확인
+  if (selectedTopic.value === 'custom') {
+    const spread = getSpreadById(selectedSpread.value);
+    if (!spread) return false;
+    
+    // 프리미엄 스프레드인데 프리미엄이 아닌 경우
+    if (spread.isPremium && !userStore.isPremium) return false;
+    
+    return true;
+  }
+  
+  // 일반 주제인 경우 기존 로직 사용
+  const spread = getSpreadsByTopic(selectedTopic.value).find(s => s.spreadId === selectedSpread.value);
   if (!spread) return false;
   
   // 프리미엄 스프레드인데 프리미엄이 아닌 경우
@@ -279,16 +308,26 @@ const getTopicName = (topicId: string) => {
 };
 
 const getSpreadName = (spreadId: string) => {
-  // 커스텀 질문인 경우 general 토픽으로 변환
-  const topicForSpreads = selectedTopic.value === 'custom' ? 'general' : selectedTopic.value;
-  const spread = getSpreadsByTopic(topicForSpreads || 'general').find(s => s.spreadId === spreadId);
+  // 커스텀 질문인 경우 직접 스프레드 찾기
+  if (selectedTopic.value === 'custom') {
+    const spread = getSpreadById(spreadId);
+    return spread?.nameKr || '';
+  }
+  
+  // 일반 주제인 경우 기존 로직 사용
+  const spread = getSpreadsByTopic(selectedTopic.value || 'general').find(s => s.spreadId === spreadId);
   return spread?.nameKr || '';
 };
 
 const getSpreadCardCount = (spreadId: string) => {
-  // 커스텀 질문인 경우 general 토픽으로 변환
-  const topicForSpreads = selectedTopic.value === 'custom' ? 'general' : selectedTopic.value;
-  const spread = getSpreadsByTopic(topicForSpreads || 'general').find(s => s.spreadId === spreadId);
+  // 커스텀 질문인 경우 직접 스프레드 찾기
+  if (selectedTopic.value === 'custom') {
+    const spread = getSpreadById(spreadId);
+    return spread?.cardCount || 0;
+  }
+  
+  // 일반 주제인 경우 기존 로직 사용
+  const spread = getSpreadsByTopic(selectedTopic.value || 'general').find(s => s.spreadId === spreadId);
   return spread?.cardCount || 0;
 };
 
@@ -325,7 +364,14 @@ const startReading = async () => {
   }
   
   const selectedTopicData = topics.value.find(t => t.id === selectedTopic.value);
-  const selectedSpreadData = getSpreadsByTopic(selectedTopic.value === 'custom' ? 'general' : selectedTopic.value).find(s => s.spreadId === selectedSpread.value);
+  let selectedSpreadData;
+  
+  // 커스텀 질문인 경우 직접 스프레드 찾기
+  if (selectedTopic.value === 'custom') {
+    selectedSpreadData = getSpreadById(selectedSpread.value);
+  } else {
+    selectedSpreadData = getSpreadsByTopic(selectedTopic.value).find(s => s.spreadId === selectedSpread.value);
+  }
   
   if (selectedTopicData && selectedSpreadData) {
     try {
@@ -607,6 +653,22 @@ const goBack = () => {
 
 .premium-link:hover {
   text-decoration: underline;
+}
+
+.custom-notice {
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.custom-notice p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 @media (max-width: 768px) {

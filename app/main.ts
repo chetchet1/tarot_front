@@ -92,3 +92,16 @@ const initializeApp = async () => {
 
 // 앱 초기화 실행 (비동기 - UI 블록킹 방지)
 initializeApp();
+
+// PWA Service Worker 등록
+if ('serviceWorker' in navigator && !window.matchMedia('(display-mode: standalone)').matches) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('✅ Service Worker 등록 성공:', registration.scope);
+      })
+      .catch(error => {
+        console.error('❌ Service Worker 등록 실패:', error);
+      });
+  });
+}
