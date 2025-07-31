@@ -52,6 +52,12 @@ export class CustomInterpretationService {
         throw new Error('로그인이 필요합니다')
       }
 
+      console.log('🚀 Edge Function 호출 시작...');
+      console.log('- 요청 데이터:', {
+        ...request,
+        isPremium: true
+      });
+      
       // generate-interpretation Edge Function 호출 (올바른 함수 이름)
       const { data, error } = await supabase.functions.invoke('generate-interpretation', {
         body: {
@@ -68,8 +74,15 @@ export class CustomInterpretationService {
         throw new Error(error.message || 'AI 해석 생성 중 오류가 발생했습니다.')
       }
 
+      console.log('🌍 Edge Function 응답 받음:', data);
+      
       // Edge Function 응답 형식에 맞게 변환
       if (data && data.interpretation) {
+        console.log('✅ AI 해석 성공!');
+        console.log('- 해석 길이:', data.interpretation.length);
+        console.log('- 해석 처음 300자:', data.interpretation.substring(0, 300));
+        console.log('- 해석 마지막 300자:', data.interpretation.substring(data.interpretation.length - 300));
+        
         return {
           success: true,
           interpretation: data.interpretation,
@@ -77,6 +90,7 @@ export class CustomInterpretationService {
           probabilityAnalysis: data.probabilityAnalysis
         }
       } else {
+        console.error('❌ AI 해석 응답 형식 오류:', data);
         throw new Error('AI 해석 응답이 올바르지 않습니다')
       }
     } catch (error) {

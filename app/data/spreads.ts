@@ -349,23 +349,6 @@ export const tarotSpreads: TarotSpread[] = [
     ],
     isPremium: true,
     topics: ["career"]
-  },
-  {
-    id: "year_ahead",
-    spreadId: "year_ahead",
-    name: "Year Ahead",
-    nameKr: "한 해 전망",
-    description: "앞으로 12개월을 전망하는 12장 배열",
-    cardCount: 12,
-    positions: Array.from({ length: 12 }, (_, i) => ({
-      position: i + 1,
-      name: `${i + 1}월`,
-      description: `${i + 1}월의 주요 테마`,
-      x: 50 + 40 * Math.cos((i * 30 - 90) * Math.PI / 180),
-      y: 50 + 40 * Math.sin((i * 30 - 90) * Math.PI / 180)
-    })),
-    isPremium: true,
-    topics: ["general"]
   }
 ];
 

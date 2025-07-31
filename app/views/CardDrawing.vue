@@ -772,6 +772,17 @@ const generateCelticCrossInterpretation = async () => {
 };
 
 const goToResult = async () => {
+  console.log('🎯 goToResult 함수 호출됨');
+  console.log('- 모든 카드 공개 여부:', allCardsRevealed.value);
+  console.log('- 뽑힌 카드 수:', drawnCards.value.length);
+  console.log('- 선택된 스프레드:', tarotStore.selectedSpread?.spreadId);
+  
+  // 모든 카드가 공개되지 않았으면 경고
+  if (!allCardsRevealed.value) {
+    alert('모든 카드를 먼저 공개해주세요!');
+    return;
+  }
+  
   try {
     // 켈틱 크로스의 경우 개선된 해석을 함께 저장
     if (isCelticCross.value && improvedInterpretation.value) {
@@ -816,6 +827,12 @@ const goToResult = async () => {
         const interpretationResult = await customInterpretationService.generateInterpretation(interpretationRequest);
         
         if (interpretationResult.success && interpretationResult.interpretation) {
+          console.log('🤖 커스텀 AI 해석 생성 성공!');
+          console.log('- 해석 길이:', interpretationResult.interpretation.length);
+          console.log('- 해석 처음 200자:', interpretationResult.interpretation.substring(0, 200));
+          console.log('- 해석 마지막 200자:', interpretationResult.interpretation.substring(interpretationResult.interpretation.length - 200));
+          console.log('- 전체 해석:', interpretationResult.interpretation);
+          
           // AI 해석을 reading에 추가
           reading.aiInterpretation = interpretationResult.interpretation;
           reading.aiInterpretationId = interpretationResult.interpretationId || null;
@@ -873,6 +890,12 @@ const goToResult = async () => {
         );
         
         if (result && result.text) {
+          console.log('🤖 켈틱 크로스 AI 해석 생성 성공!');
+          console.log('- 해석 길이:', result.text.length);
+          console.log('- 해석 처음 200자:', result.text.substring(0, 200));
+          console.log('- 해석 마지막 200자:', result.text.substring(result.text.length - 200));
+          console.log('- 전체 해석:', result.text);
+          
           // AI 해석을 reading에 추가
           reading.aiInterpretation = result.text;
           reading.aiInterpretationId = result.interpretationId || null;
@@ -885,11 +908,13 @@ const goToResult = async () => {
       }
     }
     
+    console.log('✅ 점괘 생성 성공:', reading.id);
+    
     // 점괴 결과 화면으로 이동
     router.push(`/reading-result?readingId=${reading.id}`);
   } catch (error) {
-    console.error('점괴 생성 실패:', error);
-    alert('점괘 생성에 실패했습니다. 다시 시도해주세요.');
+    console.error('❌ 점괴 생성 실패:', error);
+    alert(`점괘 생성에 실패했습니다: ${error.message || '알 수 없는 오류'}`);
   }
 };
 

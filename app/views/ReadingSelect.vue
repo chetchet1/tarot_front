@@ -215,12 +215,14 @@ const spreads = computed(() => {
 const canStartReading = computed(() => {
   if (!selectedTopic.value || !selectedSpread.value) return false;
   
-  // 세븐스타와 릴레이션쉽 배열법은 업데이트 중
+  // 세븐스타와 릴레이션십 배열법은 업데이트 중
   if (selectedSpread.value === 'seven_star' || selectedSpread.value === 'cup_of_relationship') {
     return false;
   }
   
-  const spread = getSpreadsByTopic(selectedTopic.value).find(s => s.spreadId === selectedSpread.value);
+  // 커스텀 질문인 경우 general 토픽으로 변환하여 스프레드 찾기
+  const topicForSpreads = selectedTopic.value === 'custom' ? 'general' : selectedTopic.value;
+  const spread = getSpreadsByTopic(topicForSpreads).find(s => s.spreadId === selectedSpread.value);
   if (!spread) return false;
   
   // 프리미엄 스프레드인데 프리미엄이 아닌 경우
@@ -277,12 +279,16 @@ const getTopicName = (topicId: string) => {
 };
 
 const getSpreadName = (spreadId: string) => {
-  const spread = getSpreadsByTopic(selectedTopic.value || 'general').find(s => s.spreadId === spreadId);
+  // 커스텀 질문인 경우 general 토픽으로 변환
+  const topicForSpreads = selectedTopic.value === 'custom' ? 'general' : selectedTopic.value;
+  const spread = getSpreadsByTopic(topicForSpreads || 'general').find(s => s.spreadId === spreadId);
   return spread?.nameKr || '';
 };
 
 const getSpreadCardCount = (spreadId: string) => {
-  const spread = getSpreadsByTopic(selectedTopic.value || 'general').find(s => s.spreadId === spreadId);
+  // 커스텀 질문인 경우 general 토픽으로 변환
+  const topicForSpreads = selectedTopic.value === 'custom' ? 'general' : selectedTopic.value;
+  const spread = getSpreadsByTopic(topicForSpreads || 'general').find(s => s.spreadId === spreadId);
   return spread?.cardCount || 0;
 };
 
