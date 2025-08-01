@@ -27,11 +27,21 @@ export default defineConfig({
   
   // 개발 서버 설정
   server: {
-    port: 8082,  // 로그에서 보인 포트와 맞춤
-    host: true,
+    port: 8082,
+    host: 'localhost',
+    strictPort: true,
+    // HMR 설정 - 완전히 비활성화
+    hmr: false,
+    // CORS 설정
+    cors: true,
     // 정적 파일 제공
     fs: {
       allow: ['..'],
+    },
+    // 웹소켓 연결 시간 초과 방지
+    watch: {
+      usePolling: false,
+      interval: 100,
     },
   },
   

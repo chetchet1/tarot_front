@@ -93,15 +93,58 @@ const initializeApp = async () => {
 // 앱 초기화 실행 (비동기 - UI 블록킹 방지)
 initializeApp();
 
-// PWA Service Worker 등록
-if ('serviceWorker' in navigator && !window.matchMedia('(display-mode: standalone)').matches) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('✅ Service Worker 등록 성공:', registration.scope);
-      })
-      .catch(error => {
-        console.error('❌ Service Worker 등록 실패:', error);
-      });
+// Service Worker 완전 제거 (모든 환경)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      // 1. 기존 Service Worker 모두 제거
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      console.log(`🔍 발견된 Service Worker: ${registrations.length}개`);
+      
+      for (const registration of registrations) {
+        const success = await registration.unregister();
+        console.log(`🗑️ Service Worker 제거 ${success ? '성공' : '실패'}: ${registration.scope}`);
+      }
+      
+      // 2. 모든 캐시 삭제
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        console.log(`🔍 발견된 캐시: ${cacheNames.length}개`);
+        
+        for (const cacheName of cacheNames) {
+          await caches.delete(cacheName);
+          console.log(`🗑️ 캐시 삭제됨: ${cacheName}`);
+        }
+      }
+      
+      // 3. 제거용 Service Worker 등록 (한 번만)
+      if (registrations.length > 0) {
+        console.log('🧹 제거용 Service Worker 등록 중...');
+        const reg = await navigator.serviceWorker.register('/sw-remove.js', {
+          scope: '/',
+          updateViaCache: 'none'
+        });
+        
+        // 잠시 후 자동 제거됨
+        setTimeout(() => {
+          console.log('✅ Service Worker 정리 완료');
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('❌ Service Worker 제거 중 오류:', error);
+    }
   });
 }
+
+// 프로덕션 환경에서만 PWA Service Worker 등록 (나중에 활성화)
+// if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
+//   window.addEventListener('load', () => {
+//     navigator.serviceWorker.register('/sw.js')
+//       .then(registration => {
+//         console.log('✅ Service Worker 등록 성공:', registration.scope);
+//       })
+//       .catch(error => {
+//         console.error('❌ Service Worker 등록 실패:', error);
+//       });
+//   });
+// }
