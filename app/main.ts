@@ -69,16 +69,17 @@ const initializeApp = async () => {
     
     console.log('✅ 앱 초기화 시작 완료 (백그라운드 작업 계속)');
     
-    // 5. 개발 모드에서 Supabase 설정 확인
+    // 5. 개발 모드에서 Supabase 설정 확인 및 수동 테스트 함수 노출
     if (import.meta.env.DEV) {
       setTimeout(async () => {
         try {
           const { checkSupabaseSetup } = await import('./utils/checkSupabaseSetup');
           await checkSupabaseSetup();
           
-          // Edge Function 테스트 함수도 로드
+          // Edge Function 테스트 함수를 수동 테스트용으로 노출
           const { testEdgeFunction } = await import('./utils/testEdgeFunction');
           (window as any).testEdgeFunction = testEdgeFunction;
+          console.log('🔧 수동 Edge Function 테스트: window.testEdgeFunction()');
         } catch (error) {
           console.error('Supabase 설정 확인 실패:', error);
         }

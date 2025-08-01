@@ -20,42 +20,10 @@ export async function checkSupabaseSetup() {
     console.error('인증 확인 실패:', error)
   }
   
-  // 4. Edge Function 테스트
+  // 4. Edge Function 테스트 (수동으로만 실행)
   console.log('\n=== Edge Function 테스트 ===')
-  try {
-    // 세션 확인
-    const { data: { session } } = await supabase.auth.getSession()
-    
-    const { data, error } = await supabase.functions.invoke('generate-interpretation', {
-      body: { 
-        test: true,
-        cards: [],
-        topic: 'general',
-        spreadId: 'three_cards',
-        userId: session?.user?.id,
-        isPremium: false
-      },
-      headers: session ? {
-        Authorization: `Bearer ${session.access_token}`
-      } : {}
-    })
-    
-    if (error) {
-      console.error('❌ Edge Function 호출 실패:', error.message)
-      
-      if (error.message.includes('not implemented')) {
-        console.log('💡 Edge Function이 배포되지 않았습니다.')
-        console.log('   다음 명령어로 배포하세요:')
-        console.log('   supabase functions deploy generate-interpretation')
-      } else if (error.message.includes('403')) {
-        console.log('🔒 인증 오류 - 로그인이 필요합니다.')
-      }
-    } else {
-      console.log('✅ Edge Function 응답:', data)
-    }
-  } catch (error) {
-    console.error('❌ Edge Function 테스트 실패:', error)
-  }
+  console.log('💡 수동 테스트를 원하면 콘솔에서: window.testEdgeFunction()')
+  console.log('   자동 테스트는 API 비용 절감을 위해 비활성화됨')
   
   // 5. 데이터베이스 테이블 확인
   console.log('\n=== 데이터베이스 테이블 확인 ===')
