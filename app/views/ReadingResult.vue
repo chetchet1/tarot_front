@@ -180,9 +180,17 @@
       </section>
 
       <!-- AI 해석 (프리미엄 사용자 + 켈틱 크로스) -->
-      <section v-if="userStore.isPremium && reading.spreadId === 'celtic_cross' && reading.aiInterpretation" class="ai-interpretation-section">
+      <section v-if="userStore.isPremium && reading.spreadId === 'celtic_cross' && (reading.aiInterpretation || isLoadingInterpretation)" class="ai-interpretation-section">
         <h2>해석 전문</h2>
-        <div class="ai-interpretation-content">
+        
+        <!-- 로딩 상태 -->
+        <div v-if="isLoadingInterpretation" class="ai-loading-content">
+          <div class="loading-spinner"></div>
+          <p>AI가 당신의 카드를 분석하고 있습니다...</p>
+        </div>
+        
+        <!-- 해석 내용 -->
+        <div v-else class="ai-interpretation-content">
           <p>{{ reading.aiInterpretation }}</p>
         </div>
         
@@ -252,6 +260,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useTarotStore } from '../store/tarot';
 import { useUserStore } from '../store/user';
 import { AIInterpretationService } from '../services/ai/AIInterpretationService';
+import { customInterpretationService } from '../services/ai/customInterpretationService';
 
 const router = useRouter();
 const route = useRoute();
@@ -276,6 +285,9 @@ const customQuestion = computed(() => {
 const hoverRating = ref(0);
 const selectedRating = ref(0);
 const userRating = ref(0);
+
+// AI 해석 로딩 상태
+const isLoadingInterpretation = ref(false);
 
 // 카드 이미지 URL 생성 함수
 const getCardImageUrl = (card: any) => {
@@ -470,7 +482,99 @@ const getCardMeaning = (card: any, topic: string) => {
   return `${card.nameKr || card.name} 카드가 ${card.orientation === 'upright' ? '정방향' : '역방향'}으로 나왔습니다.`;
 };
 
-onMounted(() => {
+// AI 해석 재생성 함수
+const regenerateAIInterpretation = async () => {
+  if (!reading.value || !userStore.isPremium) return;
+  
+  console.log('🔄 AI 해석 재생성 시작...');
+  isLoadingInterpretation.value = true;
+  
+  try {
+    const customQuestion = tarotStore.getCustomQuestion();
+    const aiService = new AIInterpretationService(userStore.isPremium);
+    
+    if (customQuestion) {
+      // 커스텀 질문이 있는 경우
+      const interpretationRequest = {
+        readingId: reading.value.id,
+        cards: reading.value.cards.map((card: any, index: number) => ({
+          id: card.id,
+          name: card.name || card.nameEn || '',
+          nameKr: card.nameKr || card.name_kr || card.name || '',
+          arcana: card.arcana || 'unknown',
+          suit: card.suit || null,
+          number: card.number || null,
+          orientation: card.orientation || 'upright',
+          position: {
+            name: card.position?.name || `위치 ${index + 1}`,
+            description: card.position?.description || ''
+          },
+          meanings: card.meanings || {}
+        })),
+        spreadId: reading.value.spreadId,
+        topic: reading.value.topic,
+        customQuestion: customQuestion,
+        userId: userStore.user?.id
+      };
+
+      const interpretationResult = await customInterpretationService.generateInterpretation(interpretationRequest);
+      
+      if (interpretationResult.success && interpretationResult.interpretation) {
+        reading.value.aiInterpretation = interpretationResult.interpretation;
+        reading.value.aiInterpretationId = interpretationResult.interpretationId || null;
+        if (interpretationResult.probabilityAnalysis) {
+          reading.value.probabilityAnalysis = interpretationResult.probabilityAnalysis;
+        }
+        tarotStore.updateReading(reading.value);
+      }
+    } else if (reading.value.spreadId === 'celtic_cross') {
+      // 켈틱 크로스 해석
+      const cardsForAI = reading.value.cards.map((card: any, index: number) => ({
+        id: card.id,
+        name: card.name || card.nameEn || '',
+        name_kr: card.nameKr || card.name_kr || card.name || '',
+        nameKr: card.nameKr || card.name_kr || card.name || '',
+        arcana: card.arcana || 'unknown',
+        suit: card.suit || null,
+        number: card.number || null,
+        orientation: card.orientation || 'upright',
+        position: {
+          position: index + 1,
+          name: card.position?.name || [
+            '현재내면',
+            '현재외부', 
+            '근본',
+            '과거',
+            '드러나는 모습',
+            '미래',
+            '내가보는나',
+            '남이보는나',
+            '예상하는 결과',
+            '실제 결과'
+          ][index] || `위치 ${index + 1}`
+        }
+      }));
+      
+      const result = await aiService.generateInterpretation(
+        cardsForAI,
+        reading.value.topic || 'love',
+        'celtic_cross'
+      );
+      
+      if (result && result.text) {
+        reading.value.aiInterpretation = result.text;
+        reading.value.aiInterpretationId = result.interpretationId || null;
+        tarotStore.updateReading(reading.value);
+      }
+    }
+  } catch (error) {
+    console.error('AI 해석 재생성 실패:', error);
+  } finally {
+    isLoadingInterpretation.value = false;
+  }
+};
+
+onMounted(async () => {
   console.log('ReadingResult 마운트됨');
   console.log('readingId:', readingId.value);
   console.log('reading:', reading.value);
@@ -478,17 +582,24 @@ onMounted(() => {
   console.log('스프레드 ID:', reading.value?.spreadId);
   console.log('커스텀 질문:', customQuestion.value);
   
+  if (!reading.value && !readingId.value) {
+    console.warn('점괘 데이터가 없습니다. 홈으로 리다이렉트');
+    router.push('/app');
+    return;
+  }
+  
+  // AI 해석이 있는지 확인
   if (reading.value && reading.value.aiInterpretation) {
     console.log('========== AI 해석 디버깅 ==========');
     console.log('AI 해석 전체 길이:', reading.value.aiInterpretation.length);
     console.log('AI 해석 처음 100자:', reading.value.aiInterpretation.substring(0, 100));
     console.log('AI 해석 ID:', reading.value.aiInterpretationId);
     console.log('===================================');
-  }
-  
-  if (!reading.value && !readingId.value) {
-    console.warn('점괘 데이터가 없습니다. 홈으로 리다이렉트');
-    router.push('/app');
+  } else if (reading.value && userStore.isPremium && 
+           (reading.value.spreadId === 'celtic_cross' || customQuestion.value)) {
+    // 프리미엄 사용자이고 켈틱 크로스이거나 커스텀 질문이 있는데 AI 해석이 없는 경우
+    console.log('🤖 AI 해석이 없어서 재생성 시도...');
+    await regenerateAIInterpretation();
   }
 });
 </script>
@@ -1124,6 +1235,33 @@ onMounted(() => {
   color: rgba(255, 255, 255, 0.7);
   margin-bottom: 30px;
   font-size: 16px;
+}
+
+/* AI 로딩 상태 */
+.ai-loading-content {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(168, 85, 247, 0.2);
+  border-top-color: #A855F7;
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.ai-loading-content p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  margin: 0;
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 /* 모바일 반응형 */

@@ -1275,12 +1275,25 @@ export const useTarotStore = defineStore('tarot', () => {
   // 커스텀 질문 관련 함수
   const setCustomQuestion = (question: string) => {
     customQuestion.value = question;
+    // localStorage에 저장
+    if (question) {
+      localStorage.setItem('tarotCustomQuestion', question);
+    } else {
+      localStorage.removeItem('tarotCustomQuestion');
+    }
   };
   
-  const getCustomQuestion = () => customQuestion.value;
+  const getCustomQuestion = () => {
+    // 메모리에 없으면 localStorage에서 로드
+    if (!customQuestion.value) {
+      customQuestion.value = localStorage.getItem('tarotCustomQuestion') || '';
+    }
+    return customQuestion.value;
+  };
   
   const clearCustomQuestion = () => {
     customQuestion.value = '';
+    localStorage.removeItem('tarotCustomQuestion');
   };
   
   // 개선된 해석 저장 (켈틱 크로스 등)
