@@ -5,7 +5,9 @@ const config: CapacitorConfig = {
   appName: '타로의 정원',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'http',
+    hostname: 'localhost',
+    cleartext: true
   },
   plugins: {
     SplashScreen: {
@@ -19,6 +21,18 @@ const config: CapacitorConfig = {
     Keyboard: {
       resize: 'body',
       style: 'dark'
+    },
+    // Browser 플러그인 설정 추가 - Chrome Custom Tabs 사용
+    Browser: {
+      showTitle: true,
+      toolbarColor: '#1E1B4B',
+      presentationStyle: 'popover',
+      androidChromeCustomTabsOptions: {
+        showTitle: true,
+        toolbarColor: '#1E1B4B',
+        enableUrlBarHiding: true,
+        enableDefaultShare: false
+      }
     }
   }
 };

@@ -328,14 +328,79 @@ export default {
       isLoading.value = true;
       errorMessage.value = '';
       
+      let handleOAuthSuccess;
+      let handleOAuthError;
+      let timeoutId;
+      
       try {
+        // OAuth 성공/실패 이벤트 리스너 등록
+        handleOAuthSuccess = async () => {
+          console.log('🎉 OAuth success event received!');
+          successMessage.value = '로그인 성공! 잠시만 기다려주세요...';
+          isLoading.value = false;
+          
+          // 타임아웃 클리어
+          if (timeoutId) clearTimeout(timeoutId);
+          
+          // 리스너 정리
+          window.removeEventListener('oauth-success', handleOAuthSuccess);
+          window.removeEventListener('oauth-error', handleOAuthError);
+          
+          // userStore 상태 업데이트
+          try {
+            await userStore.initializeUser();
+            console.log('✅ userStore 재초기화 완료');
+          } catch (error) {
+            console.error('❌ userStore 재초기화 실패:', error);
+          }
+          
+          setTimeout(() => {
+            emit('success', 'oauth');
+            closeModal();
+          }, 500);
+        };
+        
+        handleOAuthError = (event) => {
+          console.error('🔴 OAuth error event:', event.detail);
+          errorMessage.value = event.detail?.message || 'Google 로그인 중 오류가 발생했습니다.';
+          isLoading.value = false;
+          
+          // 타임아웃 클리어
+          if (timeoutId) clearTimeout(timeoutId);
+          
+          // 리스너 정리
+          window.removeEventListener('oauth-success', handleOAuthSuccess);
+          window.removeEventListener('oauth-error', handleOAuthError);
+        };
+        
+        window.addEventListener('oauth-success', handleOAuthSuccess);
+        window.addEventListener('oauth-error', handleOAuthError);
+        
+        // Google 로그인 시작
         await userStore.signInWithGoogle();
-        // OAuth 리다이렉트가 발생하므로 별도의 성공 처리는 필요 없음
+        
+        // 타임아웃 설정 (30초 후 자동으로 로딩 해제)
+        timeoutId = setTimeout(() => {
+          if (isLoading.value) {
+            console.log('⏰ OAuth timeout - resetting loading state');
+            isLoading.value = false;
+            errorMessage.value = '로그인 시간이 초과되었습니다. 다시 시도해주세요.';
+            
+            // 리스너 정리
+            window.removeEventListener('oauth-success', handleOAuthSuccess);
+            window.removeEventListener('oauth-error', handleOAuthError);
+          }
+        }, 30000);
+        
       } catch (error) {
         console.error('Google 로그인 에러:', error);
         errorMessage.value = 'Google 로그인 중 오류가 발생했습니다.';
-      } finally {
         isLoading.value = false;
+        
+        // 리스너 정리
+        if (handleOAuthSuccess) window.removeEventListener('oauth-success', handleOAuthSuccess);
+        if (handleOAuthError) window.removeEventListener('oauth-error', handleOAuthError);
+        if (timeoutId) clearTimeout(timeoutId);
       }
     };
 

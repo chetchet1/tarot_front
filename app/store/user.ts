@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { User, UserPreferences, Subscription } from '../models/user';
 import { authService, profileService } from '../services/supabase';
+import { Capacitor } from '@capacitor/core';
 
 export const useUserStore = defineStore('user', () => {
   // State
@@ -314,12 +315,23 @@ export const useUserStore = defineStore('user', () => {
       loadUser();
       console.log('로컬 사용자 정보 로드 완료:', currentUser.value?.isAnonymous ? '익명' : '로그인');
       
-      // Supabase 인증 상태 확인 (비동기로 실행)
-      console.log('Supabase 인증 상태 확인 시도...');
+      // Supabase 인증 상태 확인 (웹에서만 자동 확인)
+      const shouldCheckAuth = !Capacitor.isNativePlatform();
+      console.log('Supabase 인증 상태 확인:', shouldCheckAuth ? '웹 환경 - 확인' : '모바일 환경 - 건너뛰기');
       
       try {
-        const user = await authService.getCurrentUser();
-        console.log('Supabase 사용자 확인 결과:', user ? 'logged_in' : 'not_logged_in');
+        let user = null;
+        if (shouldCheckAuth) {
+          user = await authService.getCurrentUser();
+          console.log('Supabase 사용자 확인 결과:', user ? 'logged_in' : 'not_logged_in');
+        } else {
+          // 모바일에서는 명시적으로 세션만 확인 (자동 로그인 시도 안함)
+          const { data: { session } } = await authService.supabase.auth.getSession();
+          if (session?.user) {
+            user = session.user;
+            console.log('모바일 세션 확인:', user.email);
+          }
+        }
         
         if (user && user.email_confirmed_at) {
           // 이메일 인증이 완료된 사용자 - 정보 업데이트
@@ -385,9 +397,10 @@ export const useUserStore = defineStore('user', () => {
         // 네트워크 오류 등의 경우 로컬 정보 유지
       }
       
-      // 인증 상태 변화 감지 설정
-      authService.onAuthStateChange(async (event, session) => {
-        console.log('인증 상태 변화:', event);
+      // 인증 상태 변화 감지 설정 (웹에서만)
+      if (!Capacitor.isNativePlatform()) {
+        authService.onAuthStateChange(async (event, session) => {
+          console.log('인증 상태 변화:', event);
         
         if (event === 'SIGNED_IN' && session?.user) {
           const user = session.user;
@@ -437,6 +450,7 @@ export const useUserStore = defineStore('user', () => {
           saveUser();
         }
       });
+      }
       
     } catch (error) {
       console.error('사용자 초기화 실패:', error);
@@ -448,6 +462,7 @@ export const useUserStore = defineStore('user', () => {
     } finally {
       // 로딩 상태 해제
       isLoading.value = false;
+      isInitialized.value = true;
       console.log('사용자 초기화 완료');
     }
   };
@@ -537,8 +552,13 @@ export const useUserStore = defineStore('user', () => {
   const signInWithGoogle = async () => {
     try {
       isLoading.value = true;
-      await authService.signInWithGoogle();
-      // OAuth 리다이렉트가 일어나며, 콜백에서 로그인 처리
+      
+      // 개선된 OAuth 서비스 사용
+      const { oauthService } = await import('../services/oauth');
+      await oauthService.signInWithGoogle();
+      
+      // 모바일: Chrome Custom Tabs로 브라우저 열림
+      // 웹: OAuth 리다이렉트가 일어나며, 콜백에서 로그인 처리
     } catch (error) {
       console.error('Google 로그인 실패:', error);
       isLoading.value = false;
@@ -661,6 +681,7 @@ export const useUserStore = defineStore('user', () => {
     isLoggedIn,
     isPremium,
     isLoading,
+    isInitialized,
     freeReadingsToday,
     canUseFreeReading,
     getFreeReadingStatus,

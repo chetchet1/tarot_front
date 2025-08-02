@@ -53,9 +53,14 @@ class AdService {
         
         await AdMob.initialize({
           requestTrackingAuthorization: true,
-          testingDevices: this.isTestMode ? ['YOUR_TEST_DEVICE_ID'] : [],
+          testingDevices: this.isTestMode ? [
+            'YOUR_TEST_DEVICE_ID',
+            '2077ef9a63d2b398840261c8221a0c9b' // 예시 테스트 ID
+          ] : [],
           initializeForTesting: this.isTestMode,
         });
+        
+        console.log('🎯 AdMob 테스트 모드:', this.isTestMode);
         
         this.initialized = true;
         console.log('AdMob 초기화 완료');
@@ -135,15 +140,39 @@ class AdService {
           isTesting: this.isTestMode
         };
         
-        await AdMob.prepareInterstitial(options);
-        return true;
+        console.log('📡 광고 로드 옵션:', options);
+        
+        // 타임아웃 설정 (10초)
+        const timeoutPromise = new Promise<boolean>((resolve) => {
+          setTimeout(() => {
+            console.warn('⏱️ 광고 로드 타임아웃');
+            this.isLoading.value = false;
+            resolve(false);
+          }, 10000);
+        });
+        
+        const loadPromise = AdMob.prepareInterstitial(options).then(() => {
+          console.log('✅ 광고 로드 성공');
+          this.isAdReady.value = true;
+          this.isLoading.value = false;
+          return true;
+        });
+        
+        // 타임아웃과 로드 중 먼저 완료되는 것 반환
+        return await Promise.race([loadPromise, timeoutPromise]);
       }
       
       return false;
       
-    } catch (error) {
-      console.error('전면 광고 로드 실패:', error);
+    } catch (error: any) {
+      console.error('전면 광고 로드 실패:', error.message || error);
       this.isLoading.value = false;
+      
+      // 네트워크 에러인 경우 특별 처리
+      if (error.message?.includes('Network error')) {
+        console.warn('🌐 네트워크 연결을 확인해주세요');
+      }
+      
       return false;
     }
   }
@@ -194,15 +223,26 @@ class AdService {
       if (typeof (window as any).Capacitor !== 'undefined' && (window as any).Capacitor.Plugins?.AdMob) {
         const AdMob = (window as any).Capacitor.Plugins.AdMob;
         
-        // 광고가 준비되지 않았다면 먼저 로드
+        // 광고가 준비되지 않았다면 먼저 로드 시도
         if (!this.isAdReady.value) {
+          console.log('📺 광고 로드 시도...');
           const loaded = await this.loadInterstitialAd();
-          if (!loaded) return false;
+          if (!loaded) {
+            console.warn('⚠️ 광고 로드 실패 - 광고 없이 진행');
+            // 광고 로드 실패해도 계속 진행 (사용자 경험 우선)
+            return true;
+          }
         }
         
-        // 광고 표시
-        await AdMob.showInterstitial();
-        return true;
+        // 광고 표시 시도
+        try {
+          await AdMob.showInterstitial();
+          return true;
+        } catch (showError) {
+          console.warn('⚠️ 광고 표시 실패:', showError);
+          // 광고 표시 실패해도 true 반환
+          return true;
+        }
       }
       
       // AdMob이 없으면 시뮬레이션

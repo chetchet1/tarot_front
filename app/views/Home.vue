@@ -122,13 +122,18 @@ const verificationEmail = ref('');
 onMounted(async () => {
   console.log('🏠 홈 페이지 초기화');
   
-  // 사용자 초기화
-  await userStore.initializeUser();
+  // 사용자가 이미 초기화되었으면 초기화 건너뛰기
+  if (!userStore.isInitialized) {
+    await userStore.initializeUser();
+  }
   
   // 로그인된 사용자는 메인 앱으로 리다이렉트
-  if (userStore.isLoggedIn) {
+  // OAuth로 로그인한 경우 currentUser가 있고 isAnonymous가 false임
+  if (userStore.currentUser && !userStore.currentUser.isAnonymous) {
     console.log('✅ 로그인된 사용자 감지, 메인 앱으로 이동');
     router.push('/app');
+  } else if (userStore.currentUser) {
+    console.log('👤 익명 사용자 또는 미로그인 상태');
   }
 });
 

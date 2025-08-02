@@ -8,9 +8,13 @@ import { initializeAdMob } from './services/admob';
 import { initializeSubscription } from './services/purchasesWeb';
 import { Platform } from './utils/platform';
 import AlertPlugin from './plugins/alert';
+import { setupDeepLinks } from './utils/deepLinks';
 
 // Capacitor 초기화
 NativeUtils.initializeApp();
+
+// 딥링크 설정 (모바일에서 OAuth 콜백 처리)
+setupDeepLinks();
 
 const pinia = createPinia();
 const app = createApp(App);

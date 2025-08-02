@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>캐시 및 Service Worker 제거</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      border-radius: 10px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .log {
+      margin-top: 20px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 14px;
+      line-height: 1.5;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .success {
+      color: #28a745;
+    }
+    .error {
+      color: #dc3545;
+    }
+    .info {
+      color: #17a2b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 캐시 및 Service Worker 제거 도구</h1>
+    <p>브라우저의 캐시와 Service Worker를 완전히 제거합니다.</p>
+    
+    <div>
+      <button onclick="clearEverything()">🗑️ 모두 제거</button>
+      <button onclick="clearServiceWorkers()">👷 Service Worker만 제거</button>
+      <button onclick="clearCaches()">📦 캐시만 제거</button>
+      <button onclick="window.location.href='/'">🏠 홈으로 돌아가기</button>
+    </div>
+    
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    const log = document.getElementById('log');
+    
+    function addLog(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const className = type;
+      log.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+      log.scrollTop = log.scrollHeight;
+    }
+    
+    async function clearServiceWorkers() {
+      addLog('Service Worker 제거 시작...', 'info');
+      
+      if ('serviceWorker' in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          
+          if (registrations.length === 0) {
+            addLog('등록된 Service Worker가 없습니다.', 'info');
+          } else {
+            for (const registration of registrations) {
+              const success = await registration.unregister();
+              if (success) {
+                addLog(`✅ Service Worker 제거됨: ${registration.scope}`, 'success');
+              } else {
+                addLog(`❌ Service Worker 제거 실패: ${registration.scope}`, 'error');
+              }
+            }
+          }
+        } catch (error) {
+          addLog(`❌ Service Worker 제거 중 오류: ${error.message}`, 'error');
+        }
+      } else {
+        addLog('이 브라우저는 Service Worker를 지원하지 않습니다.', 'info');
+      }
+    }
+    
+    async function clearCaches() {
+      addLog('캐시 제거 시작...', 'info');
+      
+      if ('caches' in window) {
+        try {
+          const cacheNames = await caches.keys();
+          
+          if (cacheNames.length === 0) {
+            addLog('제거할 캐시가 없습니다.', 'info');
+          } else {
+            for (const cacheName of cacheNames) {
+              const success = await caches.delete(cacheName);
+              if (success) {
+                addLog(`✅ 캐시 제거됨: ${cacheName}`, 'success');
+              } else {
+                addLog(`❌ 캐시 제거 실패: ${cacheName}`, 'error');
+              }
+            }
+          }
+        } catch (error) {
+          addLog(`❌ 캐시 제거 중 오류: ${error.message}`, 'error');
+        }
+      } else {
+        addLog('이 브라우저는 Cache API를 지원하지 않습니다.', 'info');
+      }
+    }
+    
+    async function clearEverything() {
+      addLog('=== 전체 제거 시작 ===', 'info');
+      
+      // Service Worker 제거
+      await clearServiceWorkers();
+      
+      // 캐시 제거
+      await clearCaches();
+      
+      // localStorage 제거
+      try {
+        localStorage.clear();
+        addLog('✅ localStorage 제거됨', 'success');
+      } catch (error) {
+        addLog(`❌ localStorage 제거 실패: ${error.message}`, 'error');
+      }
+      
+      // sessionStorage 제거
+      try {
+        sessionStorage.clear();
+        addLog('✅ sessionStorage 제거됨', 'success');
+      } catch (error) {
+        addLog(`❌ sessionStorage 제거 실패: ${error.message}`, 'error');
+      }
+      
+      addLog('=== 전체 제거 완료 ===', 'success');
+      addLog('브라우저를 새로고침하거나 개발자 도구를 닫았다가 다시 열어주세요.', 'info');
+    }
+    
+    // 페이지 로드 시 현재 상태 표시
+    window.addEventListener('load', async () => {
+      addLog('=== 현재 상태 확인 ===', 'info');
+      
+      // Service Worker 상태
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        addLog(`Service Worker 개수: ${registrations.length}`, 'info');
+        registrations.forEach(reg => {
+          addLog(`- ${reg.scope}`, 'info');
+        });
+      }
+      
+      // 캐시 상태
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        addLog(`캐시 개수: ${cacheNames.length}`, 'info');
+        cacheNames.forEach(name => {
+          addLog(`- ${name}`, 'info');
+        });
+      }
+    });
+  </script>
+</body>
+</html>

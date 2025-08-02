@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_CONFIG } from '../config/env';
+import { Capacitor } from '@capacitor/core';
 
 // Supabase 클라이언트 생성 (싱글톤)
 export const supabase = createClient(
@@ -8,8 +9,23 @@ export const supabase = createClient(
   {
     auth: {
       autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true
+      // 모바일에서는 세션을 자동으로 저장하지 않음
+      persistSession: !Capacitor.isNativePlatform(),
+      detectSessionInUrl: true,
+      // 모바일에서는 별도의 스토리지 사용
+      storage: Capacitor.isNativePlatform() ? {
+        getItem: async (key: string) => {
+          // 모바일에서는 세션을 자동으로 복원하지 않음
+          return null;
+        },
+        setItem: async (key: string, value: string) => {
+          // 필요한 경우에만 명시적으로 저장
+          return;
+        },
+        removeItem: async (key: string) => {
+          return;
+        }
+      } : undefined
     }
   }
 );
@@ -248,19 +264,39 @@ export const authService = {
 
   // Google 소셜 로그인
   async signInWithGoogle() {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent'
+    try {
+      // 모바일과 웹 구분
+      const redirectTo = Capacitor.isNativePlatform() 
+        ? 'com.tarotgarden.app://auth/callback'
+        : `${window.location.origin}/auth/callback`;
+      
+      console.log('🔐 Google OAuth 시작, redirectTo:', redirectTo);
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
         }
+      });
+      
+      if (error) {
+        console.error('❌ Google OAuth 에러:', error);
+        throw error;
       }
-    });
-    
-    if (error) throw error;
-    return data;
+      
+      console.log('✅ Google OAuth URL 생성:', data.url);
+      
+      // 모바일에서는 외부 브라우저로 열림
+      // 사용자가 로그인 후 앱으로 돌아옴
+      return data;
+    } catch (error) {
+      console.error('❌ Google 로그인 실패:', error);
+      throw error;
+    }
   },
 
   // GitHub 소셜 로그인
