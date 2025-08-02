@@ -6,8 +6,62 @@
     </header>
 
     <div class="container">
-      <!-- 주제 선택 -->
-      <section class="section">
+      <!-- 모바일: 단계별 진행 -->
+      <div class="mobile-view">
+        <!-- 주제 선택됨 & 배열법 미선택 -->
+        <div v-if="selectedTopic && !selectedSpread" class="mobile-selected-topic">
+          <div class="selected-info-card card">
+            <div class="selected-info-header">
+              <span class="selected-label">선택한 주제</span>
+              <button class="change-btn" @click="resetSelection">변경</button>
+            </div>
+            <div class="selected-content">
+              <h3>{{ getTopicName(selectedTopic) }}</h3>
+              <p v-if="selectedTopic === 'custom' && customQuestion">
+                {{ customQuestion }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 주제 & 배열법 모두 선택됨 -->
+        <div v-else-if="selectedTopic && selectedSpread" class="mobile-all-selected">
+          <div class="selected-info-card card">
+            <div class="selected-info-header">
+              <span class="selected-label">선택하신 점괘</span>
+            </div>
+            <div class="selected-content">
+              <div class="selection-item">
+                <span class="item-label">주제:</span>
+                <span class="item-value">{{ getTopicName(selectedTopic) }}</span>
+              </div>
+              <div class="selection-item">
+                <span class="item-label">배열법:</span>
+                <span class="item-value">{{ getSpreadName(selectedSpread) }}</span>
+              </div>
+              <div class="selection-item">
+                <span class="item-label">카드 수:</span>
+                <span class="item-value">{{ getSpreadCardCount(selectedSpread) }}장</span>
+              </div>
+            </div>
+            <div class="mobile-actions">
+              <button class="btn btn-secondary" @click="resetSelection">다시 선택</button>
+              <button 
+                class="btn btn-primary"
+                :disabled="!canStartReading"
+                @click="startReading"
+              >
+                {{ getStartButtonText() }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PC: 기존 레이아웃 유지 -->
+      <div class="desktop-view">
+        <!-- 주제 선택 -->
+        <section class="section" v-show="!selectedTopic || !isMobile">
         <h2 class="section-title">점보고 싶은 주제를 선택하세요</h2>
         <div class="topic-grid">
           <div 
@@ -34,7 +88,7 @@
       </section>
 
       <!-- 스프레드 선택 -->
-      <section class="section">
+      <section class="section" v-show="selectedTopic && (!selectedSpread || !isMobile)">
         <h2 class="section-title">카드 배열법을 선택하세요</h2>
         <div v-if="selectedTopic === 'custom'" class="custom-notice">
           <p>💫 커스텀 질문에는 가장 상세한 답변을 제공하는 켈틱 크로스 배열법을 사용합니다.</p>
@@ -86,8 +140,8 @@
         </div>
       </section>
 
-      <!-- 선택 요약 -->
-      <section class="selection-summary" v-if="selectedTopic && selectedSpread">
+      <!-- 선택 요약 (PC에서만) -->
+      <section class="selection-summary" v-if="selectedTopic && selectedSpread && !isMobile">
         <div class="summary-card card">
           <h3>선택하신 점괘</h3>
           <div class="summary-details">
@@ -104,8 +158,8 @@
         </div>
       </section>
 
-      <!-- 시작 버튼 -->
-      <div class="action-section">
+      <!-- 시작 버튼 (PC에서만) -->
+      <div class="action-section" v-show="!isMobile">
         <button 
           class="btn btn-primary start-button"
           :disabled="!canStartReading"
@@ -121,6 +175,7 @@
           </router-link>
         </div>
       </div>
+      </div>
     </div>
     
     <!-- 질문 입력 모달 -->
@@ -134,7 +189,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
@@ -173,6 +228,21 @@ const selectedTopic = ref<string>('');
 const selectedSpread = ref<string>('');
 const showQuestionModal = ref(false);
 const customQuestion = ref<string>('');
+const isMobile = ref(false);
+
+// 화면 크기 감지
+const checkMobile = () => {
+  isMobile.value = window.innerWidth <= 768;
+};
+
+onMounted(() => {
+  checkMobile();
+  window.addEventListener('resize', checkMobile);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile);
+});
 
 // 주제 목록
 const topics = computed<Topic[]>(() => {
@@ -438,6 +508,13 @@ const startReading = async () => {
 
 const goBack = () => {
   router.go(-1);
+};
+
+// 선택 초기화
+const resetSelection = () => {
+  selectedTopic.value = '';
+  selectedSpread.value = '';
+  customQuestion.value = '';
 };
 </script>
 
@@ -772,7 +849,152 @@ const goBack = () => {
   50% { transform: translateY(-2px); }
 }
 
+/* 모바일/데스크탑 뷰 분리 */
+.mobile-view {
+  display: none;
+}
+
+.desktop-view {
+  display: block;
+}
+
+/* 모바일 전용 스타일 */
+.mobile-selected-topic,
+.mobile-all-selected {
+  margin-bottom: 20px;
+}
+
+.selected-info-card {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.selected-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.selected-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+}
+
+.change-btn {
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  color: #A855F7;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.change-btn:hover {
+  background: rgba(168, 85, 247, 0.3);
+}
+
+.selected-content {
+  text-align: left;
+}
+
+.selected-content h3 {
+  font-size: 18px;
+  margin-bottom: 4px;
+  color: white;
+  font-weight: 600;
+}
+
+.selected-content p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.selection-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.selection-item:last-child {
+  border-bottom: none;
+}
+
+.item-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.item-value {
+  font-size: 16px;
+  color: white;
+  font-weight: 600;
+}
+
+.mobile-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.mobile-actions .btn {
+  flex: 1;
+  padding: 12px 20px;
+  font-size: 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.mobile-actions .btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.mobile-actions .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.mobile-actions .btn-primary {
+  background: linear-gradient(135deg, #A855F7, #7C3AED);
+  border: none;
+  color: white;
+}
+
+.mobile-actions .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #9333EA, #6B21A8);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(168, 85, 247, 0.3);
+}
+
+.mobile-actions .btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
+  /* 모바일에서만 표시 */
+  .mobile-view {
+    display: block;
+  }
+  
+  .desktop-view {
+    display: block;
+  }
+  
+  /* 기존 모바일 스타일 */
   .topic-grid,
   .spread-grid {
     grid-template-columns: 1fr;

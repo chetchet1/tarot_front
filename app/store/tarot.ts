@@ -547,42 +547,52 @@ export const useTarotStore = defineStore('tarot', () => {
           }
         };
       } else {
-        // 기존 해석 생성 로직
+        // 기존 해석 생성 로직 개선
         interpretation = generateEnhancedInterpretation(
-          cardsWithPositions,
-          spread,
-          topic,
-          userStore.isPremium
+        cardsWithPositions,
+        spread,
+        topic,
+        userStore.isPremium
         );
         
         // 1장/3장 배열의 경우 기본 해석이 누락될 수 있으므로 추가
         if ((spreadId === 'one_card' || spreadId === 'three_card_timeline') && interpretation.cards) {
-          console.log('1장/3장 배열 해석 후처리:', interpretation);
-          
-          interpretation.cards = interpretation.cards.map((card, index) => {
-            if (!card.interpretation || !card.interpretation.basic) {
-              const meaning = card.meanings?.[topic]?.[card.orientation] || 
-                            card.meanings?.general?.[card.orientation] ||
-                            `${card.nameKr || card.name} 카드가 나타났습니다.`;
-              
-              console.log(`카드 ${index} 해석 생성:`, {
-                cardName: card.nameKr || card.name,
-                hasInterpretation: !!card.interpretation,
-                meaning
-              });
-              
-              return {
-                ...card,
-                interpretation: {
-                  basic: meaning,
-                  advice: generateAdvice(card, topic),
-                  keywords: card.keywords?.[card.orientation] || []
+        console.log('1장/3장 배열 해석 후처리:', {
+          spreadId,
+          cardCount: interpretation.cards.length,
+        hasOverallMessage: !!interpretation.overallMessage
+        });
+        
+        interpretation.cards = interpretation.cards.map((card, index) => {
+        if (!card.interpretation || !card.interpretation.basic) {
+        const cardObj = card.card || card;
+        const meaning = cardObj.meanings?.[topic]?.[card.orientation] || 
+                    cardObj.meanings?.general?.[card.orientation] ||
+                    `${cardObj.nameKr || cardObj.name || '알 수 없는 카드'} 카드가 나타났습니다.`;
+        
+        console.log(`카드 ${index} 해석 생성:`, {
+          cardName: cardObj.nameKr || cardObj.name,
+        hasInterpretation: !!card.interpretation,
+        meaning
+        });
+        
+        return {
+        ...card,
+          interpretation: {
+              basic: meaning,
+              advice: generateAdvice(card, topic),
+                keywords: cardObj.keywords?.[card.orientation] || []
                 }
-              };
-            }
-            return card;
-          });
+            };
+          }
+          return card;
+        });
+        
+        // 전체 메시지가 없으면 생성
+        if (!interpretation.overallMessage) {
+          interpretation.overallMessage = generateOverallMessage(cardsWithPositions, spread, topic);
         }
+      }
       }
 
       // 2. 카드 조합 분석 추가 (프리미엄)
@@ -755,7 +765,7 @@ export const useTarotStore = defineStore('tarot', () => {
 
       // 무료 사용자 카운트 증가
       if (!userStore.isPremium) {
-        userStore.incrementFreeReadingCount();
+        userStore.incrementFreeReading();
       }
 
       // 임시 카드 초기화
@@ -1036,8 +1046,15 @@ export const useTarotStore = defineStore('tarot', () => {
     if (spread.cardCount === 1) {
       const card = cards[0];
       
+      console.log('1장 배열 해석 생성:', {
+        cardName: card.nameKr || card.name,
+        orientation: card.orientation,
+        hasMeanings: !!card.meanings,
+        topic
+      });
+      
       if (card.arcana === 'major') {
-        positionAnalysis.push(`${card.nameKr} 카드가 나타내는 중요한 메시지에 주목하세요`);
+        positionAnalysis.push(`${card.nameKr || card.name} 카드가 나타내는 중요한 메시지에 주목하세요`);
       }
       
       if (card.orientation === 'upright') {
@@ -1047,8 +1064,12 @@ export const useTarotStore = defineStore('tarot', () => {
       }
       
       // 카드의 의미를 추가
-      if (card.meanings && card.meanings[topic]) {
-        positionAnalysis.push(`${card.meanings[topic][card.orientation]}`);
+      if (card.meanings && card.meanings[topic] && card.meanings[topic][card.orientation]) {
+        positionAnalysis.push(card.meanings[topic][card.orientation]);
+      } else if (card.meanings && card.meanings.general && card.meanings.general[card.orientation]) {
+        positionAnalysis.push(card.meanings.general[card.orientation]);
+      } else {
+        console.warn('1장 배열 해석 누락 - meanings 데이터 없음:', card);
       }
     }
     

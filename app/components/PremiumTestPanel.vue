@@ -70,7 +70,15 @@ const userInfo = computed(() => {
   return `${currentUser.value.email} (${currentUser.value.name})`;
 });
 
-const freeReadingStatus = computed(() => userStore?.getFreeReadingStatus() || { used: 0, total: 0, remaining: 0 });
+const freeReadingStatus = computed(() => {
+  const status = userStore?.getFreeReadingStatus() || { used: 0, total: -1, remaining: -1 };
+  // 기획 변경: 무제한은 -1로 표시
+  return {
+    used: status.used,
+    total: status.total === -1 ? '무제한' : status.total,
+    remaining: status.remaining === -1 ? '무제한' : status.remaining
+  };
+});
 
 const togglePanel = () => {
   showPanel.value = !showPanel.value;

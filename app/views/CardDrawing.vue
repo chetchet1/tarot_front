@@ -49,18 +49,9 @@
         <button 
           class="btn btn-primary draw-button"
           @click="startDrawing"
-          :disabled="!userStore.isPremium && !userStore.canUseFreeReading"
         >
           {{ getDrawButtonText() }}
         </button>
-        
-        <!-- 무료 사용자 안내 -->
-        <div v-if="!userStore.isPremium && !userStore.canUseFreeReading" class="free-limit-notice">
-          <p>오늘의 무료 점괘를 모두 사용했습니다.</p>
-          <button class="btn btn-premium" @click="router.push('/premium')">
-            프리미엄으로 무제한 이용하기
-          </button>
-        </div>
       </div>
 
       <!-- 직접 선택 모드 -->
@@ -282,7 +273,7 @@ interface DrawnCardData {
 const router = useRouter();
 const userStore = useUserStore();
 const tarotStore = useTarotStore();
-const { showAlert } = useAlert();
+const { alert, confirm } = useAlert();
 
 const drawMethod = ref<'random' | 'manual' | null>(null);
 const isDrawing = ref(false);
@@ -356,9 +347,7 @@ const getSpreadDisplayName = () => {
 
 // 카드 뽑기 버튼 텍스트
 const getDrawButtonText = () => {
-  if (!userStore.isPremium && !userStore.canUseFreeReading) {
-    return '무료 횟수 소진';
-  }
+  // 무료 사용자도 광고 시청으로 무제한 가능
   return '카드 뽑기';
 };
 
@@ -625,17 +614,17 @@ const removeSelectedCard = async (index: number) => {
 
 // 수동 선택 완료
 const confirmManualSelection = async () => {
-  // 무료 사용자 체크
-  if (!userStore.isPremium && !userStore.canUseFreeReading) {
-    await showAlert({
-      title: '무료 점괘 소진',
-      message: `오늘의 무료 점괘 회수를 모두 사용했습니다. (${userStore.freeReadingsToday}/${userStore.maxFreeReadingsPerDay})\n\n프리미엄으로 업그레이드하면 무제한 이용할 수 있습니다.`,
-      confirmText: '확인'
-    });
-    router.push('/premium');
+  // 광고 매니저를 통해 점괘 시작 가능 여부 확인 (스프레드 ID 전달)
+  const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
+  const canStart = await adManager.startReading(spreadId);
+  
+  if (!canStart) {
+    // 점괘를 볼 수 없는 경우 - 유료 배열 하루 1회 제한
+    await showPremiumSpreadLimit();
     return;
   }
 
+  // 무료 사용자는 항상 광고를 보여줌
   if (!userStore.isPremium) {
     showAdModal.value = true;
     return;
@@ -657,24 +646,27 @@ const processManualSelection = async () => {
   
   isComplete.value = true;
   
-  // 무료 사용자 카운트 증가
-  userStore.incrementFreeReading();
+  // 통계용 카운트 증가 (기획 변경으로 무료 제한 없음)
+  // userStore.incrementFreeReading();
 };
 
 const startDrawing = async () => {
   // 버튼 클릭 햇틱 피드백
   await nativeUtils.buttonTapHaptic();
   
-  // 광고 매니저를 통해 점괘 시작 가능 여부 확인
-  const canStart = await adManager.startReading();
+  // 광고 매니저를 통해 점괘 시작 가능 여부 확인 (스프레드 ID 전달)
+  const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
+  const canStart = await adManager.startReading(spreadId);
   
   if (!canStart) {
-    // 점괘를 볼 수 없는 경우
-    const status = adManager.getStatus();
-    if (status.remainingReadings === 0) {
-      // 무료 횟수 소진 - 옵션 표시
-      showFreeUsageOptions();
-    }
+    // 점괘를 볼 수 없는 경우 - 유료 배열 하루 1회 제한
+    await showPremiumSpreadLimit();
+    return;
+  }
+
+  // 무료 사용자는 항상 광고를 보여줌
+  if (!userStore.isPremium) {
+    showAdModal.value = true;
     return;
   }
 
@@ -801,11 +793,10 @@ const goToResult = async () => {
   
   // 모든 카드가 공개되지 않았으면 경고
   if (!allCardsRevealed.value) {
-    await showAlert({
-      title: '카드 공개 필요',
-      message: '모든 카드를 먼저 공개해주세요!',
-      confirmText: '확인'
-    });
+    await alert(
+      '모든 카드를 먼저 공개해주세요!',
+      '카드 공개 필요'
+    );
     return;
   }
   
@@ -983,11 +974,10 @@ const goToResult = async () => {
     isGeneratingInterpretation.value = false;
     interpretationProgress.value = 0;
     
-    await showAlert({
-      title: '점괘 생성 실패',
-      message: `점괘 생성에 실패했습니다: ${error.message || '알 수 없는 오류'}`,
-      confirmText: '확인'
-    });
+    await alert(
+      `점괘 생성에 실패했습니다: ${error.message || '알 수 없는 오류'}`,
+      '점괘 생성 실패'
+    );
   } finally {
     // 처리 완료 플래그 리셋
     isProcessingResult.value = false;
@@ -996,6 +986,9 @@ const goToResult = async () => {
 
 const closeAdModal = () => {
   showAdModal.value = false;
+  
+  // 광고 상태 업데이트
+  updateAdStatus();
   
   if (drawMethod.value === 'random') {
     drawCards();
@@ -1055,17 +1048,39 @@ const onImageError = (event: Event) => {
   }
 };
 
-// 무료 사용자 옵션 표시
-const showFreeUsageOptions = async () => {
-  // confirm 대신 alert 사용
-  await showAlert({
-    title: '무료 점괘 소진',
-    message: '오늘의 무료 점괘를 모두 사용했습니다.\n\n프리미엄으로 업그레이드하시면 무제한으로 이용하실 수 있습니다.',
-    confirmText: '확인'
-  });
+// 유료 배열 하루 1회 제한 안내
+const showPremiumSpreadLimit = async () => {
+  const spreadNames = {
+    'celtic_cross': '켈틱 크로스',
+    'seven_star': '세븐 스타',
+    'cup_of_relationship': '컵 오브 릴레이션십'
+  };
   
-  // 프리미엄 페이지로 이동
-  router.push('/premium');
+  const spreadId = tarotStore.selectedSpread?.spreadId || '';
+  const spreadName = spreadNames[spreadId] || '유료 배열';
+  
+  // 사용 가능한 시간 계산
+  const now = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  
+  const hoursUntilReset = Math.floor((tomorrow.getTime() - now.getTime()) / (1000 * 60 * 60));
+  const minutesUntilReset = Math.floor(((tomorrow.getTime() - now.getTime()) % (1000 * 60 * 60)) / (1000 * 60));
+  
+  await alert(
+    `${spreadName} 배열법은 하루에 한 번만 사용할 수 있습니다.\n\n다음 사용 가능 시간: ${hoursUntilReset}시간 ${minutesUntilReset}분 후\n\n💡 무료 배열법(1장, 3장)은 광고 시청으로 무제한 이용 가능합니다!`,
+    '유료 배열 사용 제한'
+  );
+  
+  // 스프레드 선택 화면으로 돌아가기
+  router.push('/spread-selection');
+};
+
+// 무료 점괘 상태 확인 (기획 변경으로 항상 true)
+const checkFreeReadingStatus = () => {
+  // 무료 사용자도 광고 시청으로 무제한 가능
+  return true;
 };
 </script>
 

@@ -137,10 +137,9 @@ export class AdManager {
       return true;
     }
 
-    // 무료 사용자 체크
-    this.checkDailyReset();
-    const totalAllowed = this.config.freeReadingLimit + this.bonusReadings.value;
-    return this.dailyReadingCount.value < totalAllowed;
+    // 무료 사용자는 광고 시청으로 무제한 가능
+    // 기획에 따라 1장/3장은 광고만 보면 무제한
+    return true;
   }
 
   // 남은 점괘 횟수
@@ -149,9 +148,8 @@ export class AdManager {
       return -1; // 무제한
     }
 
-    this.checkDailyReset();
-    const totalAllowed = this.config.freeReadingLimit + this.bonusReadings.value;
-    return Math.max(0, totalAllowed - this.dailyReadingCount.value);
+    // 무료 사용자도 광고 시청으로 무제한
+    return -1;
   }
 
   // 광고를 표시해야 하는지 확인
@@ -161,28 +159,44 @@ export class AdManager {
       return false;
     }
 
-    // 광고 빈도 체크
-    const readingsSinceLastAd = this.dailyReadingCount.value - this.lastAdShownAt.value;
-    return readingsSinceLastAd >= this.config.adFrequency;
+    // 무료 사용자는 항상 광고 표시
+    return true;
   }
 
-  // 점괘 시작 시 호출
-  async startReading(): Promise<boolean> {
-    // 점괘 가능 여부 체크
-    if (!this.canDoReading()) {
-      return false;
+  // 점괘 시작 시 호출 (스프레드 ID를 받아서 처리)
+  async startReading(spreadId?: string): Promise<boolean> {
+    // 프리미엄 사용자는 광고 없이 바로 진행
+    if (this.getUserStore().isPremium || this.isTemporaryPremium()) {
+      return true;
     }
 
-    // 광고 표시 여부 체크
-    if (this.shouldShowAd()) {
-      const adShown = await this.showAd();
-      if (!adShown) {
-        // 광고 시청을 거부한 경우
+    // 유료 배열 확인
+    const premiumSpreads = ['celtic_cross', 'seven_star', 'cup_of_relationship'];
+    const isPremiumSpread = spreadId && premiumSpreads.includes(spreadId);
+
+    if (isPremiumSpread) {
+      // 유료 배열인 경우, 오늘 사용 여부 확인
+      const { hasUsedPremiumSpreadToday } = await import('../utils/premiumSpreadTracker');
+      if (hasUsedPremiumSpreadToday()) {
+        // 이미 사용했으면 광고 시청 불가
         return false;
       }
     }
 
-    // 점괘 카운트 증가
+    // 무료 사용자는 광고 표시
+    const adShown = await this.showAd();
+    if (!adShown) {
+      // 광고 시청을 거부한 경우
+      return false;
+    }
+
+    // 유료 배열 사용 기록
+    if (isPremiumSpread && spreadId) {
+      const { recordPremiumSpreadUsage } = await import('../utils/premiumSpreadTracker');
+      recordPremiumSpreadUsage(spreadId);
+    }
+
+    // 점괘 카운트 증가 (통계용)
     this.dailyReadingCount.value++;
     this.saveState();
     return true;

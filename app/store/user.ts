@@ -11,27 +11,24 @@ export const useUserStore = defineStore('user', () => {
   const isLoading = ref(false);
   const isInitialized = ref(false); // 초기화 완료 여부
   
-  // 무료 점괴 관리
+  // 무료 점괘 관리 (통계용으로만 사용)
   const freeReadingsToday = ref(0);
-  const maxFreeReadingsPerDay = ref(3);
   const lastFreeReadingDate = ref<string | null>(null);
   
-  // 무료 점괄 사용 가능 여부
+  // 무료 점괘 사용 가능 여부 (항상 true - 광고 시청으로 무제한)
   const canUseFreeReading = computed(() => {
-    if (isPremium.value) return true;
-    
-    // 날짜 확인은 여기서 하지 말고 getter로 처리
-    return freeReadingsToday.value < maxFreeReadingsPerDay.value;
+    // 기획 변경: 무료 사용자도 광고 시청으로 무제한 가능
+    return true;
   });
   
-  // 무료 점괄 사용 가능 여부 (날짜 체크 포함)
+  // 무료 점괘 사용 가능 여부 (통계용)
   const getFreeReadingStatus = () => {
     resetFreeReadingsIfNewDay(); // 날짜 변경 체크
     return {
-      canUse: isPremium.value || freeReadingsToday.value < maxFreeReadingsPerDay.value,
-      remaining: Math.max(0, maxFreeReadingsPerDay.value - freeReadingsToday.value),
-      total: maxFreeReadingsPerDay.value,
-      used: freeReadingsToday.value
+      canUse: true, // 항상 가능 (광고 시청)
+      remaining: -1, // 무제한
+      total: -1, // 무제한
+      used: freeReadingsToday.value // 통계용
     };
   };
   
@@ -83,16 +80,15 @@ export const useUserStore = defineStore('user', () => {
     }
   };
   
-  // 무료 점괄 사용
+  // 무료 점괘 사용 (통계용)
   const incrementFreeReading = () => {
     if (isPremium.value) return; // 프리미엄 사용자는 카운트 안함
     
     resetFreeReadingsIfNewDay(); // 날짜 바뀐었으면 리셋
     
-    if (canUseFreeReading.value) {
-      freeReadingsToday.value++;
-      saveFreeReadingData();
-    }
+    // 기획 변경: 제한 없이 카운트만 증가 (통계용)
+    freeReadingsToday.value++;
+    saveFreeReadingData();
   };
   
   // 무료 사용 초기화 (테스트용)
@@ -666,7 +662,6 @@ export const useUserStore = defineStore('user', () => {
     isPremium,
     isLoading,
     freeReadingsToday,
-    maxFreeReadingsPerDay,
     canUseFreeReading,
     getFreeReadingStatus,
     initializeUser,
