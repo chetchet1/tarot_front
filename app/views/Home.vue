@@ -122,13 +122,11 @@ const verificationEmail = ref('');
 onMounted(async () => {
   console.log('🏠 홈 페이지 초기화');
   
-  // 사용자가 이미 초기화되었으면 초기화 건너뛰기
   if (!userStore.isInitialized) {
     await userStore.initializeUser();
   }
   
   // 로그인된 사용자는 메인 앱으로 리다이렉트
-  // OAuth로 로그인한 경우 currentUser가 있고 isAnonymous가 false임
   if (userStore.currentUser && !userStore.currentUser.isAnonymous) {
     console.log('✅ 로그인된 사용자 감지, 메인 앱으로 이동');
     router.push('/app');
@@ -137,43 +135,35 @@ onMounted(async () => {
   }
 });
 
-// 로그인 모달 표시
-const showLoginModal = (mode = 'login') => {
+const showLoginModal = (mode: 'login' | 'signup' = 'login') => {
   console.log('🚪 로그인 모달 열기:', mode);
   loginModalMode.value = mode;
   loginModalVisible.value = true;
 };
 
-// 로그인 모달 닫기
 const closeLoginModal = () => {
   console.log('🚪 로그인 모달 닫기');
   loginModalVisible.value = false;
 };
 
-// 로그인 성공 처리
-const handleLoginSuccess = (type) => {
+const handleLoginSuccess = (type: string) => {
   console.log('✅ 로그인 성공:', type);
   closeLoginModal();
-  
-  // 로그인 성공 시 메인 앱으로 이동
   router.push('/app');
 };
 
-// 이메일 인증 모달 표시
-const showEmailVerification = (email) => {
+const showEmailVerification = (email: string) => {
   console.log('📧 이메일 인증 모달 표시:', email);
   verificationEmail.value = email;
   emailVerificationVisible.value = true;
 };
 
-// 이메일 인증 모달 닫기
 const closeEmailVerification = () => {
   console.log('📧 이메일 인증 모달 닫기');
   emailVerificationVisible.value = false;
   verificationEmail.value = '';
 };
 
-// 인증 모달에서 로그인으로 이동
 const goToLoginFromVerification = () => {
   closeEmailVerification();
   showLoginModal('login');

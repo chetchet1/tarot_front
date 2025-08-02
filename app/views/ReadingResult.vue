@@ -286,15 +286,19 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useTarotStore } from '../store/tarot';
 import { useUserStore } from '../store/user';
-import { AIInterpretationService } from '../services/ai/AIInterpretationService';
-import { customInterpretationService } from '../services/ai/customInterpretationService';
+import { generateAIInterpretation as generateAI } from '../services/ai/aiInterpretationHelper';
 import { showConfirm } from '../utils/alerts';
 import { adService } from '../services/AdService';
+import { getCardImagePath, handleImageError } from '../utils/cardUtils';
+import { useSubscriptionStatus } from '../composables/useSubscriptionStatus';
+import { AIInterpretationService } from '../services/ai/AIInterpretationService';
+import type { DrawnCard } from '../models/tarot';
 
 const router = useRouter();
 const route = useRoute();
 const tarotStore = useTarotStore();
 const userStore = useUserStore();
+const { isSubscribed, showAds } = useSubscriptionStatus();
 
 const readingId = computed(() => {
   return route.query.readingId as string || route.params.readingId as string;
@@ -318,127 +322,9 @@ const userRating = ref(0);
 // AI 해석 로딩 상태
 const isLoadingInterpretation = ref(false);
 
-// 카드 이미지 URL 생성 함수
-const getCardImageUrl = (card: any) => {
-  try {
-    // Supabase에서 오는 imageUrl이 있다면 먼저 처리
-    if (card.imageUrl && !card.imageUrl.includes('undefined')) {
-      let finalUrl = card.imageUrl;
-      // 수트 폴더가 포함된 경로를 수정
-      finalUrl = finalUrl.replace('/assets/tarot-cards/minor/cups/', '/assets/tarot-cards/minor/');
-      finalUrl = finalUrl.replace('/assets/tarot-cards/minor/wands/', '/assets/tarot-cards/minor/');
-      finalUrl = finalUrl.replace('/assets/tarot-cards/minor/swords/', '/assets/tarot-cards/minor/');
-      finalUrl = finalUrl.replace('/assets/tarot-cards/minor/pentacles/', '/assets/tarot-cards/minor/');
-      
-      // 메이저 아르카나 파일명 대소문자 수정
-      if (finalUrl.includes('/assets/tarot-cards/major/')) {
-        const corrections = {
-          '00-the-fool.png': '00-the-Fool.png',
-          '01-the-magician.png': '01-The-Magician.png',
-          '02-the-high-priestess.png': '02-The-High-Priestess.png',
-          '03-the-empress.png': '03-The-Empress.png',
-          '04-the-emperor.png': '04-The-Emperor.png',
-          '05-the-hierophant.png': '05-The-Hierophant.png',
-          '06-the-lovers.png': '06-The-Lovers.png',
-          '07-the-chariot.png': '07-The-Chariot.png',
-          '08-strength.png': '08-Strength.png',
-          '09-the-hermit.png': '09-The-Hermit.png',
-          '10-wheel-of-fortune.png': '10-Wheel-of-Fortune.png',
-          '11-justice.png': '11-Justice.png',
-          '12-the-hanged-man.png': '12-The-Hanged-Man.png',
-          '13-death.png': '13-Death.png',
-          '14-temperance.png': '14-Temperance.png',
-          '15-the-devil.png': '15-The-Devil.png',
-          '16-the-tower.png': '16-The-Tower.png',
-          '17-the-star.png': '17-The-Star.png',
-          '18-the-moon.png': '18-The-Moon.png',
-          '19-the-sun.png': '19-The-Sun.png',
-          '20-judgement.png': '20-Judgement.png',
-          '21-the-world.png': '21-The-World.png'
-        };
-        
-        for (const [wrong, correct] of Object.entries(corrections)) {
-          if (finalUrl.includes(wrong)) {
-            finalUrl = finalUrl.replace(wrong, correct);
-            break;
-          }
-        }
-      }
-      
-      return finalUrl;
-    }
-    
-    // 마이너 아르카나의 경우
-    if (card.arcana === 'minor') {
-      const cardNumber = String(card.number || 1).padStart(2, '0');
-      let cardName;
-      
-      if (card.suit) {
-        if (card.number <= 10) {
-          const numberNames = {
-            1: 'ace', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
-            6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten'
-          };
-          cardName = `${numberNames[card.number]}-of-${card.suit}`;
-        } else {
-          // 코트 카드들은 Supabase imageUrl을 사용해야 함 (위에서 이미 처리됨)
-          const faceCards = {
-            11: 'Page', 12: 'Knight', 13: 'Queen', 14: 'King'
-          };
-          const suitCapitalized = card.suit.charAt(0).toUpperCase() + card.suit.slice(1);
-          cardName = `${faceCards[card.number]}-of-${suitCapitalized}`;
-        }
-      } else {
-        cardName = card.name.toLowerCase().replace(/\s+/g, '-');
-      }
-      
-      return `/assets/tarot-cards/minor/${cardNumber}-${cardName}.png`;
-    }
-    
-    // 메이저 아르카나의 경우
-    if (card.arcana === 'major') {
-      const majorCardNames = {
-        0: '00-the-Fool.png', 1: '01-The-Magician.png', 2: '02-The-High-Priestess.png',
-        3: '03-The-Empress.png', 4: '04-The-Emperor.png', 5: '05-The-Hierophant.png',
-        6: '06-The-Lovers.png', 7: '07-The-Chariot.png', 8: '08-Strength.png',
-        9: '09-The-Hermit.png', 10: '10-Wheel-of-Fortune.png', 11: '11-Justice.png',
-        12: '12-The-Hanged-Man.png', 13: '13-Death.png', 14: '14-Temperance.png',
-        15: '15-The-Devil.png', 16: '16-The-Tower.png', 17: '17-The-Star.png',
-        18: '18-The-Moon.png', 19: '19-The-Sun.png', 20: '20-Judgement.png',
-        21: '21-The-World.png'
-      };
-      
-      const fileName = majorCardNames[card.number] || '00-the-Fool.png';
-      return `/assets/tarot-cards/major/${fileName}`;
-    }
-    
-    return '/assets/tarot-cards/major/00-the-Fool.png';
-  } catch (error) {
-    console.error('카드 이미지 URL 생성 오류:', error);
-    return '/assets/tarot-cards/major/00-the-Fool.png';
-  }
-};
-
-// 이미지 로드 에러 처리
-const onImageError = (event: Event) => {
-  const img = event.target as HTMLImageElement;
-  if (img && img.parentElement) {
-    img.style.display = 'none';
-    if (!img.parentElement.querySelector('.fallback-emoji')) {
-      const fallbackEmoji = document.createElement('div');
-      fallbackEmoji.className = 'fallback-emoji';
-      fallbackEmoji.textContent = '🎴';
-      fallbackEmoji.style.cssText = `
-        font-size: 48px; text-align: center; display: flex;
-        align-items: center; justify-content: center;
-        width: 100%; height: 100%; position: absolute;
-        top: 0; left: 0; background: rgba(75, 85, 99, 0.9);
-        border-radius: 6px; z-index: 10;
-      `;
-      img.parentElement.appendChild(fallbackEmoji);
-    }
-  }
-};
+// 카드 이미지 URL 생성 함수 사용
+const getCardImageUrl = (card: DrawnCard) => getCardImagePath(card);
+const onImageError = (event: Event) => handleImageError(event);
 
 const goBack = () => {
   router.go(-1);
@@ -454,13 +340,7 @@ const newReading = () => {
 
 // 평점 제출
 const submitRating = async (rating: number) => {
-  console.log('스타 클릭됨:', rating);
-  console.log('현재 reading 데이터:', reading.value);
-  console.log('aiInterpretationId:', reading.value?.aiInterpretationId);
-  console.log('현재 userRating:', userRating.value);
-  
   if (!reading.value?.aiInterpretationId || userRating.value > 0) {
-    console.log('평점 제출 조건 미충족');
     return;
   }
   
@@ -468,13 +348,12 @@ const submitRating = async (rating: number) => {
   userRating.value = rating;
   
   try {
-    console.log('평점 제출 시작...');
-    const aiService = new AIInterpretationService(userStore.isPremium);
+    // AIInterpretationService를 직접 import해야 함
+    const { AIInterpretationService } = await import('../services/ai/AIInterpretationService');
+    const aiService = new AIInterpretationService(isSubscribed.value);
     await aiService.submitRating(reading.value.aiInterpretationId, rating);
-    console.log('평점 제출 성공:', rating);
   } catch (error) {
     console.error('평점 제출 오류:', error);
-    // 오류 발생 시에도 UI는 업데이트된 상태로 유지
   }
 };
 
@@ -502,7 +381,7 @@ const getPositionName = (spreadId: string, index: number) => {
 };
 
 // 카드 의미 가져오기
-const getCardMeaning = (card: any, topic: string) => {
+const getCardMeaning = (card: DrawnCard, topic: string) => {
   if (card.meanings && card.meanings[topic]) {
     return card.meanings[topic][card.orientation];
   } else if (card.meanings && card.meanings.general) {
@@ -513,78 +392,23 @@ const getCardMeaning = (card: any, topic: string) => {
 
 // 프리미엄 사용자를 위한 AI 해석 생성
 const generateAIInterpretation = async () => {
-  console.log('🔮 AI 심층 해석 생성 (프리미엄)');
-  
   if (!reading.value || reading.value.aiInterpretation) return;
   
   isLoadingInterpretation.value = true;
   
   try {
-    const customQuestion = tarotStore.getCustomQuestion();
-    const aiService = new AIInterpretationService(true); // 프리미엄 사용자
-      
-    let interpretationResult;
-      
-    if (customQuestion) {
-      // 커스텀 질문이 있는 경우
-      const interpretationRequest = {
-        readingId: reading.value.id,
-        cards: reading.value.cards.map((card: any, index: number) => ({
-          id: card.id,
-          name: card.name || card.nameEn || '',
-          nameKr: card.nameKr || card.name_kr || card.name || '',
-          arcana: card.arcana || 'unknown',
-          suit: card.suit || null,
-          number: card.number || null,
-          orientation: card.orientation || 'upright',
-          position: {
-            name: card.position?.name || getPositionName(reading.value.spreadId, index),
-            description: card.position?.description || ''
-          },
-          meanings: card.meanings || {}
-        })),
-        spreadId: reading.value.spreadId,
-        topic: reading.value.topic,
-        customQuestion: customQuestion,
-        userId: userStore.user?.id
-      };
-      
-      interpretationResult = await customInterpretationService.generateInterpretation(interpretationRequest);
-    } else {
-      // 기본 해석 (1장/3장)
-      const cardsForAI = reading.value.cards.map((card: any, index: number) => ({
-        id: card.id,
-        name: card.name || card.nameEn || '',
-        name_kr: card.nameKr || card.name_kr || card.name || '',
-        nameKr: card.nameKr || card.name_kr || card.name || '',
-        arcana: card.arcana || 'unknown',
-        suit: card.suit || null,
-        number: card.number || null,
-        orientation: card.orientation || 'upright',
-        position: {
-          position: index + 1,
-          name: getPositionName(reading.value.spreadId, index)
-        }
-      }));
-      
-      const result = await aiService.generateInterpretation(
-        cardsForAI,
-        reading.value.topic || 'general',
-        reading.value.spreadId
-      );
-        
-      interpretationResult = {
-        success: result && result.text,
-        interpretation: result?.text,
-        interpretationId: result?.interpretationId
-      };
-    }
+    const interpretationResult = await generateAI({
+      reading: reading.value,
+      customQuestion: tarotStore.getCustomQuestion(),
+      isPremium: true,
+      getPositionName,
+      userId: userStore.user?.id
+    });
     
     if (interpretationResult.success && interpretationResult.interpretation) {
       reading.value.aiInterpretation = interpretationResult.interpretation;
       reading.value.aiInterpretationId = interpretationResult.interpretationId || null;
       tarotStore.updateReading(reading.value);
-      console.log('✅ AI 해석 생성 완료');
     } else {
       throw new Error('AI 해석 생성 실패');
     }
@@ -605,17 +429,11 @@ const generateAIInterpretation = async () => {
 
 // 광고 시청 후 AI 해석 보기
 const showAIInterpretationWithAd = async () => {
-  console.log('🔮 수정구슬로 더 깊이 보기 클릭');
-  
-  // 현재 reading을 캐시에 저장
   const currentReading = reading.value;
   const currentReadingId = readingId.value;
   const currentCustomQuestion = tarotStore.getCustomQuestion();
   
-  if (!currentReading) {
-    console.error('현재 읽기가 없습니다');
-    return;
-  }
+  if (!currentReading) return;
   
   const confirmed = await showConfirm({
     title: '🔮 마법의 수정구슬',
@@ -627,86 +445,24 @@ const showAIInterpretationWithAd = async () => {
   if (!confirmed) return;
   
   try {
-    // AI 해석 생성을 미리 시작 (비동기)
-    const aiService = new AIInterpretationService(false); // 무료 사용자
-    
     // AI 해석 Promise 생성 (광고와 동시 진행)
-    const aiInterpretationPromise = (async () => {
-      console.log('🤖 AI 해석 미리 생성 시작...');
-    
-      let interpretationResult;
-    
-      if (currentCustomQuestion) {
-        // 커스텀 질문이 있는 경우
-        const interpretationRequest = {
-          readingId: currentReading.id,
-          cards: currentReading.cards.map((card: any, index: number) => ({
-            id: card.id,
-            name: card.name || card.nameEn || '',
-            nameKr: card.nameKr || card.name_kr || card.name || '',
-            arcana: card.arcana || 'unknown',
-            suit: card.suit || null,
-            number: card.number || null,
-            orientation: card.orientation || 'upright',
-            position: {
-              name: card.position?.name || getPositionName(currentReading.spreadId, index),
-              description: card.position?.description || ''
-            },
-            meanings: card.meanings || {}
-          })),
-          spreadId: currentReading.spreadId,
-          topic: currentReading.topic,
-          customQuestion: currentCustomQuestion,
-          userId: userStore.user?.id
-        };
-        
-        interpretationResult = await customInterpretationService.generateInterpretation(interpretationRequest);
-      } else {
-        // 기본 해석 (1장/3장)
-        const cardsForAI = currentReading.cards.map((card: any, index: number) => ({
-          id: card.id,
-          name: card.name || card.nameEn || '',
-          name_kr: card.nameKr || card.name_kr || card.name || '',
-          nameKr: card.nameKr || card.name_kr || card.name || '',
-          arcana: card.arcana || 'unknown',
-          suit: card.suit || null,
-          number: card.number || null,
-          orientation: card.orientation || 'upright',
-          position: {
-            position: index + 1,
-            name: getPositionName(currentReading.spreadId, index)
-          }
-        }));
-        
-        const result = await aiService.generateInterpretation(
-          cardsForAI,
-          currentReading.topic || 'general',
-          currentReading.spreadId
-        );
-        
-        interpretationResult = {
-          success: result && result.text,
-          interpretation: result?.text,
-          interpretationId: result?.interpretationId
-        };
-      }
-      
-      return interpretationResult;
-    })();
+    const aiInterpretationPromise = generateAI({
+      reading: currentReading,
+      customQuestion: currentCustomQuestion,
+      isPremium: false,
+      getPositionName,
+      userId: userStore.user?.id
+    });
     
     // 광고 시청과 AI 해석 생성을 동시에 진행
-    console.log('📺 광고 시청 시작...');
     const [adWatched, interpretationResult] = await Promise.all([
       adService.showInterstitialAd(),
       aiInterpretationPromise
     ]);
     
     if (!adWatched) {
-      console.log('광고 시청이 완료되지 않았습니다.');
       return;
     }
-    
-    console.log('✅ 광고 시청 완료');
     
     // 현재 페이지가 여전히 같은 reading을 보고 있는지 확인
     if (readingId.value !== currentReadingId) {
@@ -727,9 +483,6 @@ const showAIInterpretationWithAd = async () => {
         latestReading.aiInterpretation = interpretationResult.interpretation;
         latestReading.aiInterpretationId = interpretationResult.interpretationId || null;
         tarotStore.updateReading(latestReading);
-        console.log('✅ AI 해석 표시 완료');
-      } else {
-        console.warn('Reading이 변경되었습니다. AI 해석을 건너뜁니다.');
       }
     } else {
       throw new Error('AI 해석 생성 실패');
@@ -752,119 +505,49 @@ const showAIInterpretationWithAd = async () => {
 const regenerateAIInterpretation = async () => {
   if (!reading.value || !userStore.isPremium) return;
   
-  console.log('🔄 AI 해석 재생성 시작...');
   isLoadingInterpretation.value = true;
   
   try {
-    const customQuestion = tarotStore.getCustomQuestion();
-    const aiService = new AIInterpretationService(userStore.isPremium);
+    const interpretationResult = await generateAI({
+      reading: reading.value,
+      customQuestion: tarotStore.getCustomQuestion(),
+      isPremium: userStore.isPremium,
+      getPositionName,
+      userId: userStore.user?.id
+    });
     
-    if (customQuestion) {
-      // 커스텀 질문이 있는 경우
-      const interpretationRequest = {
-        readingId: reading.value.id,
-        cards: reading.value.cards.map((card: any, index: number) => ({
-          id: card.id,
-          name: card.name || card.nameEn || '',
-          nameKr: card.nameKr || card.name_kr || card.name || '',
-          arcana: card.arcana || 'unknown',
-          suit: card.suit || null,
-          number: card.number || null,
-          orientation: card.orientation || 'upright',
-          position: {
-            name: card.position?.name || `위치 ${index + 1}`,
-            description: card.position?.description || ''
-          },
-          meanings: card.meanings || {}
-        })),
-        spreadId: reading.value.spreadId,
-        topic: reading.value.topic,
-        customQuestion: customQuestion,
-        userId: userStore.user?.id
-      };
-
-      const interpretationResult = await customInterpretationService.generateInterpretation(interpretationRequest);
-      
-      if (interpretationResult.success && interpretationResult.interpretation) {
-        reading.value.aiInterpretation = interpretationResult.interpretation;
-        reading.value.aiInterpretationId = interpretationResult.interpretationId || null;
-        if (interpretationResult.probabilityAnalysis) {
-          reading.value.probabilityAnalysis = interpretationResult.probabilityAnalysis;
-        }
-        tarotStore.updateReading(reading.value);
+    if (interpretationResult.success && interpretationResult.interpretation) {
+      reading.value.aiInterpretation = interpretationResult.interpretation;
+      reading.value.aiInterpretationId = interpretationResult.interpretationId || null;
+      if (interpretationResult.probabilityAnalysis) {
+        reading.value.probabilityAnalysis = interpretationResult.probabilityAnalysis;
       }
-    } else if (reading.value.spreadId === 'celtic_cross') {
-      // 켈틱 크로스 해석
-      const cardsForAI = reading.value.cards.map((card: any, index: number) => ({
-        id: card.id,
-        name: card.name || card.nameEn || '',
-        name_kr: card.nameKr || card.name_kr || card.name || '',
-        nameKr: card.nameKr || card.name_kr || card.name || '',
-        arcana: card.arcana || 'unknown',
-        suit: card.suit || null,
-        number: card.number || null,
-        orientation: card.orientation || 'upright',
-        position: {
-          position: index + 1,
-          name: card.position?.name || [
-            '현재내면',
-            '현재외부', 
-            '근본',
-            '과거',
-            '드러나는 모습',
-            '미래',
-            '내가보는나',
-            '남이보는나',
-            '예상하는 결과',
-            '실제 결과'
-          ][index] || `위치 ${index + 1}`
-        }
-      }));
-      
-      const result = await aiService.generateInterpretation(
-        cardsForAI,
-        reading.value.topic || 'love',
-        'celtic_cross'
-      );
-      
-      if (result && result.text) {
-        reading.value.aiInterpretation = result.text;
-        reading.value.aiInterpretationId = result.interpretationId || null;
-        tarotStore.updateReading(reading.value);
-      }
+      tarotStore.updateReading(reading.value);
+    } else {
+      throw new Error('AI 해석 생성 실패');
     }
   } catch (error) {
     console.error('AI 해석 재생성 실패:', error);
+    await showConfirm({
+      title: '오류',
+      message: 'AI 해석을 생성하는 중 오류가 발생했습니다. 다시 시도해주세요.',
+      confirmText: '확인',
+      showCancel: false
+    });
   } finally {
     isLoadingInterpretation.value = false;
   }
 };
 
 onMounted(async () => {
-  console.log('ReadingResult 마운트됨');
-  console.log('readingId:', readingId.value);
-  console.log('reading:', reading.value);
-  console.log('프리미엄 상태:', userStore.isPremium);
-  console.log('스프레드 ID:', reading.value?.spreadId);
-  console.log('커스텀 질문:', customQuestion.value);
-  
   if (!reading.value && !readingId.value) {
-    console.warn('점괘 데이터가 없습니다. 홈으로 리다이렉트');
     router.push('/app');
     return;
   }
   
-  // AI 해석이 있는지 확인
-  if (reading.value && reading.value.aiInterpretation) {
-    console.log('========== AI 해석 디버깅 ==========');
-    console.log('AI 해석 전체 길이:', reading.value.aiInterpretation.length);
-    console.log('AI 해석 처음 100자:', reading.value.aiInterpretation.substring(0, 100));
-    console.log('AI 해석 ID:', reading.value.aiInterpretationId);
-    console.log('===================================');
-  } else if (reading.value && userStore.isPremium && 
-           (reading.value.spreadId === 'celtic_cross' || customQuestion.value)) {
-    // 프리미엄 사용자이고 켈틱 크로스이거나 커스텀 질문이 있는데 AI 해석이 없는 경우
-    console.log('🤖 AI 해석이 없어서 재생성 시도...');
+  // 프리미엄 사용자이고 켈틱 크로스이거나 커스텀 질문이 있는데 AI 해석이 없는 경우
+  if (reading.value && !reading.value.aiInterpretation && userStore.isPremium && 
+      (reading.value.spreadId === 'celtic_cross' || customQuestion.value)) {
     await regenerateAIInterpretation();
   }
 });

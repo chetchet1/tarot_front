@@ -18,16 +18,16 @@
           <div class="settings-group">
             <div class="setting-item">
               <div class="setting-label">이메일</div>
-              <div class="setting-value">{{ user?.email || '게스트' }}</div>
+              <div class="setting-value">{{ userStore.user?.email || '게스트' }}</div>
             </div>
             <div class="setting-item">
               <div class="setting-label">가입일</div>
-              <div class="setting-value">{{ formatDate(user?.createdAt) }}</div>
+              <div class="setting-value">{{ formatDate(userStore.user?.created_at) }}</div>
             </div>
             <div class="setting-item">
               <div class="setting-label">구독 상태</div>
               <div class="setting-value">
-                <span v-if="user?.isPremium" class="premium-badge">✨ 프리미엄</span>
+                <span v-if="isSubscribed" class="premium-badge">✨ 프리미엄</span>
                 <span v-else class="free-badge">무료</span>
               </div>
             </div>
@@ -108,7 +108,7 @@
         </section>
 
         <!-- 계정 관리 -->
-        <section class="settings-section">
+        <section class="settings-section" v-if="userStore.isAuthenticated">
           <div class="settings-group">
             <button @click="logout" class="action-button logout">
               🚪 로그아웃
@@ -127,39 +127,41 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useUserStore } from '../store/user';
-import { useTarotStore } from '../store/tarot';
-import { NativeUtils } from '../utils/capacitor';
-import { useAlert } from '../composables/useAlert';
+import { useUserStore } from '@/store/user';
+import { NativeUtils } from '@/utils/capacitor';
+import { useAlert } from '@/composables/useAlert';
+import { useSubscriptionStatus } from '@/composables/useSubscriptionStatus';
+import { supabase } from '@/lib/supabase';
 
 const router = useRouter();
 const userStore = useUserStore();
-const tarotStore = useTarotStore();
 const alert = useAlert();
+const { isSubscribed } = useSubscriptionStatus();
 
-// computed
-const user = computed(() => userStore.currentUser);
 const isNative = NativeUtils.isNative;
 
-// 설정 상태
-const settings = ref({
+interface AppSettings {
+  dailyNotification: boolean;
+  hapticFeedback: boolean;
+  animations: boolean;
+}
+
+const settings = ref<AppSettings>({
   dailyNotification: false,
   hapticFeedback: true,
   animations: true,
 });
 
 onMounted(() => {
-  // 저장된 설정 불러오기
   const savedSettings = localStorage.getItem('appSettings');
   if (savedSettings) {
     settings.value = { ...settings.value, ...JSON.parse(savedSettings) };
   }
 });
 
-// 날짜 포맷
-const formatDate = (dateString?: string) => {
+const formatDate = (dateString?: string): string => {
   if (!dateString) return '-';
   const date = new Date(dateString);
   return date.toLocaleDateString('ko-KR', {
@@ -169,18 +171,11 @@ const formatDate = (dateString?: string) => {
   });
 };
 
-// 설정 업데이트
-const updateSettings = () => {
+const updateSettings = (): void => {
   localStorage.setItem('appSettings', JSON.stringify(settings.value));
-  
-  // 햅틱 설정 적용
-  if (!settings.value.hapticFeedback) {
-    // 햅틱 비활성화 로직
-  }
 };
 
-// 히스토리 삭제
-const clearHistory = async () => {
+const clearHistory = async (): Promise<void> => {
   const confirmed = await alert.confirm(
     '모든 점괘 기록을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
     '히스토리 삭제'
@@ -188,51 +183,85 @@ const clearHistory = async () => {
   if (!confirmed) return;
   
   await NativeUtils.buttonTapHaptic();
-  tarotStore.clearReadings();
-  await alert.success('히스토리가 삭제되었습니다.');
+  
+  try {
+    if (userStore.user?.id) {
+      const { error } = await supabase
+        .from('reading_history')
+        .delete()
+        .eq('user_id', userStore.user.id);
+      
+      if (error) throw error;
+    }
+    
+    await alert.success('히스토리가 삭제되었습니다.');
+  } catch (error) {
+    console.error('Error clearing history:', error);
+    await alert.error('히스토리 삭제 중 오류가 발생했습니다.');
+  }
 };
 
-// 데이터 내보내기
-const exportData = async () => {
+const exportData = async (): Promise<void> => {
   await NativeUtils.buttonTapHaptic();
   
-  const data = {
-    user: user.value,
-    readings: tarotStore.readings,
-    exportDate: new Date().toISOString(),
-  };
-  
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `tarot-data-${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-  
-  URL.revokeObjectURL(url);
-  await alert.success('데이터가 내보내졌습니다.');
+  try {
+    let readings = [];
+    
+    if (userStore.user?.id) {
+      const { data, error } = await supabase
+        .from('reading_history')
+        .select(`
+          *,
+          cards:reading_cards(
+            *,
+            card:tarot_cards(*)
+          )
+        `)
+        .eq('user_id', userStore.user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      readings = data || [];
+    }
+    
+    const exportData = {
+      user: {
+        email: userStore.user?.email,
+        created_at: userStore.user?.created_at
+      },
+      readings,
+      exportDate: new Date().toISOString(),
+    };
+    
+    const json = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tarot-data-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    
+    URL.revokeObjectURL(url);
+    await alert.success('데이터가 내보내졌습니다.');
+  } catch (error) {
+    console.error('Error exporting data:', error);
+    await alert.error('데이터 내보내기 중 오류가 발생했습니다.');
+  }
 };
 
-// 도움말
-const goToHelp = async () => {
+const goToHelp = async (): Promise<void> => {
   await NativeUtils.buttonTapHaptic();
-  // 도움말 페이지로 이동 또는 외부 링크
   window.open('https://tarot-garden.com/help', '_blank');
 };
 
-// 피드백 보내기
-const sendFeedback = async () => {
+const sendFeedback = async (): Promise<void> => {
   await NativeUtils.buttonTapHaptic();
-  // 이메일 또는 피드백 폼
   window.location.href = 'mailto:support@tarot-garden.com?subject=타로의 정원 피드백';
 };
 
-// 앱 평가하기
-const rateApp = async () => {
+const rateApp = async (): Promise<void> => {
   await NativeUtils.buttonTapHaptic();
-  // 앱스토어/플레이스토어로 이동
   if (NativeUtils.platform === 'ios') {
     window.open('https://apps.apple.com/app/tarot-garden', '_blank');
   } else if (NativeUtils.platform === 'android') {
@@ -240,8 +269,7 @@ const rateApp = async () => {
   }
 };
 
-// 로그아웃
-const logout = async () => {
+const logout = async (): Promise<void> => {
   const confirmed = await alert.confirm('로그아웃 하시겠습니까?', '로그아웃');
   if (!confirmed) return;
   
@@ -250,8 +278,7 @@ const logout = async () => {
   router.push('/');
 };
 
-// 뒤로가기
-const goBack = async () => {
+const goBack = async (): Promise<void> => {
   await NativeUtils.buttonTapHaptic();
   router.push('/');
 };

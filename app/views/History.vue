@@ -17,6 +17,11 @@
         </div>
       </div>
 
+      <div v-else-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>점괘 기록을 불러오는 중...</p>
+      </div>
+
       <div v-else-if="readings.length === 0" class="empty-state">
         <div class="empty-card card">
           <div class="empty-icon">📚</div>
@@ -51,7 +56,7 @@
           >
             <div class="reading-header">
               <div class="reading-date">
-                {{ formatDate(reading.date) }}
+                {{ formatDate(reading.created_at) }}
               </div>
               <div class="reading-topic" :class="reading.topic">
                 {{ getTopicName(reading.topic) }}
@@ -59,17 +64,21 @@
             </div>
             
             <div class="reading-content">
-              <h3>{{ reading.spreadName }}</h3>
-              <p class="reading-summary">{{ reading.summary }}</p>
+              <h3>{{ reading.spread_name }}</h3>
+              <p class="reading-summary">{{ getSummary(reading) }}</p>
               
               <div class="cards-preview">
                 <div 
                   v-for="(card, idx) in reading.cards.slice(0, 3)" 
                   :key="idx"
                   class="mini-card"
-                  :class="card.orientation"
+                  :class="{ reversed: isReversedCard(card) }"
                 >
-                  🃏
+                  <img 
+                    :src="getMiniCardImage(card)" 
+                    :alt="card.card_name"
+                    @error="handleImageError"
+                  />
                 </div>
                 <span v-if="reading.cards.length > 3" class="more-cards">
                   +{{ reading.cards.length - 3 }}
@@ -79,10 +88,7 @@
             
             <div class="reading-footer">
               <span class="card-count">{{ reading.cards.length }}장</span>
-              <span class="accuracy" v-if="reading.accuracy">
-                정확도: {{ reading.accuracy }}%
-              </span>
-              <span v-if="reading.spreadName === '켈틱 크로스'" class="premium-badge">
+              <span v-if="reading.spread_name === '켈틱 크로스'" class="premium-badge">
                 👑 프리미엄
               </span>
             </div>
@@ -116,14 +122,14 @@
       <div v-if="selectedReading" class="modal-backdrop" @click="closeModal">
         <div class="modal-content" @click.stop>
           <div class="modal-header">
-            <h2>{{ selectedReading.spreadName }}</h2>
+            <h2>{{ selectedReading.spread_name }}</h2>
             <button class="close-button" @click="closeModal">✕</button>
           </div>
           
           <div class="modal-body">
             <div class="reading-info">
               <div class="info-row">
-                <strong>날짜:</strong> {{ formatDateTime(selectedReading.date) }}
+                <strong>날짜:</strong> {{ formatDateTime(selectedReading.created_at) }}
               </div>
               <div class="info-row">
                 <strong>주제:</strong> {{ getTopicName(selectedReading.topic) }}
@@ -142,23 +148,31 @@
                   class="drawn-card"
                 >
                   <div class="card-visual">
-                    <div class="card-image">🃏</div>
-                    <div class="card-orientation" :class="card.orientation">
-                      {{ card.orientation === 'upright' ? '정방향' : '역방향' }}
+                    <img 
+                      :src="getCardImagePath(card)" 
+                      :alt="card.card_name"
+                      class="card-image"
+                      :class="{ reversed: isReversedCard(card) }"
+                      @error="handleImageError"
+                    />
+                    <div class="card-orientation" :class="{ reversed: isReversedCard(card) }">
+                      {{ isReversedCard(card) ? '역방향' : '정방향' }}
                     </div>
                   </div>
                   <div class="card-details">
                     <h5>{{ card.position || `카드 ${index + 1}` }}</h5>
-                    <p class="card-name">{{ card.nameKr }}</p>
-                    <p class="card-meaning">{{ card.interpretation }}</p>
+                    <p class="card-name">{{ card.card_name }}</p>
+                    <p class="card-meaning">
+                      {{ isReversedCard(card) ? card.meaning_reverse : card.meaning_upright }}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
             
-            <div class="interpretation-section">
-              <h4>종합 해석</h4>
-              <p class="full-interpretation">{{ selectedReading.fullInterpretation }}</p>
+            <div v-if="selectedReading.ai_interpretation" class="interpretation-section">
+              <h4>AI 종합 해석</h4>
+              <p class="full-interpretation">{{ selectedReading.ai_interpretation }}</p>
             </div>
           </div>
         </div>
@@ -171,174 +185,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/store/user';
+import { supabase } from '@/services/supabase';
 import LoginModal from '@/components/LoginModal.vue';
-
-interface ReadingCard {
-  id: number;
-  nameKr: string;
-  orientation: 'upright' | 'reversed';
-  position?: string;
-  interpretation: string;
-}
-
-interface Reading {
-  id: string;
-  date: Date;
-  topic: string;
-  spreadName: string;
-  question?: string;
-  cards: ReadingCard[];
-  summary: string;
-  fullInterpretation: string;
-  accuracy?: number;
-}
+import { getCardImagePath, isReversedCard, handleImageError } from '@/utils/cardUtils';
+import type { ReadingHistory, DrawnCard } from '@/types/history';
 
 const router = useRouter();
 const userStore = useUserStore();
 const showLogin = ref(false);
 const selectedFilter = ref('all');
-const selectedReading = ref<Reading | null>(null);
+const selectedReading = ref<ReadingHistory | null>(null);
 const currentPage = ref(1);
 const itemsPerPage = 6;
-
-// 임시 점괘 기록 데이터 (실제로는 백엔드에서 가져옴)
-const readings = ref<Reading[]>([
-  {
-    id: '3',
-    date: new Date('2024-07-28'),
-    topic: 'general',
-    spreadName: '켈틱 크로스',
-    question: '나의 전반적인 운세는?',
-    cards: [
-      {
-        id: 1,
-        nameKr: '마법사',
-        orientation: 'upright',
-        position: '현재 상황',
-        interpretation: '당신은 모든 도구를 갖추고 있으며 새로운 시작을 할 준비가 되어 있습니다.'
-      },
-      {
-        id: 2,
-        nameKr: '컵의 2',
-        orientation: 'reversed',
-        position: '도전/십자가',
-        interpretation: '관계에서의 불균형이 현재 당신의 주요 도전과제입니다.'
-      },
-      {
-        id: 3,
-        nameKr: '여사제',
-        orientation: 'upright',
-        position: '먼 과거',
-        interpretation: '직관과 내면의 지혜가 당신을 여기까지 이끌었습니다.'
-      },
-      {
-        id: 4,
-        nameKr: '검의 3',
-        orientation: 'upright',
-        position: '가까운 과거',
-        interpretation: '최근의 상처나 배신이 아직 치유되지 않았습니다.'
-      },
-      {
-        id: 5,
-        nameKr: '태양',
-        orientation: 'upright',
-        position: '가능한 미래',
-        interpretation: '성공과 행복, 긍정적인 에너지가 다가오고 있습니다.'
-      },
-      {
-        id: 6,
-        nameKr: '완드의 에이스',
-        orientation: 'upright',
-        position: '가까운 미래',
-        interpretation: '새로운 창의적 프로젝트나 열정적인 시작이 곧 찾아옵니다.'
-      },
-      {
-        id: 7,
-        nameKr: '은둔자',
-        orientation: 'reversed',
-        position: '당신의 접근',
-        interpretation: '혼자서 해결하려 하지 말고 도움을 구하세요.'
-      },
-      {
-        id: 8,
-        nameKr: '펜타클의 10',
-        orientation: 'upright',
-        position: '외부 영향',
-        interpretation: '가족이나 전통이 당신에게 중요한 영향을 미치고 있습니다.'
-      },
-      {
-        id: 9,
-        nameKr: '달',
-        orientation: 'reversed',
-        position: '희망과 두려움',
-        interpretation: '두려움과 환상에서 벗어나 진실을 보기 시작했습니다.'
-      },
-      {
-        id: 10,
-        nameKr: '세계',
-        orientation: 'upright',
-        position: '최종 결과',
-        interpretation: '완성과 성취, 새로운 주기의 시작을 의미합니다.'
-      }
-    ],
-    summary: '현재 새로운 시작의 문턱에 있으며, 과거의 상처를 극복하고 밝은 미래로 나아갈 준비가 되어 있습니다.',
-    fullInterpretation: '켈틱 크로스 스프레드가 보여주는 당신의 운명은 매우 긍정적입니다. 마법사 카드는 당신이 필요한 모든 능력과 도구를 갖추고 있음을 보여주며, 비록 관계에서의 어려움(컵의 2 역방향)이 도전으로 나타나지만, 태양 카드가 암시하는 밝은 미래가 기다리고 있습니다. 세계 카드는 최종적으로 완전한 성취와 새로운 시작을 약속합니다.',
-    accuracy: 95
-  },
-  {
-    id: '1',
-    date: new Date('2024-07-25'),
-    topic: 'love',
-    spreadName: '세 장 뽑기',
-    question: '현재 연애 상황은?',
-    cards: [
-      {
-        id: 1,
-        nameKr: '바보',
-        orientation: 'upright',
-        position: '과거',
-        interpretation: '새로운 시작과 순수한 마음으로 사랑을 시작했습니다.'
-      },
-      {
-        id: 2,
-        nameKr: '연인',
-        orientation: 'upright',
-        position: '현재',
-        interpretation: '현재 관계에서 깊은 유대감과 조화를 경험하고 있습니다.'
-      },
-      {
-        id: 3,
-        nameKr: '별',
-        orientation: 'upright',
-        position: '미래',
-        interpretation: '희망과 치유가 가득한 밝은 미래가 기다리고 있습니다.'
-      }
-    ],
-    summary: '과거의 순수한 시작이 현재의 조화로운 관계로 이어지고, 미래에는 더욱 희망적인 발전이 예상됩니다.',
-    fullInterpretation: '당신의 연애는 매우 긍정적인 방향으로 흘러가고 있습니다. 바보 카드는 관계의 시작이 순수하고 진실했음을 나타내며, 연인 카드는 현재 서로에 대한 깊은 이해와 사랑이 있음을 보여줍니다. 별 카드는 미래에 대한 희망과 치유, 그리고 영적인 성장을 암시합니다.',
-    accuracy: 85
-  },
-  {
-    id: '2',
-    date: new Date('2024-07-20'),
-    topic: 'career',
-    spreadName: '한 장 뽑기',
-    cards: [
-      {
-        id: 64,
-        nameKr: '펜타클의 에이스',
-        orientation: 'upright',
-        interpretation: '새로운 직업적 기회와 물질적 풍요가 찾아올 것입니다.'
-      }
-    ],
-    summary: '새로운 직업적 기회가 다가오고 있으며, 물질적 성공의 가능성이 높습니다.',
-    fullInterpretation: '펜타클의 에이스는 새로운 직업적 기회, 승진, 또는 사업의 성공을 나타냅니다. 이는 당신의 노력이 곧 구체적인 결과로 나타날 것임을 의미합니다.',
-    accuracy: 92
-  }
-]);
+const readings = ref<ReadingHistory[]>([]);
+const loading = ref(false);
 
 const filteredReadings = computed(() => {
   let filtered = readings.value;
@@ -348,7 +211,7 @@ const filteredReadings = computed(() => {
   }
   
   // 날짜순 정렬 (최신순)
-  filtered.sort((a, b) => b.date.getTime() - a.date.getTime());
+  filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   
   // 페이지네이션
   const start = (currentPage.value - 1) * itemsPerPage;
@@ -379,16 +242,16 @@ const getTopicName = (topic: string) => {
   return topicNames[topic] || topic;
 };
 
-const formatDate = (date: Date) => {
-  return date.toLocaleDateString('ko-KR', {
+const formatDate = (date: string) => {
+  return new Date(date).toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
 };
 
-const formatDateTime = (date: Date) => {
-  return date.toLocaleString('ko-KR', {
+const formatDateTime = (date: string) => {
+  return new Date(date).toLocaleString('ko-KR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -397,7 +260,19 @@ const formatDateTime = (date: Date) => {
   });
 };
 
-const openReading = (reading: Reading) => {
+const getMiniCardImage = (card: DrawnCard): string => {
+  return getCardImagePath(card);
+};
+
+const getSummary = (reading: ReadingHistory): string => {
+  if (reading.ai_interpretation) {
+    // AI 해석의 첫 100자 정도를 요약으로 사용
+    return reading.ai_interpretation.substring(0, 100) + '...';
+  }
+  return '카드 해석이 저장되어 있습니다.';
+};
+
+const openReading = (reading: ReadingHistory) => {
   selectedReading.value = reading;
 };
 
@@ -408,6 +283,48 @@ const closeModal = () => {
 const changePage = (page: number) => {
   currentPage.value = page;
 };
+
+const fetchReadings = async () => {
+  if (!userStore.user?.id) return;
+  
+  loading.value = true;
+  try {
+    const { data, error } = await supabase
+      .from('reading_history')
+      .select(`
+        *,
+        cards:reading_cards(
+          *,
+          card:tarot_cards(*)
+        )
+      `)
+      .eq('user_id', userStore.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    
+    // 데이터 구조 변환
+    readings.value = (data || []).map(reading => ({
+      ...reading,
+      cards: reading.cards.map((rc: any) => ({
+        ...rc.card,
+        position: rc.position,
+        card_name: rc.card.name_kr,
+        is_reversed: rc.is_reversed
+      }))
+    }));
+  } catch (error) {
+    console.error('Error fetching readings:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  if (userStore.isAuthenticated) {
+    fetchReadings();
+  }
+});
 </script>
 
 <style scoped>
@@ -447,6 +364,28 @@ const changePage = (page: number) => {
 .container {
   max-width: 1000px;
   margin: 0 auto;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 20px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #A855F7;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .login-prompt,
@@ -589,22 +528,21 @@ const changePage = (page: number) => {
 }
 
 .mini-card {
-  width: 20px;
-  height: 30px;
+  width: 30px;
+  height: 45px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
+  overflow: hidden;
+  position: relative;
 }
 
-.mini-card.upright {
-  color: #22C55E;
+.mini-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.mini-card.reversed {
-  color: #EF4444;
+.mini-card.reversed img {
   transform: rotate(180deg);
 }
 
@@ -759,8 +697,14 @@ const changePage = (page: number) => {
 }
 
 .card-image {
-  font-size: 24px;
-  color: rgba(255, 255, 255, 0.6);
+  width: 60px;
+  height: 90px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.card-image.reversed {
+  transform: rotate(180deg);
 }
 
 .card-orientation {
@@ -768,9 +712,6 @@ const changePage = (page: number) => {
   border-radius: 8px;
   font-size: 10px;
   font-weight: 600;
-}
-
-.card-orientation.upright {
   background: rgba(34, 197, 94, 0.2);
   color: #22C55E;
 }
@@ -804,6 +745,7 @@ const changePage = (page: number) => {
 .full-interpretation {
   color: rgba(255, 255, 255, 0.8);
   line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 @media (max-width: 768px) {

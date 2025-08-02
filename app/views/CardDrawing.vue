@@ -255,6 +255,7 @@ import { ImprovedCelticCrossInterpreter } from '@/utils/ImprovedCelticCrossInter
 import { customInterpretationService } from '@/services/ai/customInterpretationService';
 import { AIInterpretationService } from '@/services/ai/AIInterpretationService';
 import { useAlert } from '@/composables/useAlert';
+import { getCardImagePath, handleImageError } from '@/utils/cardUtils';
 
 // 컴포넌트 직접 import로 변경
 // import AdModal from '@/components/AdModal.vue'; // 기획 변경으로 사용하지 않음
@@ -351,128 +352,8 @@ const getDrawButtonText = () => {
   return '카드 뽑기';
 };
 
-// 카드 이미지 URL 생성 함수
-const getCardImageUrl = (card: any) => {
-  try {
-    // Supabase에서 오는 imageUrl이 있다면 먼저 처리
-    if (card.imageUrl && !card.imageUrl.includes('undefined')) {
-      let finalUrl = card.imageUrl;
-      // 수트 폴더가 포함된 경로를 수정 (실제 파일은 minor 폴더 바로 아래에 있음)
-      finalUrl = finalUrl.replace('/assets/tarot-cards/minor/cups/', '/assets/tarot-cards/minor/');
-      finalUrl = finalUrl.replace('/assets/tarot-cards/minor/wands/', '/assets/tarot-cards/minor/');
-      finalUrl = finalUrl.replace('/assets/tarot-cards/minor/swords/', '/assets/tarot-cards/minor/');
-      finalUrl = finalUrl.replace('/assets/tarot-cards/minor/pentacles/', '/assets/tarot-cards/minor/');
-      
-      // 메이저 아르카나 파일명 대소문자 수정
-      if (finalUrl.includes('/assets/tarot-cards/major/')) {
-        // 소문자로 되어 있는 파일명을 실제 파일명으로 변경
-        const corrections = {
-          '00-the-fool.png': '00-the-Fool.png',
-          '01-the-magician.png': '01-The-Magician.png',
-          '02-the-high-priestess.png': '02-The-High-Priestess.png',
-          '03-the-empress.png': '03-The-Empress.png',
-          '04-the-emperor.png': '04-The-Emperor.png',
-          '05-the-hierophant.png': '05-The-Hierophant.png',
-          '06-the-lovers.png': '06-The-Lovers.png',
-          '07-the-chariot.png': '07-The-Chariot.png',
-          '08-strength.png': '08-Strength.png',
-          '09-the-hermit.png': '09-The-Hermit.png',
-          '10-wheel-of-fortune.png': '10-Wheel-of-Fortune.png',
-          '11-justice.png': '11-Justice.png',
-          '12-the-hanged-man.png': '12-The-Hanged-Man.png',
-          '13-death.png': '13-Death.png',
-          '14-temperance.png': '14-Temperance.png',
-          '15-the-devil.png': '15-The-Devil.png',
-          '16-the-tower.png': '16-The-Tower.png',
-          '17-the-star.png': '17-The-Star.png',
-          '18-the-moon.png': '18-The-Moon.png',
-          '19-the-sun.png': '19-The-Sun.png',
-          '20-judgement.png': '20-Judgement.png',
-          '21-the-world.png': '21-The-World.png'
-        };
-        
-        // 소문자 파일명을 올바른 대소문자 파일명으로 변경
-        for (const [wrong, correct] of Object.entries(corrections)) {
-          if (finalUrl.includes(wrong)) {
-            finalUrl = finalUrl.replace(wrong, correct);
-            break;
-          }
-        }
-      }
-      
-      return finalUrl;
-    }
-    
-    // 마이너 아르카나의 경우 수트 폴더 없이 경로 생성
-    if (card.arcana === 'minor') {
-      const cardNumber = String(card.number || 1).padStart(2, '0');
-      let cardName;
-      
-      // 수트에 따라 파일명 생성
-      if (card.suit) {
-        if (card.number <= 10) {
-          const numberNames = {
-            1: 'ace',
-            2: 'two', 3: 'three', 4: 'four', 5: 'five',
-            6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten'
-          };
-          cardName = `${numberNames[card.number]}-of-${card.suit}`;
-        } else {
-          // 코트 카드들은 Supabase imageUrl을 사용해야 함 (위에서 이미 처리됨)
-          const faceCards = {
-            11: 'Page', 12: 'Knight', 13: 'Queen', 14: 'King'
-          };
-          const suitCapitalized = card.suit.charAt(0).toUpperCase() + card.suit.slice(1);
-          cardName = `${faceCards[card.number]}-of-${suitCapitalized}`;
-        }
-      } else {
-        // 기본 이름 사용
-        cardName = card.name.toLowerCase().replace(/\s+/g, '-');
-      }
-      
-      return `/assets/tarot-cards/minor/${cardNumber}-${cardName}.png`;
-    }
-    
-    // 메이저 아르카나의 경우
-    if (card.arcana === 'major') {
-      const cardNumber = String(card.number || 0).padStart(2, '0');
-      // 메이저 아르카나 파일명은 실제 파일명에 맞게 수정
-      const majorCardNames = {
-        0: '00-the-Fool.png',
-        1: '01-The-Magician.png',
-        2: '02-The-High-Priestess.png',
-        3: '03-The-Empress.png',
-        4: '04-The-Emperor.png',
-        5: '05-The-Hierophant.png',
-        6: '06-The-Lovers.png',
-        7: '07-The-Chariot.png',
-        8: '08-Strength.png',
-        9: '09-The-Hermit.png',
-        10: '10-Wheel-of-Fortune.png',
-        11: '11-Justice.png',
-        12: '12-The-Hanged-Man.png',
-        13: '13-Death.png',
-        14: '14-Temperance.png',
-        15: '15-The-Devil.png',
-        16: '16-The-Tower.png',
-        17: '17-The-Star.png',
-        18: '18-The-Moon.png',
-        19: '19-The-Sun.png',
-        20: '20-Judgement.png',
-        21: '21-The-World.png'
-      };
-      
-      const fileName = majorCardNames[card.number] || '00-the-Fool.png';
-      return `/assets/tarot-cards/major/${fileName}`;
-    }
-    
-    // 폴백 이미지 (기본 카드 이미지)
-    return '/assets/tarot-cards/major/00-the-Fool.png';
-  } catch (error) {
-    console.error('카드 이미지 URL 생성 오류:', error);
-    return '/assets/tarot-cards/major/00-the-Fool.png';
-  }
-};
+// 카드 이미지 URL 생성 - utils에서 가져온 함수 사용
+const getCardImageUrl = (card: any) => getCardImagePath(card);
 
 // 카드 개수 가져오기
 const getCardCount = () => {
@@ -490,29 +371,7 @@ onMounted(async () => {
   
   // 타로 스토어 초기화 확인
   if (tarotStore.tarotCards.length === 0) {
-    console.log('카드 데이터가 비어있음, 초기화 시작');
     await tarotStore.initialize();
-  }
-  
-  console.log('사용 가능한 카드 수:', tarotStore.tarotCards.length);
-  console.log('선택된 스프레드:', tarotStore.selectedSpread);
-  
-  // 이미지 경로 테스트
-  if (tarotStore.tarotCards.length > 0) {
-    const testCard = tarotStore.tarotCards[0];
-    console.log('테스트 카드 데이터:', testCard);
-    console.log('테스트 카드 arcana:', testCard.arcana);
-    console.log('테스트 카드 number:', testCard.number);
-    console.log('테스트 카드 imageUrl:', testCard.imageUrl);
-    
-    const testUrl = getCardImageUrl(testCard);
-    console.log('테스트 카드 이미지 URL:', testUrl);
-    
-    // 이미지 로드 테스트
-    const img = new Image();
-    img.onload = () => console.log('✅ 테스트 이미지 로드 성공:', testUrl);
-    img.onerror = () => console.error('❌ 테스트 이미지 로드 실패:', testUrl);
-    img.src = testUrl;
   }
 });
 
@@ -688,8 +547,7 @@ const drawCards = async () => {
   
   // 실제 타로카드 데이터에서 랜덤 선택
   const selectedCards = tarotStore.drawCards(cardCount);
-  
-  console.log('뽑힌 카드들:', selectedCards);
+
 
   tarotStore.setTempDrawnCards(selectedCards);
 
@@ -766,16 +624,9 @@ const generateCelticCrossInterpretation = async () => {
 const isProcessingResult = ref(false);
 
 const goToResult = async () => {
-  console.log('🎯 goToResult 함수 호출됨');
-  console.log('- 모든 카드 공개 여부:', allCardsRevealed.value);
-  console.log('- 뽑힌 카드 수:', drawnCards.value.length);
-  console.log('- 선택된 스프레드:', tarotStore.selectedSpread?.spreadId);
-  console.log('- 커스텀 질문:', tarotStore.getCustomQuestion());
-  console.log('- 프리미엄 사용자:', userStore.isPremium);
   
   // 이미 처리 중이면 중복 호출 방지
   if (isProcessingResult.value) {
-    console.log('⚠️ 이미 결과 화면으로 이동 중...');
     return;
   }
   
@@ -853,11 +704,6 @@ const goToResult = async () => {
         interpretationProgress.value = 70;
         
         if (interpretationResult.success && interpretationResult.interpretation) {
-          console.log('🤖 커스텀 AI 해석 생성 성공!');
-          console.log('- 해석 길이:', interpretationResult.interpretation.length);
-          console.log('- 해석 처음 200자:', interpretationResult.interpretation.substring(0, 200));
-          console.log('- 해석 마지막 200자:', interpretationResult.interpretation.substring(interpretationResult.interpretation.length - 200));
-          console.log('- 전체 해석:', interpretationResult.interpretation);
           
           // AI 해석을 reading에 추가
           reading.aiInterpretation = interpretationResult.interpretation;
@@ -872,7 +718,7 @@ const goToResult = async () => {
         // reading을 store에 업데이트
         tarotStore.updateReading(reading);
       } catch (aiError) {
-        console.error('커스텀 AI 해석 생성 실패:', aiError);
+        // AI 해석 생성 실패 시 무시
       }
     }
     // 프리미엄 사용자인 경우 켈틱 크로스 AI 해석 생성 (커스텀 질문이 없는 경우)
@@ -922,11 +768,6 @@ const goToResult = async () => {
         interpretationProgress.value = 70;
         
         if (result && result.text) {
-          console.log('🤖 켈틱 크로스 AI 해석 생성 성공!');
-          console.log('- 해석 길이:', result.text.length);
-          console.log('- 해석 처음 200자:', result.text.substring(0, 200));
-          console.log('- 해석 마지막 200자:', result.text.substring(result.text.length - 200));
-          console.log('- 전체 해석:', result.text);
           
           // AI 해석을 reading에 추가
           reading.aiInterpretation = result.text;
@@ -936,7 +777,7 @@ const goToResult = async () => {
         // reading을 store에 업데이트
         tarotStore.updateReading(reading);
       } catch (aiError) {
-        console.error('AI 해석 생성 실패:', aiError);
+        // AI 해석 생성 실패 시 무시
       }
     }
     
@@ -955,7 +796,6 @@ const goToResult = async () => {
     // 점괴 결과 화면으로 이동
     router.push(`/reading-result?readingId=${reading.id}`);
   } catch (error) {
-    console.error('❌ 점괴 생성 실패:', error);
     
     // 프로그레스 정리
     clearInterval(progressInterval);

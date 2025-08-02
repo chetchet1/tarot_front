@@ -492,14 +492,11 @@ const startReading = async () => {
         tarotStore.setCustomQuestion('');
       }
       
-      console.log('선택된 주제:', selectedTopicData);
-      console.log('선택된 스프레드:', selectedSpreadData);
-      console.log('커스텀 질문:', customQuestion.value);
+
       
       // 카드 뽑기 페이지로 이동
       await router.push('/card-drawing');
     } catch (error) {
-      console.error('라우팅 오류:', error);
       // 페이지 새로고침으로 대체
       window.location.href = '/card-drawing';
     }

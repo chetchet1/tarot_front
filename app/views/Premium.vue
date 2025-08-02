@@ -131,10 +131,10 @@ import {
   PAYMENT_METHODS, 
   purchaseSubscription,
   formatPrice, 
-  calculateDiscount,
-  getSubscriptionBenefits 
+  calculateDiscount
 } from '@/services/purchasesWeb';
 import { useAlert } from '@/composables/useAlert';
+import type { SubscriptionBenefit, FAQ } from '@/types/premium';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -147,7 +147,7 @@ const selectedPlan = ref<'monthly' | 'yearly'>('monthly');
 const selectedPaymentMethod = ref<string>('');
 
 // 혜택 정보
-const benefits = computed(() => ({
+const benefits = computed<Record<string, SubscriptionBenefit>>(() => ({
   removeAds: {
     icon: '🚫',
     title: '광고 제거',
@@ -180,7 +180,7 @@ const benefits = computed(() => ({
   }
 }));
 
-const faqs = [
+const faqs: FAQ[] = [
   {
     id: 1,
     question: '구독은 언제든지 해지할 수 있나요?',
@@ -231,14 +231,10 @@ const processPurchase = async () => {
     );
     
     if (result.success) {
-      // 성공 시 처리
       await alert.success('구독이 완료되었습니다! 🎉');
       closePaymentModal();
-      
-      // 프리미엄 상태 업데이트
       await userStore.loadUserProfile();
     } else {
-      // 실패 시 처리
       await alert.error('결제에 실패했습니다. 다시 시도해주세요.');
       console.error('Purchase failed:', result.error);
     }
@@ -251,11 +247,9 @@ const processPurchase = async () => {
 };
 
 const manageSub = async () => {
-  // 구독 관리 페이지로 이동 또는 모달 열기
   await alert.info('구독 관리 기능은 곧 추가될 예정입니다.');
 };
 
-// 날짜 포맷팅
 const formatDate = (date: Date | string) => {
   const d = new Date(date);
   return d.toLocaleDateString('ko-KR', {

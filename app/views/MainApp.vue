@@ -118,34 +118,28 @@ const showUserDropdown = ref(false);
 const showTestButton = ref(import.meta.env.MODE !== 'production');
 const isTestPanelOpen = ref(false);
 
-// 테스트 패널 토글
 const toggleTestPanel = () => {
   isTestPanelOpen.value = !isTestPanelOpen.value;
-  // PremiumTestPanel에 메시지 전달
   window.dispatchEvent(new CustomEvent('toggle-test-panel'));
 };
 
 onMounted(async () => {
   console.log('🏠 메인 앱 페이지 로드');
   
-  // 사용자가 이미 로그인되어 있고 로딩이 아니면 바로 진행
   if (userStore.currentUser && !userStore.isLoading) {
     console.log('사용자 이미 로드됨, 타로 데이터 로드');
     tarotStore.loadReadings();
     tarotStore.loadDailyCard();
   } else if (!userStore.isLoading) {
-    // 로딩 중이 아니면 다시 초기화 시도
     console.log('사용자 없음, 초기화 시도');
     await userStore.initializeUser();
     tarotStore.loadReadings();
     tarotStore.loadDailyCard();
   }
   
-  // 외부 클릭 이벤트 리스너 추가
   document.addEventListener('click', handleClickOutside);
 });
 
-// 인사말 메시지 생성
 const getGreetingMessage = () => {
   const hour = new Date().getHours();
   const name = userStore.currentUser?.name || '고객';
@@ -159,25 +153,21 @@ const getGreetingMessage = () => {
   }
 };
 
-// 오늘의 카드 보기
 const showDailyCard = () => {
   console.log('☀️ 오늘의 카드 클릭');
   router.push('/card-drawing?spread=daily');
 };
 
-// 사용자 메뉴 토글
-const toggleUserMenu = (event) => {
+const toggleUserMenu = (event: MouseEvent) => {
   showUserDropdown.value = !showUserDropdown.value;
   
   if (showUserDropdown.value) {
-    // 드롭다운이 화면을 벗어나지 않도록 위치 조정
     setTimeout(() => {
-      const dropdown = event.target.closest('.user-menu')?.querySelector('.user-dropdown');
+      const dropdown = (event.target as HTMLElement).closest('.user-menu')?.querySelector<HTMLElement>('.user-dropdown');
       if (dropdown) {
         const rect = dropdown.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
         
-        // 화면 오른쪽을 벗어나는 경우 왼쪽으로 이동
         if (rect.right > viewportWidth - 10) {
           const overflowAmount = rect.right - viewportWidth + 20;
           dropdown.style.transform = `translateX(-${overflowAmount}px)`;
@@ -187,7 +177,6 @@ const toggleUserMenu = (event) => {
   }
 };
 
-// 로그아웃 처리
 const handleLogout = async () => {
   try {
     await userStore.logout();
@@ -198,7 +187,6 @@ const handleLogout = async () => {
   }
 };
 
-// 네비게이션 함수들
 const goToProfile = () => {
   console.log('프로필 설정');
   showUserDropdown.value = false;
@@ -211,18 +199,15 @@ const goToPremium = () => {
   router.push('/premium');
 };
 
-// 점괘 기록 알림
 const showHistoryAlert = () => {
   alert('해당 기능은 차후 업데이트 됩니다');
 };
 
-// 외부 클릭 시 드롭다운 닫기
-const handleClickOutside = (event) => {
-  const userMenu = event.target.closest('.user-menu');
+const handleClickOutside = (event: MouseEvent) => {
+  const userMenu = (event.target as HTMLElement).closest('.user-menu');
   if (!userMenu) {
     showUserDropdown.value = false;
-    // 드롭다운을 닫을 때 transform 리셋
-    const dropdown = document.querySelector('.user-dropdown');
+    const dropdown = document.querySelector<HTMLElement>('.user-dropdown');
     if (dropdown) {
       dropdown.style.transform = 'translateX(0)';
     }
@@ -371,7 +356,6 @@ const handleClickOutside = (event) => {
   max-width: 250px;
   overflow: hidden;
   z-index: 1000;
-  /* 화면 경계를 벗어나지 않도록 조정 */
   transform: translateX(0);
 }
 
@@ -572,11 +556,9 @@ const handleClickOutside = (event) => {
   }
   
   .user-dropdown {
-    /* 모바일에서는 화면 끝에서 잘리지 않도록 조정 */
     right: 0;
     left: auto;
     margin-top: 12px;
-    /* 최대 너비를 화면 너비로 제한 */
     max-width: calc(100vw - 32px);
     min-width: 200px;
   }
@@ -597,7 +579,6 @@ const handleClickOutside = (event) => {
     width: auto;
   }
   
-  /* 진짜 작은 화면에서는 드롭다운을 왼쪽으로 이동 */
   .user-dropdown {
     right: -20px;
     max-width: calc(100vw - 20px);

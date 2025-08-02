@@ -138,6 +138,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTarotStore } from '@/store/tarot';
+import { getCardImagePath, handleImageError } from '@/utils/cardUtils';
 
 const tarotStore = useTarotStore();
 const allCards = ref<any[]>([]);
@@ -201,26 +202,8 @@ const setMeaningTab = (tabId: string) => {
   activeMeaningTab.value = tabId;
 };
 
-// 카드 이미지 URL 생성 함수
-const getCardImageUrl = (card: any) => {
-  try {
-    // Supabase에서 오는 imageUrl을 우선적으로 사용
-    if (card.imageUrl && !card.imageUrl.includes('undefined')) {
-      return card.imageUrl;
-    }
-    
-    // image_url 필드도 확인
-    if (card.image_url && !card.image_url.includes('undefined')) {
-      return card.image_url;
-    }
-    
-    // 폴백 이미지
-    return '/assets/tarot-cards/major/00-the-Fool.png';
-  } catch (error) {
-    console.error('카드 이미지 URL 생성 오류:', error);
-    return '/assets/tarot-cards/major/00-the-Fool.png';
-  }
-};
+// 카드 이미지 URL 생성 - utils에서 가져온 함수 사용
+const getCardImageUrl = (card: any) => getCardImagePath(card);
 
 const selectCard = (card: any) => {
   selectedCard.value = card;
@@ -231,7 +214,6 @@ const selectCard = (card: any) => {
 onMounted(async () => {
   await tarotStore.initialize();
   allCards.value = tarotStore.tarotCards;
-  console.log('타로 사전 카드 데이터 로드:', allCards.value.length);
 });
 
 const closeModal = () => {
@@ -248,26 +230,8 @@ const getSuitName = (suit: string) => {
   return suitNames[suit] || suit;
 };
 
-// 이미지 로드 에러 처리
-const onImageError = (event: Event) => {
-  const img = event.target as HTMLImageElement;
-  if (img && img.parentElement) {
-    img.style.display = 'none';
-    if (!img.parentElement.querySelector('.fallback-emoji')) {
-      const fallbackEmoji = document.createElement('div');
-      fallbackEmoji.className = 'fallback-emoji';
-      fallbackEmoji.textContent = '🃏';
-      fallbackEmoji.style.cssText = `
-        font-size: 48px; text-align: center; display: flex;
-        align-items: center; justify-content: center;
-        width: 100%; height: 100%; position: absolute;
-        top: 0; left: 0; background: rgba(75, 85, 99, 0.9);
-        border-radius: 6px; z-index: 10;
-      `;
-      img.parentElement.appendChild(fallbackEmoji);
-    }
-  }
-};
+// 이미지 로드 에러 처리 - utils에서 가져온 함수 사용
+const onImageError = (event: Event) => handleImageError(event);
 </script>
 
 <style scoped>
