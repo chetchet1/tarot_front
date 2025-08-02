@@ -15,13 +15,8 @@
           </span>
         </h1>
       </div>
-      <div v-if="!userStore.isPremium && !adStatus.isTemporaryPremium" class="free-usage-indicator">
-        무료 사용: {{ adStatus.dailyReadingCount }}/{{ adStatus.remainingReadings >= 0 ? adStatus.dailyReadingCount + adStatus.remainingReadings : '∞' }}
-        <span v-if="adStatus.bonusReadings > 0" class="bonus-indicator">
-          (+{{ adStatus.bonusReadings }} 보너스)
-        </span>
-      </div>
-      <div v-else-if="adStatus.isTemporaryPremium" class="premium-status-indicator">
+      <!-- 임시 프리미엄 표시 -->
+      <div v-if="adStatus.isTemporaryPremium" class="premium-status-indicator">
         🌟 임시 프리미엄 활성화 중
         <span class="expiry-time">{{ formatExpiryTime() }}</span>
       </div>
@@ -268,6 +263,7 @@ import { getAdManager } from '@/services/adManagerSingleton';
 import { ImprovedCelticCrossInterpreter } from '@/utils/ImprovedCelticCrossInterpreter';
 import { customInterpretationService } from '@/services/ai/customInterpretationService';
 import { AIInterpretationService } from '@/services/ai/AIInterpretationService';
+import { useAlert } from '@/composables/useAlert';
 
 // 컴포넌트 직접 import로 변경
 import AdModal from '@/components/AdModal.vue';
@@ -275,6 +271,7 @@ import CelticCrossLayout from '@/components/spreads/CelticCrossLayout.vue';
 import SevenStarLayout from '@/components/spreads/SevenStarLayout.vue';
 import CupOfRelationshipLayout from '@/components/spreads/CupOfRelationshipLayout.vue';
 import TarotLoadingScreen from '@/components/loading/TarotLoadingScreen.vue';
+// Alert 컴포넌트는 useAlert를 통해 사용
 
 interface DrawnCardData {
   card: any; // TarotCard type
@@ -285,6 +282,7 @@ interface DrawnCardData {
 const router = useRouter();
 const userStore = useUserStore();
 const tarotStore = useTarotStore();
+const { showAlert } = useAlert();
 
 const drawMethod = ref<'random' | 'manual' | null>(null);
 const isDrawing = ref(false);
@@ -629,7 +627,11 @@ const removeSelectedCard = async (index: number) => {
 const confirmManualSelection = async () => {
   // 무료 사용자 체크
   if (!userStore.isPremium && !userStore.canUseFreeReading) {
-    alert(`오늘의 무료 점괘 회수를 모두 사용했습니다. (${userStore.freeReadingsToday}/${userStore.maxFreeReadingsPerDay})\n\n프리미엄으로 업그레이드하면 무제한 이용할 수 있습니다.`);
+    await showAlert({
+      title: '무료 점괘 소진',
+      message: `오늘의 무료 점괘 회수를 모두 사용했습니다. (${userStore.freeReadingsToday}/${userStore.maxFreeReadingsPerDay})\n\n프리미엄으로 업그레이드하면 무제한 이용할 수 있습니다.`,
+      confirmText: '확인'
+    });
     router.push('/premium');
     return;
   }
@@ -799,7 +801,11 @@ const goToResult = async () => {
   
   // 모든 카드가 공개되지 않았으면 경고
   if (!allCardsRevealed.value) {
-    alert('모든 카드를 먼저 공개해주세요!');
+    await showAlert({
+      title: '카드 공개 필요',
+      message: '모든 카드를 먼저 공개해주세요!',
+      confirmText: '확인'
+    });
     return;
   }
   
@@ -977,7 +983,11 @@ const goToResult = async () => {
     isGeneratingInterpretation.value = false;
     interpretationProgress.value = 0;
     
-    alert(`점괘 생성에 실패했습니다: ${error.message || '알 수 없는 오류'}`);
+    await showAlert({
+      title: '점괘 생성 실패',
+      message: `점괘 생성에 실패했습니다: ${error.message || '알 수 없는 오류'}`,
+      confirmText: '확인'
+    });
   } finally {
     // 처리 완료 플래그 리셋
     isProcessingResult.value = false;
@@ -1046,20 +1056,16 @@ const onImageError = (event: Event) => {
 };
 
 // 무료 사용자 옵션 표시
-const showFreeUsageOptions = () => {
-  // TODO: 모달로 더 예쁨게 만들기
-  const options = [
-    '1. 프리미엄으로 업그레이드하기',
-    '2. 리워드 광고 시청하고 추가 횟수 받기',
-    '3. 24시간 임시 프리미엄 활성화'
-  ];
+const showFreeUsageOptions = async () => {
+  // confirm 대신 alert 사용
+  await showAlert({
+    title: '무료 점괘 소진',
+    message: '오늘의 무료 점괘를 모두 사용했습니다.\n\n프리미엄으로 업그레이드하시면 무제한으로 이용하실 수 있습니다.',
+    confirmText: '확인'
+  });
   
-  const choice = confirm(`오늘의 무료 점괘를 모두 사용했습니다.\n\n${options.join('\n')}\n\n계속하시겠습니까?`);
-  
-  if (choice) {
-    // TODO: 옵션 선택 화면 보여주기
-    router.push('/premium');
-  }
+  // 프리미엄 페이지로 이동
+  router.push('/premium');
 };
 </script>
 
@@ -1114,17 +1120,7 @@ const showFreeUsageOptions = () => {
   font-weight: 600;
 }
 
-.free-usage-indicator {
-  background: rgba(168, 85, 247, 0.2);
-  border: 1px solid rgba(168, 85, 247, 0.4);
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  color: #A855F7;
-  font-weight: 600;
-  align-self: flex-end;
-  margin-left: auto;
-}
+/* .free-usage-indicator 스타일 제거 */
 
 .premium-status-indicator {
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.2) 100%);

@@ -7,6 +7,7 @@ import { NativeUtils } from './utils/capacitor';
 import { initializeAdMob } from './services/admob';
 import { initializeSubscription } from './services/purchasesWeb';
 import { Platform } from './utils/platform';
+import AlertPlugin from './plugins/alert';
 
 // Capacitor 초기화
 NativeUtils.initializeApp();
@@ -16,6 +17,7 @@ const app = createApp(App);
 
 app.use(pinia);
 app.use(router);
+app.use(AlertPlugin);
 
 app.mount('#app');
 

@@ -39,6 +39,17 @@
         <div v-if="selectedTopic === 'custom'" class="custom-notice">
           <p>💫 커스텀 질문에는 가장 상세한 답변을 제공하는 켈틱 크로스 배열법을 사용합니다.</p>
         </div>
+        
+        <!-- 무료 사용자 유료 배열 안내 -->
+        <div v-if="!userStore.isPremium" class="premium-spread-notice">
+          <p class="notice-text">
+            <span class="icon">ℹ️</span>
+            {{ getFreeUserMessage() }}
+          </p>
+          <p v-if="hasUsedPremiumSpreadToday()" class="reset-time">
+            다음 무료 이용: {{ getTimeUntilReset() }} 후
+          </p>
+        </div>
         <div class="spread-grid">
           <div 
             v-for="spread in spreads" 
@@ -62,8 +73,11 @@
                 {{ getDifficultyText(spread.difficulty) }}
               </span>
             </div>
-            <div v-if="spread.isPremium && !userStore.isPremium" class="premium-overlay">
-              <p>프리미엄 전용</p>
+            <div v-if="spread.isPremium && !userStore.isPremium && !canUsePremiumSpread(spread.id, userStore.isPremium)" class="premium-overlay">
+              <p>오늘 이미 사용</p>
+            </div>
+            <div v-else-if="spread.isPremium && !userStore.isPremium && canUsePremiumSpread(spread.id, userStore.isPremium)" class="free-badge">
+              <span>오늘 1회 무료</span>
             </div>
             <div v-else-if="spread.id === 'seven_star' || spread.id === 'cup_of_relationship'" class="updating-overlay">
               <p>🔄 업데이트 중</p>
@@ -126,6 +140,14 @@ import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
 import { getSpreadsByTopic, getSpreadById } from '../data/spreads';
 import CustomQuestionModal from '../components/CustomQuestionModal.vue';
+import { 
+  canUsePremiumSpread, 
+  recordPremiumSpreadUsage,
+  hasUsedPremiumSpreadToday,
+  getFreeUserMessage,
+  getTimeUntilReset,
+  isPremiumSpread
+} from '../utils/premiumSpreadTracker';
 
 interface Topic {
   id: string;
@@ -255,7 +277,10 @@ const canStartReading = computed(() => {
   if (!spread) return false;
   
   // 프리미엄 스프레드인데 프리미엄이 아닌 경우
-  if (spread.isPremium && !userStore.isPremium) return false;
+  if (spread.isPremium && !userStore.isPremium) {
+    // 무료 사용자의 유료 배열 사용 가능 여부 확인
+    return canUsePremiumSpread(selectedSpread.value, userStore.isPremium);
+  }
   
   return true;
 });
@@ -294,8 +319,11 @@ const selectSpread = (spread: Spread) => {
   }
   
   if (spread.isPremium && !userStore.isPremium) {
-    router.push('/premium');
-    return;
+    // 무료 사용자가 유료 배열을 사용할 수 있는지 확인
+    if (!canUsePremiumSpread(spread.id, userStore.isPremium)) {
+      alert(`오늘의 무료 유료 배열을 이미 사용하셨습니다.\n\n프리미엄으로 업그레이드하시면 무제한으로 이용하실 수 있습니다.`);
+      return;
+    }
   }
   selectedSpread.value = spread.id;
 };
@@ -347,7 +375,10 @@ const getStartButtonText = () => {
   
   const spread = spreads.value.find(s => s.id === selectedSpread.value);
   if (spread?.isPremium && !userStore.isPremium) {
-    return '프리미엄 전용 스프레드입니다';
+    if (!canUsePremiumSpread(selectedSpread.value, userStore.isPremium)) {
+      return '오늘 이미 사용 (내일 다시 이용 가능)';
+    }
+    return '오늘 1회 무료로 시작하기';
   }
   
   return '카드 뽑기 시작';
@@ -375,6 +406,11 @@ const startReading = async () => {
   
   if (selectedTopicData && selectedSpreadData) {
     try {
+      // 무료 사용자가 유료 배열을 사용하는 경우 기록
+      if (!userStore.isPremium && isPremiumSpread(selectedSpread.value)) {
+        recordPremiumSpreadUsage(selectedSpread.value);
+      }
+      
       // 선택 정보를 스토어에 저장
       tarotStore.setSelectedTopic(selectedTopicData);
       tarotStore.setSelectedSpread(selectedSpreadData);
@@ -669,6 +705,71 @@ const goBack = () => {
   color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
   line-height: 1.5;
+}
+
+/* 무료 사용자 유료 배열 안내 */
+.premium-spread-notice {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(168, 85, 247, 0.1));
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.premium-spread-notice .notice-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.premium-spread-notice .icon {
+  font-size: 18px;
+}
+
+.premium-spread-notice .reset-time {
+  margin-top: 8px;
+  color: #F59E0B;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* 무료 사용 가능 배지 */
+.free-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(135deg, #10B981, #34D399);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  animation: shine 2s ease-in-out infinite;
+}
+
+@keyframes shine {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1; box-shadow: 0 2px 12px rgba(16, 185, 129, 0.5); }
+}
+
+/* 프리미엄 배지 강조 */
+.premium-badge {
+  display: inline-block;
+  margin-left: 4px;
+  animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
 }
 
 @media (max-width: 768px) {

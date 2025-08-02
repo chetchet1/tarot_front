@@ -132,10 +132,12 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
 import { NativeUtils } from '../utils/capacitor';
+import { useAlert } from '../composables/useAlert';
 
 const router = useRouter();
 const userStore = useUserStore();
 const tarotStore = useTarotStore();
+const alert = useAlert();
 
 // computed
 const user = computed(() => userStore.currentUser);
@@ -179,12 +181,15 @@ const updateSettings = () => {
 
 // 히스토리 삭제
 const clearHistory = async () => {
-  const confirm = window.confirm('모든 점괘 기록을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.');
-  if (!confirm) return;
+  const confirmed = await alert.confirm(
+    '모든 점괘 기록을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+    '히스토리 삭제'
+  );
+  if (!confirmed) return;
   
   await NativeUtils.buttonTapHaptic();
   tarotStore.clearReadings();
-  alert('히스토리가 삭제되었습니다.');
+  await alert.success('히스토리가 삭제되었습니다.');
 };
 
 // 데이터 내보내기
@@ -207,7 +212,7 @@ const exportData = async () => {
   a.click();
   
   URL.revokeObjectURL(url);
-  alert('데이터가 내보내졌습니다.');
+  await alert.success('데이터가 내보내졌습니다.');
 };
 
 // 도움말
@@ -237,8 +242,8 @@ const rateApp = async () => {
 
 // 로그아웃
 const logout = async () => {
-  const confirm = window.confirm('로그아웃 하시겠습니까?');
-  if (!confirm) return;
+  const confirmed = await alert.confirm('로그아웃 하시겠습니까?', '로그아웃');
+  if (!confirmed) return;
   
   await NativeUtils.buttonTapHaptic();
   await userStore.logout();

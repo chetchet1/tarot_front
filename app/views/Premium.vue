@@ -134,9 +134,11 @@ import {
   calculateDiscount,
   getSubscriptionBenefits 
 } from '@/services/purchasesWeb';
+import { useAlert } from '@/composables/useAlert';
 
 const router = useRouter();
 const userStore = useUserStore();
+const alert = useAlert();
 
 // 상태 관리
 const isLoading = ref(false);
@@ -230,27 +232,27 @@ const processPurchase = async () => {
     
     if (result.success) {
       // 성공 시 처리
-      alert('구독이 완료되었습니다! 🎉');
+      await alert.success('구독이 완료되었습니다! 🎉');
       closePaymentModal();
       
       // 프리미엄 상태 업데이트
       await userStore.loadUserProfile();
     } else {
       // 실패 시 처리
-      alert('결제에 실패했습니다. 다시 시도해주세요.');
+      await alert.error('결제에 실패했습니다. 다시 시도해주세요.');
       console.error('Purchase failed:', result.error);
     }
   } catch (error) {
     console.error('Purchase error:', error);
-    alert('결제 중 오류가 발생했습니다.');
+    await alert.error('결제 중 오류가 발생했습니다.');
   } finally {
     isLoading.value = false;
   }
 };
 
-const manageSub = () => {
+const manageSub = async () => {
   // 구독 관리 페이지로 이동 또는 모달 열기
-  alert('구독 관리 기능은 곧 추가될 예정입니다.');
+  await alert.info('구독 관리 기능은 곧 추가될 예정입니다.');
 };
 
 // 날짜 포맷팅

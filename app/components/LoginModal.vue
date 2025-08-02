@@ -23,20 +23,29 @@
       <div class="social-login-section">
         <button 
           class="social-btn google-btn" 
-          @click="handleNotImplemented('Google')"
+          @click="handleGoogleLogin"
           :disabled="isLoading"
         >
-          🌐 Google로 {{ isLoginMode ? '로그인' : '회원가입' }}
-          <span class="coming-soon">구현중</span>
+          <svg width="20" height="20" viewBox="0 0 48 48" class="social-icon">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            <path fill="none" d="M0 0h48v48H0z"/>
+          </svg>
+          Google로 {{ isLoginMode ? '로그인' : '회원가입' }}
         </button>
 
         <button 
           class="social-btn kakao-btn" 
-          @click="handleNotImplemented('카카오')"
+          @click="handleKakaoLogin"
           :disabled="isLoading"
         >
-          💬 카카오로 {{ isLoginMode ? '로그인' : '회원가입' }}
-          <span class="coming-soon">구현중</span>
+          <svg width="20" height="20" viewBox="0 0 48 48" class="social-icon">
+            <path fill="#3C1E1E" d="M24 4C12.95 4 4 11.15 4 20c0 5.62 3.58 10.54 9 13.41-.4 1.48-1.44 5.35-1.64 6.19-.25 1.05.39 1.03.82.75.34-.22 5.39-3.68 7.59-5.19 1.38.19 2.79.29 4.23.29 11.05 0 20-7.15 20-16C44 11.15 35.05 4 24 4z"/>
+          </svg>
+          카카오로 {{ isLoginMode ? '로그인' : '회원가입' }}
+          <span class="coming-soon">준비중</span>
         </button>
       </div>
 
@@ -189,6 +198,7 @@
 <script>
 import { ref, computed, watch } from 'vue';
 import { useUserStore } from '../store/user';
+import { useAlert } from '../composables/useAlert';
 
 export default {
   name: 'LoginModal',
@@ -207,6 +217,7 @@ export default {
   emits: ['close', 'success', 'show-email-verification'],
   setup(props, { emit }) {
     const userStore = useUserStore();
+    const alert = useAlert();
     
     console.log('LoginModal setup 호출됨');
     console.log('props.isVisible:', props.isVisible);
@@ -312,12 +323,28 @@ export default {
       }
     };
 
-    // 구현 중 기능 알림
-    const handleNotImplemented = (provider) => {
-      errorMessage.value = `${provider} 로그인 기능은 현재 구현 중입니다.`;
-      setTimeout(() => {
-        errorMessage.value = '';
-      }, 3000);
+    // Google 로그인 처리
+    const handleGoogleLogin = async () => {
+      isLoading.value = true;
+      errorMessage.value = '';
+      
+      try {
+        await userStore.signInWithGoogle();
+        // OAuth 리다이렉트가 발생하므로 별도의 성공 처리는 필요 없음
+      } catch (error) {
+        console.error('Google 로그인 에러:', error);
+        errorMessage.value = 'Google 로그인 중 오류가 발생했습니다.';
+      } finally {
+        isLoading.value = false;
+      }
+    };
+
+    // 카카오 로그인 처리 (준비중)
+    const handleKakaoLogin = async () => {
+      await alert.info(
+        '카카오 로그인은 앱 출시 이후 연동될 예정입니다.\n구글 로그인을 이용해 주세요.',
+        '서비스 준비중'
+      );
     };
 
     // 비밀번호 재설정
@@ -409,7 +436,8 @@ export default {
       formData,
       errors,
       handleEmailAuth,
-      handleNotImplemented,
+      handleGoogleLogin,
+      handleKakaoLogin,
       handlePasswordReset,
       toggleMode,
       closeModal,
@@ -554,6 +582,10 @@ export default {
   background: #FDD835;
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.social-icon {
+  flex-shrink: 0;
 }
 
 .coming-soon {

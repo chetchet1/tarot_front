@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { User, UserPreferences, Subscription } from '../models/user';
-import { authService } from '../services/supabase';
+import { authService, profileService } from '../services/supabase';
 
 export const useUserStore = defineStore('user', () => {
   // State
@@ -102,18 +102,73 @@ export const useUserStore = defineStore('user', () => {
     saveFreeReadingData();
   };
 
-  // 프리미엄 상태 확인
+  // 프리미엄 상태 확인 (현재 로그인한 사용자만 가능)
   const checkPremiumStatus = async (userId: string): Promise<boolean> => {
     try {
-      const { data: profile } = await authService.supabase
+      // 현재 로그인한 사용자만 프리미엄 상태 확인 가능
+      const currentAuthUser = await authService.getCurrentUser();
+      if (!currentAuthUser || currentAuthUser.id !== userId) {
+        console.log('현재 사용자가 아닌 경우 프리미엄 상태 확인 불가');
+        return false;
+      }
+
+      // 직접 쿼리 대신 auth 메타데이터에서 확인
+      const { data: { user } } = await authService.supabase.auth.getUser();
+      if (user?.user_metadata?.is_premium !== undefined) {
+        return user.user_metadata.is_premium;
+      }
+
+      // 메타데이터에 없으면 프로필 테이블 조회 시도
+      const { data: profile, error } = await authService.supabase
         .from('profiles')
         .select('is_premium')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
+      
+      if (error) {
+        console.log('프로필 조회 실패 (정상적인 상황일 수 있음):', error.message);
+        return false;
+      }
       
       return profile?.is_premium || false;
     } catch (error) {
-      console.error('프리미엄 상태 확인 실패:', error);
+      console.log('프리미엄 상태 확인 중 예외:', error.message);
+      return false;
+    }
+  };
+
+  // 프로필 생성 또는 업데이트
+  const ensureProfileExists = async (userId: string, email?: string) => {
+    try {
+      // 프로필 존재 확인
+      const { data: existingProfile } = await authService.supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!existingProfile) {
+        // 프로필이 없으면 생성
+        console.log('프로필 생성 시도:', userId);
+        const { error: insertError } = await authService.supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            email: email,
+            is_premium: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        
+        if (insertError) {
+          console.error('프로필 생성 실패:', insertError);
+          return false;
+        }
+        console.log('프로필 생성 성공');
+      }
+      return true;
+    } catch (error) {
+      console.error('프로필 확인/생성 실패:', error);
       return false;
     }
   };
@@ -121,6 +176,9 @@ export const useUserStore = defineStore('user', () => {
   // 테스트 계정 프리미엄 설정
   const setTestAccountPremium = async (userId: string, isPremium: boolean = true) => {
     try {
+      // 프로필 존재 확인 및 생성
+      await ensureProfileExists(userId);
+
       const { error } = await authService.supabase
         .from('profiles')
         .update({ is_premium: isPremium })
@@ -271,6 +329,9 @@ export const useUserStore = defineStore('user', () => {
           // 이메일 인증이 완료된 사용자 - 정보 업데이트
           console.log('인증된 사용자 감지, 정보 업데이트 중...');
           
+          // 프로필 존재 확인 및 생성
+          await ensureProfileExists(user.id, user.email);
+          
           // 프리미엄 상태 확인 (오류 발생해도 계속 진행)
           let isPremiumUser = false;
           try {
@@ -334,6 +395,9 @@ export const useUserStore = defineStore('user', () => {
         
         if (event === 'SIGNED_IN' && session?.user) {
           const user = session.user;
+          
+          // 프로필 존재 확인 및 생성
+          await ensureProfileExists(user.id, user.email);
           
           // 프리미엄 상태 확인
           let isPremiumUser = false;
@@ -400,6 +464,9 @@ export const useUserStore = defineStore('user', () => {
       const { user } = await authService.signIn(email, password);
       
       if (user) {
+        // 프로필 존재 확인 및 생성
+        await ensureProfileExists(user.id, user.email);
+        
         // 프리미엄 상태 확인
         const isPremiumUser = await checkPremiumStatus(user.id);
         console.log('로그인 시 프리미엄 상태:', isPremiumUser);
@@ -619,6 +686,7 @@ export const useUserStore = defineStore('user', () => {
     downgradeToPremium,
     refreshPremiumStatus,
     setTestAccountPremium,
-    checkPremiumStatus
+    checkPremiumStatus,
+    ensureProfileExists
   };
 });
