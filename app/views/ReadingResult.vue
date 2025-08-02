@@ -177,6 +177,33 @@
             </div>
           </div>
         </div>
+        
+        <!-- AI 해석 버튼 -->
+        <div v-if="!reading.aiInterpretation" class="ai-interpretation-cta">
+          <button 
+            class="crystal-ball-button" 
+            @click="userStore.isPremium ? generateAIInterpretation() : showAIInterpretationWithAd()"
+          >
+            <span class="crystal-icon">🔮</span>
+            <span class="button-text">마법의 수정구로 깊은 통찰 보기</span>
+            <span class="sparkle-effect">✨</span>
+          </button>
+          <p class="cta-description">카드에 숨겨진 비밀스러운 메시지를 발견해보세요</p>
+        </div>
+        
+        <!-- AI 해석 로딩 -->
+        <div v-else-if="isLoadingInterpretation" class="ai-interpretation-loading">
+          <div class="loading-spinner"></div>
+          <p>AI가 당신의 카드를 분석하고 있습니다...</p>
+        </div>
+        
+        <!-- AI 해석 결과 -->
+        <div v-else-if="reading.aiInterpretation" class="ai-interpretation-result">
+          <h3>✨ 수정구슬의 신비로운 통찰</h3>
+          <div class="ai-content">
+            <p>{{ reading.aiInterpretation }}</p>
+          </div>
+        </div>
       </section>
 
       <!-- AI 해석 (프리미엄 사용자 + 켈틱 크로스) -->
@@ -261,6 +288,8 @@ import { useTarotStore } from '../store/tarot';
 import { useUserStore } from '../store/user';
 import { AIInterpretationService } from '../services/ai/AIInterpretationService';
 import { customInterpretationService } from '../services/ai/customInterpretationService';
+import { showConfirm } from '../utils/alerts';
+import { adService } from '../services/AdService';
 
 const router = useRouter();
 const route = useRoute();
@@ -480,6 +509,243 @@ const getCardMeaning = (card: any, topic: string) => {
     return card.meanings.general[card.orientation];
   }
   return `${card.nameKr || card.name} 카드가 ${card.orientation === 'upright' ? '정방향' : '역방향'}으로 나왔습니다.`;
+};
+
+// 프리미엄 사용자를 위한 AI 해석 생성
+const generateAIInterpretation = async () => {
+  console.log('🔮 AI 심층 해석 생성 (프리미엄)');
+  
+  if (!reading.value || reading.value.aiInterpretation) return;
+  
+  isLoadingInterpretation.value = true;
+  
+  try {
+    const customQuestion = tarotStore.getCustomQuestion();
+    const aiService = new AIInterpretationService(true); // 프리미엄 사용자
+      
+    let interpretationResult;
+      
+    if (customQuestion) {
+      // 커스텀 질문이 있는 경우
+      const interpretationRequest = {
+        readingId: reading.value.id,
+        cards: reading.value.cards.map((card: any, index: number) => ({
+          id: card.id,
+          name: card.name || card.nameEn || '',
+          nameKr: card.nameKr || card.name_kr || card.name || '',
+          arcana: card.arcana || 'unknown',
+          suit: card.suit || null,
+          number: card.number || null,
+          orientation: card.orientation || 'upright',
+          position: {
+            name: card.position?.name || getPositionName(reading.value.spreadId, index),
+            description: card.position?.description || ''
+          },
+          meanings: card.meanings || {}
+        })),
+        spreadId: reading.value.spreadId,
+        topic: reading.value.topic,
+        customQuestion: customQuestion,
+        userId: userStore.user?.id
+      };
+      
+      interpretationResult = await customInterpretationService.generateInterpretation(interpretationRequest);
+    } else {
+      // 기본 해석 (1장/3장)
+      const cardsForAI = reading.value.cards.map((card: any, index: number) => ({
+        id: card.id,
+        name: card.name || card.nameEn || '',
+        name_kr: card.nameKr || card.name_kr || card.name || '',
+        nameKr: card.nameKr || card.name_kr || card.name || '',
+        arcana: card.arcana || 'unknown',
+        suit: card.suit || null,
+        number: card.number || null,
+        orientation: card.orientation || 'upright',
+        position: {
+          position: index + 1,
+          name: getPositionName(reading.value.spreadId, index)
+        }
+      }));
+      
+      const result = await aiService.generateInterpretation(
+        cardsForAI,
+        reading.value.topic || 'general',
+        reading.value.spreadId
+      );
+        
+      interpretationResult = {
+        success: result && result.text,
+        interpretation: result?.text,
+        interpretationId: result?.interpretationId
+      };
+    }
+    
+    if (interpretationResult.success && interpretationResult.interpretation) {
+      reading.value.aiInterpretation = interpretationResult.interpretation;
+      reading.value.aiInterpretationId = interpretationResult.interpretationId || null;
+      tarotStore.updateReading(reading.value);
+      console.log('✅ AI 해석 생성 완료');
+    } else {
+      throw new Error('AI 해석 생성 실패');
+    }
+    
+  } catch (error) {
+    console.error('AI 해석 생성 오류:', error);
+    await showConfirm({
+      title: '오류',
+      message: 'AI 해석을 생성하는 중 오류가 발생했습니다. 다시 시도해주세요.',
+      confirmText: '확인',
+      showCancel: false
+    });
+  } finally {
+    isLoadingInterpretation.value = false;
+  }
+};
+
+
+// 광고 시청 후 AI 해석 보기
+const showAIInterpretationWithAd = async () => {
+  console.log('🔮 수정구슬로 더 깊이 보기 클릭');
+  
+  // 현재 reading을 캐시에 저장
+  const currentReading = reading.value;
+  const currentReadingId = readingId.value;
+  const currentCustomQuestion = tarotStore.getCustomQuestion();
+  
+  if (!currentReading) {
+    console.error('현재 읽기가 없습니다');
+    return;
+  }
+  
+  const confirmed = await showConfirm({
+    title: '🔮 마법의 수정구슬',
+    message: '광고를 시청하신 후 수정구슬이 당신만을 위한 특별한 메시지를 전해드립니다.\n계속하시겠습니까?',
+    confirmText: '광고 보고 해석 받기',
+    cancelText: '취소'
+  });
+  
+  if (!confirmed) return;
+  
+  try {
+    // AI 해석 생성을 미리 시작 (비동기)
+    const aiService = new AIInterpretationService(false); // 무료 사용자
+    
+    // AI 해석 Promise 생성 (광고와 동시 진행)
+    const aiInterpretationPromise = (async () => {
+      console.log('🤖 AI 해석 미리 생성 시작...');
+    
+      let interpretationResult;
+    
+      if (currentCustomQuestion) {
+        // 커스텀 질문이 있는 경우
+        const interpretationRequest = {
+          readingId: currentReading.id,
+          cards: currentReading.cards.map((card: any, index: number) => ({
+            id: card.id,
+            name: card.name || card.nameEn || '',
+            nameKr: card.nameKr || card.name_kr || card.name || '',
+            arcana: card.arcana || 'unknown',
+            suit: card.suit || null,
+            number: card.number || null,
+            orientation: card.orientation || 'upright',
+            position: {
+              name: card.position?.name || getPositionName(currentReading.spreadId, index),
+              description: card.position?.description || ''
+            },
+            meanings: card.meanings || {}
+          })),
+          spreadId: currentReading.spreadId,
+          topic: currentReading.topic,
+          customQuestion: currentCustomQuestion,
+          userId: userStore.user?.id
+        };
+        
+        interpretationResult = await customInterpretationService.generateInterpretation(interpretationRequest);
+      } else {
+        // 기본 해석 (1장/3장)
+        const cardsForAI = currentReading.cards.map((card: any, index: number) => ({
+          id: card.id,
+          name: card.name || card.nameEn || '',
+          name_kr: card.nameKr || card.name_kr || card.name || '',
+          nameKr: card.nameKr || card.name_kr || card.name || '',
+          arcana: card.arcana || 'unknown',
+          suit: card.suit || null,
+          number: card.number || null,
+          orientation: card.orientation || 'upright',
+          position: {
+            position: index + 1,
+            name: getPositionName(currentReading.spreadId, index)
+          }
+        }));
+        
+        const result = await aiService.generateInterpretation(
+          cardsForAI,
+          currentReading.topic || 'general',
+          currentReading.spreadId
+        );
+        
+        interpretationResult = {
+          success: result && result.text,
+          interpretation: result?.text,
+          interpretationId: result?.interpretationId
+        };
+      }
+      
+      return interpretationResult;
+    })();
+    
+    // 광고 시청과 AI 해석 생성을 동시에 진행
+    console.log('📺 광고 시청 시작...');
+    const [adWatched, interpretationResult] = await Promise.all([
+      adService.showInterstitialAd(),
+      aiInterpretationPromise
+    ]);
+    
+    if (!adWatched) {
+      console.log('광고 시청이 완료되지 않았습니다.');
+      return;
+    }
+    
+    console.log('✅ 광고 시청 완료');
+    
+    // 현재 페이지가 여전히 같은 reading을 보고 있는지 확인
+    if (readingId.value !== currentReadingId) {
+      console.warn('페이지가 변경되었습니다. AI 해석을 건너뜁니다.');
+      return;
+    }
+    
+    // 로딩 화면 표시 (광고 후 잠시 보여주기)
+    isLoadingInterpretation.value = true;
+    
+    // 최소 로딩 시간 보장 (사용자 경험 향상)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    if (interpretationResult.success && interpretationResult.interpretation) {
+      // 현재 reading이 여전히 동일한지 다시 확인
+      const latestReading = tarotStore.getReadingById(currentReadingId) || tarotStore.getCurrentReading();
+      if (latestReading && latestReading.id === currentReading.id) {
+        latestReading.aiInterpretation = interpretationResult.interpretation;
+        latestReading.aiInterpretationId = interpretationResult.interpretationId || null;
+        tarotStore.updateReading(latestReading);
+        console.log('✅ AI 해석 표시 완료');
+      } else {
+        console.warn('Reading이 변경되었습니다. AI 해석을 건너뜁니다.');
+      }
+    } else {
+      throw new Error('AI 해석 생성 실패');
+    }
+    
+  } catch (error) {
+    console.error('AI 해석 생성 오류:', error);
+    await showConfirm({
+      title: '오류',
+      message: 'AI 해석을 생성하는 중 오류가 발생했습니다. 다시 시도해주세요.',
+      confirmText: '확인',
+      showCancel: false
+    });
+  } finally {
+    isLoadingInterpretation.value = false;
+  }
 };
 
 // AI 해석 재생성 함수
@@ -990,6 +1256,153 @@ onMounted(async () => {
   font-size: 15px;
 }
 
+/* AI 해석 CTA 버튼 */
+.ai-interpretation-cta {
+  margin-top: 40px;
+  text-align: center;
+  padding: 30px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%);
+  border: 2px dashed rgba(245, 158, 11, 0.3);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.crystal-ball-button {
+  background: linear-gradient(135deg, #F59E0B 0%, #EC4899 100%);
+  color: white;
+  border: none;
+  padding: 18px 40px;
+  border-radius: 50px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.crystal-ball-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(245, 158, 11, 0.5);
+}
+
+.crystal-ball-button:active {
+  transform: translateY(-1px);
+}
+
+.crystal-icon {
+  font-size: 24px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.sparkle-effect {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes sparkle {
+  0%, 100% { 
+    opacity: 0.5;
+    transform: translateY(-50%) scale(1);
+  }
+  50% { 
+    opacity: 1;
+    transform: translateY(-50%) scale(1.2);
+  }
+}
+
+.cta-description {
+  margin-top: 15px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+}
+
+/* AI 해석 결과 */
+.ai-interpretation-result {
+  margin-top: 40px;
+  padding: 30px;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%);
+  border: 2px solid rgba(236, 72, 153, 0.3);
+  border-radius: 20px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-interpretation-result h3 {
+  color: #EC4899;
+  font-size: 22px;
+  margin-bottom: 20px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ai-content {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.ai-content p {
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.8;
+  font-size: 16px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* AI 해석 로딩 */
+.ai-interpretation-loading {
+  margin-top: 40px;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.ai-interpretation-loading .loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(236, 72, 153, 0.2);
+  border-top-color: #EC4899;
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  animation: spin 1s linear infinite;
+}
+
+.ai-interpretation-loading p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  margin: 0;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
 /* AI 해석 결과 섹션 */
 .ai-interpretation-section {
   margin: 40px 0;
@@ -1365,6 +1778,40 @@ onMounted(async () => {
   
   .btn {
     width: 200px;
+  }
+  
+  /* AI 해석 버튼 모바일 */
+  .ai-interpretation-cta {
+    padding: 20px;
+  }
+  
+  .crystal-ball-button {
+    padding: 16px 30px;
+    font-size: 16px;
+  }
+  
+  .crystal-icon {
+    font-size: 20px;
+  }
+  
+  .cta-description {
+    font-size: 13px;
+  }
+  
+  .ai-interpretation-result {
+    padding: 20px;
+  }
+  
+  .ai-interpretation-result h3 {
+    font-size: 20px;
+  }
+  
+  .ai-content {
+    padding: 15px;
+  }
+  
+  .ai-content p {
+    font-size: 15px;
   }
 }
 

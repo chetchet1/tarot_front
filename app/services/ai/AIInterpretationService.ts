@@ -359,12 +359,13 @@ ${message.ending}`;
     topic: string,
     spreadType: string
   ): Promise<{ text: string; interpretationId?: string }> {
-    if (!this.isPremium) {
-      // 무료 사용자는 템플릿 해석
-      return {
-        text: this.getTemplateOverallInterpretation(cards, topic, spreadType)
-      };
-    }
+    // 무료 사용자도 광고 시청 후 API 호출 가능
+    // if (!this.isPremium) {
+    //   // 무료 사용자는 템플릿 해석
+    //   return {
+    //     text: this.getTemplateOverallInterpretation(cards, topic, spreadType)
+    //   };
+    // }
     
     try {
       // 캐시 확인

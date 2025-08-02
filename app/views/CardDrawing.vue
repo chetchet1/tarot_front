@@ -232,8 +232,8 @@
         </button>
       </div>
 
-      <!-- 광고 모달 (무료 사용자용) -->
-      <AdModal v-if="showAdModal" @close="closeAdModal" />
+      <!-- 광고 모달 (기획 변경으로 사용하지 않음) -->
+      <!-- <AdModal v-if="showAdModal" @close="closeAdModal" /> -->
       
       <!-- AI 해석 로딩 화면 -->
       <TarotLoadingScreen 
@@ -257,7 +257,7 @@ import { AIInterpretationService } from '@/services/ai/AIInterpretationService';
 import { useAlert } from '@/composables/useAlert';
 
 // 컴포넌트 직접 import로 변경
-import AdModal from '@/components/AdModal.vue';
+// import AdModal from '@/components/AdModal.vue'; // 기획 변경으로 사용하지 않음
 import CelticCrossLayout from '@/components/spreads/CelticCrossLayout.vue';
 import SevenStarLayout from '@/components/spreads/SevenStarLayout.vue';
 import CupOfRelationshipLayout from '@/components/spreads/CupOfRelationshipLayout.vue';
@@ -280,7 +280,7 @@ const isDrawing = ref(false);
 const isComplete = ref(false);
 const progress = ref(0);
 const drawnCards = ref<DrawnCardData[]>([]);
-const showAdModal = ref(false);
+// const showAdModal = ref(false); // 기획 변경으로 사용하지 않음
 const manualSelectedCards = ref<any[]>([]);
 const shuffledDeck = ref<any[]>([]);
 const improvedInterpretation = ref<any>(null);
@@ -624,12 +624,6 @@ const confirmManualSelection = async () => {
     return;
   }
 
-  // 무료 사용자는 항상 광고를 보여줌
-  if (!userStore.isPremium) {
-    showAdModal.value = true;
-    return;
-  }
-
   await processManualSelection();
 };
 
@@ -661,12 +655,6 @@ const startDrawing = async () => {
   if (!canStart) {
     // 점괘를 볼 수 없는 경우 - 유료 배열 하루 1회 제한
     await showPremiumSpreadLimit();
-    return;
-  }
-
-  // 무료 사용자는 항상 광고를 보여줌
-  if (!userStore.isPremium) {
-    showAdModal.value = true;
     return;
   }
 
@@ -714,8 +702,8 @@ const drawCards = async () => {
   isDrawing.value = false;
   isComplete.value = true;
 
-  // 무료 사용자 카운트 증가
-  userStore.incrementFreeReading();
+  // 통계용 카운트 증가 (기획 변경으로 무료 제한 없음)
+  // userStore.incrementFreeReading();
 };
 
 const revealCard = async (index: number) => {
@@ -984,18 +972,19 @@ const goToResult = async () => {
   }
 };
 
-const closeAdModal = () => {
-  showAdModal.value = false;
-  
-  // 광고 상태 업데이트
-  updateAdStatus();
-  
-  if (drawMethod.value === 'random') {
-    drawCards();
-  } else if (drawMethod.value === 'manual') {
-    processManualSelection();
-  }
-};
+// 기획 변경으로 광고 모달 사용하지 않음
+// const closeAdModal = () => {
+//   showAdModal.value = false;
+//   
+//   // 광고 상태 업데이트
+//   updateAdStatus();
+//   
+//   if (drawMethod.value === 'random') {
+//     drawCards();
+//   } else if (drawMethod.value === 'manual') {
+//     processManualSelection();
+//   }
+// };
 
 // 이미지 로드 에러 처리
 // 이미지 로드 에러 처리
