@@ -133,13 +133,11 @@ import {
   formatPrice, 
   calculateDiscount
 } from '@/services/purchasesWeb';
-import { useAlert } from '@/composables/useAlert';
+import { showAlert, showConfirm } from '@/utils/alerts';
 import type { SubscriptionBenefit, FAQ } from '@/types/premium';
 
 const router = useRouter();
 const userStore = useUserStore();
-const alert = useAlert();
-
 // 상태 관리
 const isLoading = ref(false);
 const showPaymentModal = ref(false);
@@ -231,23 +229,35 @@ const processPurchase = async () => {
     );
     
     if (result.success) {
-      await alert.success('구독이 완료되었습니다! 🎉');
+      await showAlert({
+        title: '구독 완료',
+        message: '구독이 완료되었습니다! 🎉'
+      });
       closePaymentModal();
       await userStore.loadUserProfile();
     } else {
-      await alert.error('결제에 실패했습니다. 다시 시도해주세요.');
+      await showAlert({
+        title: '결제 실패',
+        message: '결제에 실패했습니다. 다시 시도해주세요.'
+      });
       console.error('Purchase failed:', result.error);
     }
   } catch (error) {
     console.error('Purchase error:', error);
-    await alert.error('결제 중 오류가 발생했습니다.');
+    await showAlert({
+      title: '오류',
+      message: '결제 중 오류가 발생했습니다.'
+    });
   } finally {
     isLoading.value = false;
   }
 };
 
 const manageSub = async () => {
-  await alert.info('구독 관리 기능은 곧 추가될 예정입니다.');
+  await showAlert({
+    title: '안내',
+    message: '구독 관리 기능은 곧 추가될 예정입니다.'
+  });
 };
 
 const formatDate = (date: Date | string) => {

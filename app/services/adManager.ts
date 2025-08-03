@@ -153,13 +153,19 @@ export class AdManager {
   }
 
   // 광고를 표시해야 하는지 확인
-  private shouldShowAd(): boolean {
+  private shouldShowAd(spreadId?: string): boolean {
     // 프리미엄 사용자는 광고 없음
     if (this.getUserStore().isPremium || this.isTemporaryPremium()) {
       return false;
     }
 
-    // 무료 사용자는 항상 광고 표시
+    // 1장/3장 배열은 광고 표시
+    const simpleSpreadIds = ['one_card', 'three_card_timeline'];
+    if (spreadId && simpleSpreadIds.includes(spreadId)) {
+      return false; // 1장/3장은 광고 없음
+    }
+
+    // 그 외 배열은 광고 표시 필요
     return true;
   }
 

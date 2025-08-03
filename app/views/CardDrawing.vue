@@ -254,7 +254,7 @@ import { getAdManager } from '../services/adManagerSingleton';
 import { ImprovedCelticCrossInterpreter } from '../utils/ImprovedCelticCrossInterpreter';
 import { customInterpretationService } from '../services/ai/customInterpretationService';
 import { AIInterpretationService } from '../services/ai/AIInterpretationService';
-import { useAlert } from '../composables/useAlert';
+import { showAlert, showConfirm } from '../utils/alerts';
 import { getCardImagePath, handleImageError } from '../utils/cardUtils';
 import { showInterstitialAd } from '../services/admob'; // 직접 import 추가
 
@@ -275,7 +275,7 @@ interface DrawnCardData {
 const router = useRouter();
 const userStore = useUserStore();
 const tarotStore = useTarotStore();
-const { alert, confirm } = useAlert();
+// showAlert, showConfirm은 직접 import해서 사용
 
 const drawMethod = ref<'random' | 'manual' | null>(null);
 const isDrawing = ref(false);
@@ -398,10 +398,10 @@ onMounted(async () => {
     console.log('[CardDrawing] 선택 화면으로 돌아갑니다');
     
     // 간단한 알림 메시지
-    await alert(
-      '주제와 배열법을 먼저 선택해주세요.',
-      '선택 필요'
-    );
+    await showAlert({
+      title: '선택 필요',
+      message: '주제와 배열법을 먼저 선택해주세요.'
+    });
     
     // 선택 화면으로 이동
     router.push('/reading-select');
@@ -546,10 +546,10 @@ const confirmManualSelection = async () => {
     await processManualSelection();
   } catch (error) {
     console.error('🎯 [confirmManualSelection] 에러:', error);
-    await alert(
-      '카드 선택 중 오류가 발생했습니다. 다시 시도해주세요.',
-      '오류'
-    );
+    await showAlert({
+      title: '오류',
+      message: '카드 선택 중 오류가 발생했습니다. 다시 시도해주세요.'
+    });
   }
 };
 
@@ -601,10 +601,10 @@ const startDrawing = async () => {
     await drawCards();
   } catch (error) {
     console.error('🎯 [startDrawing] 에러:', error);
-    await alert(
-      '카드 뽑기 중 오류가 발생했습니다. 다시 시도해주세요.',
-      '오류'
-    );
+    await showAlert({
+      title: '오류',
+      message: '카드 뽑기 중 오류가 발생했습니다. 다시 시도해주세요.'
+    });
   }
 };
 
@@ -720,10 +720,10 @@ const goToResult = async () => {
   
   // 모든 카드가 공개되지 않았으면 경고
   if (!allCardsRevealed.value) {
-    await alert(
-      '모든 카드를 먼저 공개해주세요!',
-      '카드 공개 필요'
-    );
+    await showAlert({
+      title: '카드 공개 필요',
+      message: '모든 카드를 먼저 공개해주세요!'
+    });
     return;
   }
   
@@ -735,19 +735,22 @@ const goToResult = async () => {
   const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
   const isSimpleSpread = spreadId === 'one_card' || spreadId === 'three_card_timeline';
   
-  if (!userStore.isPremium && !isSimpleSpread) {
+  // 테스트 계정과 임시 프리미엄 확인
+  const isTestAccount = userStore.user?.email === 'test@example.com';
+  const hasTempPremium = adStatus.value.isTemporaryPremium;
+  
+  if (!userStore.isPremium && !isSimpleSpread && !hasTempPremium) {
     console.log('📺 [goToResult] 무료 사용자 - 광고 표시');
     console.log('📺 [goToResult] spreadId:', spreadId);
+    console.log('📺 [goToResult] isTestAccount:', isTestAccount);
+    console.log('📺 [goToResult] hasTempPremium:', hasTempPremium);
     
-    // 임시로 confirm 건너뛰기 - 디버깅용
-    /*
-    console.log('📺 [goToResult] confirm 호출 전');
-    
+    // 광고 표시 확인
     try {
-      const confirmed = await confirm(
-        '해석을 보려면 광고를 시청해야 합니다.\n계속하시겠습니까?',
-        '광고 시청'
-      );
+      const confirmed = await showConfirm({
+        title: '광고 시청',
+        message: '해석을 보려면 광고를 시청해야 합니다.\n계속하시겠습니까?'
+      });
       
       console.log('📺 [goToResult] confirm 결과:', confirmed);
       
@@ -760,24 +763,32 @@ const goToResult = async () => {
       console.error('📺 [goToResult] confirm 에러:', error);
       // confirm 에러 시에도 진행
     }
-    */
     
-    // 광고 표시 - admob 서비스 사용
+    // 광고 표시 - 매번 새로운 광고 인스턴스 생성
     try {
       console.log('📺 [goToResult] 광고 표시 시작...');
-      // const { showInterstitialAd } = await import('../services/admob'); // dynamic import 제거
-      const adWatched = await showInterstitialAd(); // 직접 import한 함수 사용
+      console.log('📺 [goToResult] 현재 시간:', new Date().toISOString());
+      
+      // adService 초기화 상태 재설정을 위해 약간의 딜레이 추가
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // 광고 서비스에서 직접 전면 광고 표시
+      const adWatched = await showInterstitialAd();
       console.log('📺 [goToResult] 광고 표시 결과:', adWatched);
+      console.log('📺 [goToResult] 광고 표시 후 시간:', new Date().toISOString());
       
       if (!adWatched) {
         console.log('📺 [goToResult] 광고 시청 실패');
-        await alert(
-          '광고 로드에 실패했습니다. 다시 시도해주세요.',
-          '광고 오류'
-        );
+        await showAlert({
+          title: '광고 오류',
+          message: '광고 로드에 실패했습니다. 다시 시도해주세요.'
+        });
         isProcessingResult.value = false;
         return;
       }
+      
+      // 광고 시청 성공 시 상태 업데이트
+      updateAdStatus();
     } catch (error) {
       console.error('📺 [goToResult] 광고 표시 오류:', error);
       console.error('📺 [goToResult] 오류 상세:', {
@@ -786,17 +797,16 @@ const goToResult = async () => {
         name: error.name
       });
       // 광고 오류 시에도 진행 (사용자 경험 우선)
-      await alert(
-        '광고 로드 중 오류가 발생했습니다. 해석 화면으로 이동합니다.',
-        '알림'
-      );
+      await showAlert({
+        title: '알림',
+        message: '광고 로드 중 오류가 발생했습니다. 해석 화면으로 이동합니다.'
+      });
     }
   } else if (isSimpleSpread) {
     console.log('📺 [goToResult] 1장/3장 배열 - 광고 없이 진행');
+  } else if (userStore.isPremium || hasTempPremium) {
+    console.log('📺 [goToResult] 프리미엄/임시 프리미엄 사용자 - 광고 없이 진행');
   }
-  
-  // 테스트 계정인지 확인
-  const isTestAccount = userStore.user?.email === 'test@example.com';
   
   // 유료 배열인 경우 사용 기록 (결과를 보려고 할 때 기록)
   const premiumSpreads = ['celtic_cross', 'seven_star', 'cup_of_relationship'];
@@ -968,10 +978,10 @@ const goToResult = async () => {
     isGeneratingInterpretation.value = false;
     interpretationProgress.value = 0;
     
-    await alert(
-      `점괘 생성에 실패했습니다: ${error.message || '알 수 없는 오류'}`,
-      '점괘 생성 실패'
-    );
+    await showAlert({
+      title: '점괘 생성 실패',
+      message: `점괘 생성에 실패했습니다: ${error.message || '알 수 없는 오류'}`
+    });
   } finally {
     // 처리 완료 플래그 리셋
     isProcessingResult.value = false;

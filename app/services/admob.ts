@@ -31,14 +31,72 @@ const adMobConfig: AdMobConfig = {
 
 // 웹용 모킹 클래스
 class MockAdMobService implements AdMobService {
+  private adShowCount = 0;
+  
   async initializeAdMob(): Promise<void> {
     console.log('🌐 [Web] AdMob 초기화 (모킹됨)');
   }
 
   async showInterstitialAd(): Promise<boolean> {
-    console.log('🌐 [Web] 전면 광고 표시 (모킹됨)');
+    this.adShowCount++;
+    console.log(`🌐 [Web] 전면 광고 표시 (모킹됨) - ${this.adShowCount}번째 호출`);
+    console.log(`🌐 [Web] 현재 시간: ${new Date().toISOString()}`);
+    
+    // 매번 새로운 광고 시뮤레이션
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+    `;
+    overlay.innerHTML = `
+      <div style="text-align: center;">
+        <h2 style="margin-bottom: 20px;">광고 시뮤레이션 #${this.adShowCount}</h2>
+        <p>실제 앱에서는 여기에 광고가 표시됩니다</p>
+        <p style="font-size: 18px; margin-top: 20px;">3초 후 자동으로 닫힙니다...</p>
+        <div style="margin-top: 20px; font-size: 48px;">📺</div>
+        <button onclick="this.parentElement.parentElement.remove()" style="
+          margin-top: 30px;
+          padding: 10px 20px;
+          font-size: 16px;
+          background: white;
+          color: black;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+        ">광고 건너뛰기</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    
     return new Promise(resolve => {
-      setTimeout(() => resolve(true), 1000);
+      // 3초 후 자동으로 닫힘
+      setTimeout(() => {
+        if (overlay.parentElement) {
+          overlay.remove();
+        }
+        console.log(`🌐 [Web] 광고 시뮤레이션 #${this.adShowCount} 종료`);
+        resolve(true);
+      }, 3000);
+      
+      // 버튼 클릭으로도 닫을 수 있음
+      const button = overlay.querySelector('button');
+      if (button) {
+        button.addEventListener('click', () => {
+          console.log(`🌐 [Web] 사용자가 광고 #${this.adShowCount}를 건너뛰었습니다`);
+          resolve(true);
+        });
+      }
     });
   }
 
@@ -65,6 +123,8 @@ class MockAdMobService implements AdMobService {
 // 모바일용 실제 AdMob 클래스
 class RealAdMobService implements AdMobService {
   private isInitialized = false;
+  private adShowCount = 0;
+  private listenerMap = new Map<string, any>();
 
   async initializeAdMob(): Promise<void> {
     try {
@@ -95,10 +155,15 @@ class RealAdMobService implements AdMobService {
         await this.initializeAdMob();
       }
 
-      console.log('📱 [Mobile] 전면 광고 로드 중...');
+      this.adShowCount++;
+      console.log(`📱 [Mobile] 전면 광고 로드 중... (${this.adShowCount}번째 호출)`);
+      console.log(`📱 [Mobile] 현재 시간: ${new Date().toISOString()}`);
       
       const { AdMob, InterstitialAdPluginEvents } = await import('@capacitor-community/admob');
 
+      // 기존 리스너 제거
+      this.removeAllListeners();
+      
       // 광고 로드
       await AdMob.prepareInterstitial({
         adId: adMobConfig.interstitialAdId,
@@ -107,24 +172,67 @@ class RealAdMobService implements AdMobService {
 
       // 광고 표시
       return new Promise((resolve) => {
+        let resolved = false;
+        
         // 광고 닫힘 이벤트 리스너
-        AdMob.addListener(InterstitialAdPluginEvents.Dismissed, () => {
-          console.log('📱 [Mobile] 전면 광고 닫힘');
-          resolve(true);
+        const dismissedListener = AdMob.addListener(InterstitialAdPluginEvents.Dismissed, () => {
+          if (!resolved) {
+            resolved = true;
+            console.log(`📱 [Mobile] 전면 광고 #${this.adShowCount} 닫힘`);
+            this.removeAllListeners();
+            resolve(true);
+          }
         });
+        this.listenerMap.set('dismissed', dismissedListener);
 
         // 광고 실패 이벤트 리스너
-        AdMob.addListener(InterstitialAdPluginEvents.FailedToLoad, (error) => {
-          console.error('📱 [Mobile] 전면 광고 로드 실패:', error);
-          resolve(false);
+        const failedListener = AdMob.addListener(InterstitialAdPluginEvents.FailedToLoad, (error) => {
+          if (!resolved) {
+            resolved = true;
+            console.error(`📱 [Mobile] 전면 광고 #${this.adShowCount} 로드 실패:`, error);
+            this.removeAllListeners();
+            resolve(false);
+          }
         });
+        this.listenerMap.set('failed', failedListener);
 
         // 광고 표시
-        AdMob.showInterstitial();
+        AdMob.showInterstitial().catch((error) => {
+          if (!resolved) {
+            resolved = true;
+            console.error(`📱 [Mobile] 전면 광고 #${this.adShowCount} 표시 실패:`, error);
+            this.removeAllListeners();
+            resolve(false);
+          }
+        });
+        
+        // 타임아웃 설정 (30초)
+        setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            console.warn(`📱 [Mobile] 전면 광고 #${this.adShowCount} 타임아웃`);
+            this.removeAllListeners();
+            resolve(true); // 타임아웃 시에도 true 반환
+          }
+        }, 30000);
       });
     } catch (error) {
-      console.error('📱 [Mobile] 전면 광고 표시 실패:', error);
+      console.error(`📱 [Mobile] 전면 광고 #${this.adShowCount} 표시 실패:`, error);
+      this.removeAllListeners();
       return false;
+    }
+  }
+  
+  private removeAllListeners(): void {
+    try {
+      this.listenerMap.forEach((listener) => {
+        if (listener && typeof listener.remove === 'function') {
+          listener.remove();
+        }
+      });
+      this.listenerMap.clear();
+    } catch (error) {
+      console.error('📱 [Mobile] 리스너 제거 실패:', error);
     }
   }
 
