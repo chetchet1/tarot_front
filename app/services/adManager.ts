@@ -165,21 +165,45 @@ export class AdManager {
 
   // 점괘 시작 시 호출 (스프레드 ID를 받아서 처리)
   async startReading(spreadId?: string): Promise<boolean> {
+    console.log('🔍 [AdManager.startReading] 시작, spreadId:', spreadId);
+    
     // 프리미엄 사용자는 광고 없이 바로 진행
-    if (this.getUserStore().isPremium || this.isTemporaryPremium()) {
+    const isPremium = this.getUserStore().isPremium;
+    const isTempPremium = this.isTemporaryPremium();
+    console.log('🔍 [AdManager.startReading] isPremium:', isPremium, 'isTempPremium:', isTempPremium);
+    
+    if (isPremium || isTempPremium) {
+      console.log('🔍 [AdManager.startReading] 프리미엄 사용자 - 바로 진행');
       return true;
     }
+    
+    // 테스트 계정 확인 (유료 배열 제한에만 적용)
+    const userEmail = this.getUserStore().user?.email;
+    const isTestAccount = userEmail === 'test@example.com';
+    console.log('🔍 [AdManager.startReading] userEmail:', userEmail, 'isTestAccount:', isTestAccount);
 
     // 유료 배열 확인
     const premiumSpreads = ['celtic_cross', 'seven_star', 'cup_of_relationship'];
     const isPremiumSpread = spreadId && premiumSpreads.includes(spreadId);
+    console.log('🔍 [AdManager.startReading] isPremiumSpread:', isPremiumSpread);
 
     if (isPremiumSpread) {
-      // 유료 배열인 경우, 오늘 사용 여부 확인
-      const { hasUsedPremiumSpreadToday } = await import('../utils/premiumSpreadTracker');
-      if (hasUsedPremiumSpreadToday()) {
-        // 이미 사용했으면 광고 시청 불가
-        return false;
+      // 테스트 계정은 유료 배열 제한 없음
+      if (isTestAccount) {
+        console.log('🔍 [AdManager.startReading] 테스트 계정 - 유료 배열 제한 없음');
+        // 테스트 계정은 광고는 표시하지만 제한은 없음
+      } else {
+        // 유료 배열인 경우, 오늘 사용 여부 확인
+        console.log('🔍 [AdManager.startReading] 유료 배열 사용 여부 확인 중...');
+        const { hasUsedPremiumSpreadToday } = await import('../utils/premiumSpreadTracker');
+        const hasUsed = await hasUsedPremiumSpreadToday();
+        console.log('🔍 [AdManager.startReading] hasUsed:', hasUsed);
+        
+        if (hasUsed) {
+          console.log('🔍 [AdManager.startReading] 이미 사용했음 - false 반환');
+          // 이미 사용했으면 광고 시청 불가
+          return false;
+        }
       }
     }
 
@@ -190,16 +214,17 @@ export class AdManager {
       return false;
     }
 
-    // 유료 배열 사용 기록
-    if (isPremiumSpread && spreadId) {
-      const { recordPremiumSpreadUsage } = await import('../utils/premiumSpreadTracker');
-      recordPremiumSpreadUsage(spreadId);
-    }
-
     // 점괘 카운트 증가 (통계용)
     this.dailyReadingCount.value++;
     this.saveState();
     return true;
+  }
+
+  // 유료 배열 사용 기록 (결과를 볼 때 호출)
+  async recordPremiumSpreadUsage(spreadId: string): Promise<void> {
+    console.log('🔍 [AdManager.recordPremiumSpreadUsage] 유료 배열 사용 기록:', spreadId);
+    const { recordPremiumSpreadUsage } = await import('../utils/premiumSpreadTracker');
+    await recordPremiumSpreadUsage(spreadId);
   }
 
   // 일반 광고 표시

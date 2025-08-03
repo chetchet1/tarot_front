@@ -92,50 +92,81 @@ const router = createRouter({
 
 // 네비게이션 가드
 router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
-  console.log('🚜 라우팅:', from.path, '->', to.path);
+  console.log('🚜 [Router Guard] 라우팅 시작:', from.path, '->', to.path);
+  console.log('🚜 [Router Guard] to 정보:', {
+    name: to.name,
+    path: to.path,
+    params: to.params,
+    meta: to.meta
+  });
   
-  // store를 동적으로 import
-  const { useUserStore } = await import('../store/user');
-  const userStore = useUserStore();
-  
-  // 초기화가 안 되었으면 초기화 실행
-  if (!userStore.isInitialized) {
-    console.log('🔄 userStore 초기화 필요');
-    await userStore.initializeUser();
-  }
-  
-  // 인증이 필요한 페이지
-  if (to.meta.requiresAuth) {
-    console.log('🔐 인증 필요 페이지:', to.path);
+  try {
+    // store를 동적으로 import
+    const { useUserStore } = await import('../store/user');
+    const userStore = useUserStore();
     
-    // 로딩 중이면 대기
-    if (userStore.isLoading) {
-      console.log('⏳ 로딩 대기 중...');
-      await new Promise(resolve => {
-        const unwatch = userStore.$subscribe((mutation, state) => {
-          if (!state.isLoading) {
-            unwatch();
-            resolve(undefined);
-          }
-        });
+    // CardDrawing 페이지로 가는 경우 타로 스토어 상태 확인
+    if (to.name === 'CardDrawing') {
+      console.log('🎴 [Router Guard] CardDrawing 페이지로 이동');
+      // 타로 스토어 상태 확인
+      const { useTarotStore } = await import('../store/tarot');
+      const tarotStore = useTarotStore();
+      
+      console.log('🎴 [Router Guard] 타로 스토어 상태:', {
+        selectedTopic: tarotStore.selectedTopic,
+        selectedSpread: tarotStore.selectedSpread,
+        hasData: !!(tarotStore.selectedTopic && tarotStore.selectedSpread)
       });
     }
     
-    // 로그인 상태 확인 (익명 사용자도 허용)
-    console.log('👤 사용자 상태:', userStore.currentUser ? (
-      userStore.currentUser.isAnonymous ? '익명' : '로그인'
-    ) : '없음');
-    
-    // 사용자가 없으면 홈으로
-    if (!userStore.currentUser) {
-      console.log('⛔ 사용자 없음 - 홈으로 리다이렉트');
-      next({ name: 'Home' });
-      return;
+    // 초기화가 안 되었으면 초기화 실행
+    if (!userStore.isInitialized) {
+      console.log('🔄 [Router Guard] userStore 초기화 필요');
+      await userStore.initializeUser();
     }
+    
+    // 인증이 필요한 페이지
+    if (to.meta.requiresAuth) {
+      console.log('🔐 [Router Guard] 인증 필요 페이지:', to.path);
+      
+      // 로딩 중이면 대기
+      if (userStore.isLoading) {
+        console.log('⏳ [Router Guard] 로딩 대기 중...');
+        await new Promise(resolve => {
+          const unwatch = userStore.$subscribe((mutation, state) => {
+            if (!state.isLoading) {
+              unwatch();
+              resolve(undefined);
+            }
+          });
+        });
+      }
+      
+      // 로그인 상태 확인 (익명 사용자도 허용)
+      console.log('👤 [Router Guard] 사용자 상태:', userStore.currentUser ? (
+        userStore.currentUser.isAnonymous ? '익명' : '로그인'
+      ) : '없음');
+      
+      // 사용자가 없으면 홈으로
+      if (!userStore.currentUser) {
+        console.log('⛔ [Router Guard] 사용자 없음 - 홈으로 리다이렉트');
+        next({ name: 'Home' });
+        return;
+      }
+    }
+    
+    console.log('✅ [Router Guard] 라우팅 허용됨');
+    next();
+  } catch (error) {
+    console.error('❌ [Router Guard] 오류 발생:', error);
+    next(false); // 네비게이션 취소
   }
-  
-  console.log('✅ 라우팅 허용');
-  next();
+});
+
+// 네비게이션 후 로그
+router.afterEach((to, from) => {
+  console.log('🎯 [Router AfterEach] 라우팅 완료:', from.path, '->', to.path);
+  console.log('🎯 [Router AfterEach] 현재 URL:', window.location.pathname);
 });
 
 export default router;

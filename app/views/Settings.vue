@@ -133,7 +133,7 @@ import { useUserStore } from '@/store/user';
 import { NativeUtils } from '@/utils/capacitor';
 import { useAlert } from '@/composables/useAlert';
 import { useSubscriptionStatus } from '@/composables/useSubscriptionStatus';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase';
 
 const router = useRouter();
 const userStore = useUserStore();

@@ -4,7 +4,7 @@
   'seven-star-mode': isSevenStar,
   'cup-relationship-mode': isCupOfRelationship,
   'special-layout-mode': hasSpecialLayout
-}">
+}" @click="debugClick">
     <header class="page-header">
       <div class="header-top">
         <button class="back-button" @click="goBack">← 뒤로</button>
@@ -245,24 +245,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, defineAsyncComponent } from 'vue';
+import { ref, computed, onMounted, defineAsyncComponent, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import { useUserStore } from '@/store/user';
-import { useTarotStore } from '@/store/tarot';
-import { nativeUtils } from '@/utils/capacitor';
-import { getAdManager } from '@/services/adManagerSingleton';
-import { ImprovedCelticCrossInterpreter } from '@/utils/ImprovedCelticCrossInterpreter';
-import { customInterpretationService } from '@/services/ai/customInterpretationService';
-import { AIInterpretationService } from '@/services/ai/AIInterpretationService';
-import { useAlert } from '@/composables/useAlert';
-import { getCardImagePath, handleImageError } from '@/utils/cardUtils';
+import { useUserStore } from '../store/user';
+import { useTarotStore } from '../store/tarot';
+import { nativeUtils } from '../utils/capacitor';
+import { getAdManager } from '../services/adManagerSingleton';
+import { ImprovedCelticCrossInterpreter } from '../utils/ImprovedCelticCrossInterpreter';
+import { customInterpretationService } from '../services/ai/customInterpretationService';
+import { AIInterpretationService } from '../services/ai/AIInterpretationService';
+import { useAlert } from '../composables/useAlert';
+import { getCardImagePath, handleImageError } from '../utils/cardUtils';
 
 // 컴포넌트 직접 import로 변경
-// import AdModal from '@/components/AdModal.vue'; // 기획 변경으로 사용하지 않음
-import CelticCrossLayout from '@/components/spreads/CelticCrossLayout.vue';
-import SevenStarLayout from '@/components/spreads/SevenStarLayout.vue';
-import CupOfRelationshipLayout from '@/components/spreads/CupOfRelationshipLayout.vue';
-import TarotLoadingScreen from '@/components/loading/TarotLoadingScreen.vue';
+// import AdModal from '../components/AdModal.vue'; // 기획 변경으로 사용하지 않음
+import CelticCrossLayout from '../components/spreads/CelticCrossLayout.vue';
+import SevenStarLayout from '../components/spreads/SevenStarLayout.vue';
+import CupOfRelationshipLayout from '../components/spreads/CupOfRelationshipLayout.vue';
+import TarotLoadingScreen from '../components/loading/TarotLoadingScreen.vue';
 // Alert 컴포넌트는 useAlert를 통해 사용
 
 interface DrawnCardData {
@@ -360,7 +360,57 @@ const getCardCount = () => {
   return tarotStore.selectedSpread?.cardCount || 1;
 };
 
+// 디버그용 클릭 핸들러
+const debugClick = () => {
+  console.log('[CardDrawing] 화면 클릭됨');
+  console.log('[CardDrawing] drawMethod:', drawMethod.value);
+  console.log('[CardDrawing] isDrawing:', isDrawing.value);
+  console.log('[CardDrawing] isComplete:', isComplete.value);
+  console.log('[CardDrawing] 현재 URL:', window.location.pathname);
+};
+
 onMounted(async () => {
+  console.log('🎴 [CardDrawing] onMounted 시작');
+  console.log('📌 [CardDrawing] 선택된 주제:', tarotStore.selectedTopic);
+  console.log('📊 [CardDrawing] 선택된 배열법:', tarotStore.selectedSpread);
+  console.log('❓ [CardDrawing] 커스텀 질문:', tarotStore.getCustomQuestion());
+  console.log('🎴 [CardDrawing] 타로카드 개수:', tarotStore.tarotCards.length);
+  console.log('🌐 [CardDrawing] 현재 URL:', window.location.pathname);
+  console.log('🌐 [CardDrawing] 라우터 경로:', router.currentRoute.value.path);
+  console.log('🔍 [CardDrawing] 전체 스토어 상태:', {
+    selectedTopic: JSON.stringify(tarotStore.selectedTopic),
+    selectedSpread: JSON.stringify(tarotStore.selectedSpread),
+    drawMethod: drawMethod.value,
+    isDrawing: isDrawing.value,
+    isComplete: isComplete.value
+  });
+  
+  // DOM이 마운트되었는지 확인
+  console.log('🔍 [CardDrawing] DOM 확인:', {
+    hasRootElement: document.querySelector('.card-drawing') !== null,
+    body: document.body.innerHTML.substring(0, 200)
+  });
+  
+  // 선택된 주제와 배열법이 없으면 선택 화면으로 돌아가기
+  if (!tarotStore.selectedTopic || !tarotStore.selectedSpread) {
+    console.error('[CardDrawing] 주제 또는 배열법이 선택되지 않음');
+    console.log('[CardDrawing] 선택 화면으로 돌아갑니다');
+    
+    // 간단한 알림 메시지
+    await alert(
+      '주제와 배열법을 먼저 선택해주세요.',
+      '선택 필요'
+    );
+    
+    // 선택 화면으로 이동
+    router.push('/reading-select');
+    return;
+  }
+  
+  // 강제로 화면 업데이트 트리거
+  await nextTick();
+  console.log('[CardDrawing] nextTick 후 - 화면이 렌더링되어야 함');
+  
   // 페이지 로드 시 카드 섞기 애니메이션
   setTimeout(() => {
     // 카드 준비 완료
@@ -371,7 +421,9 @@ onMounted(async () => {
   
   // 타로 스토어 초기화 확인
   if (tarotStore.tarotCards.length === 0) {
+    console.log('[CardDrawing] 타로카드가 없어서 초기화 시작');
     await tarotStore.initialize();
+    console.log('[CardDrawing] 초기화 후 타로카드 개수:', tarotStore.tarotCards.length);
   }
 });
 
@@ -473,17 +525,31 @@ const removeSelectedCard = async (index: number) => {
 
 // 수동 선택 완료
 const confirmManualSelection = async () => {
+  console.log('🎯 [confirmManualSelection] 시작');
+  
   // 광고 매니저를 통해 점괘 시작 가능 여부 확인 (스프레드 ID 전달)
   const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
-  const canStart = await adManager.startReading(spreadId);
+  console.log('🎯 [confirmManualSelection] spreadId:', spreadId);
   
-  if (!canStart) {
-    // 점괘를 볼 수 없는 경우 - 유료 배열 하루 1회 제한
-    await showPremiumSpreadLimit();
-    return;
-  }
+  try {
+    const canStart = await adManager.startReading(spreadId);
+    console.log('🎯 [confirmManualSelection] canStart:', canStart);
+    
+    if (!canStart) {
+      console.log('🎯 [confirmManualSelection] 점괘를 볼 수 없음 - 유료 배열 제한');
+      // 점괘를 볼 수 없는 경우 - 유료 배열 하루 1회 제한
+      await showPremiumSpreadLimit();
+      return;
+    }
 
-  await processManualSelection();
+    await processManualSelection();
+  } catch (error) {
+    console.error('🎯 [confirmManualSelection] 에러:', error);
+    await alert(
+      '카드 선택 중 오류가 발생했습니다. 다시 시도해주세요.',
+      '오류'
+    );
+  }
 };
 
 // 수동 선택 처리
@@ -504,24 +570,41 @@ const processManualSelection = async () => {
 };
 
 const startDrawing = async () => {
+  console.log('🎯 [startDrawing] 시작');
+  
   // 버튼 클릭 햇틱 피드백
   await nativeUtils.buttonTapHaptic();
   
   // 광고 매니저를 통해 점괘 시작 가능 여부 확인 (스프레드 ID 전달)
   const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
-  const canStart = await adManager.startReading(spreadId);
+  console.log('🎯 [startDrawing] spreadId:', spreadId);
+  console.log('🎯 [startDrawing] isPremium:', userStore.isPremium);
+  console.log('🎯 [startDrawing] userEmail:', userStore.user?.email);
   
-  if (!canStart) {
-    // 점괘를 볼 수 없는 경우 - 유료 배열 하루 1회 제한
-    await showPremiumSpreadLimit();
-    return;
-  }
+  try {
+    const canStart = await adManager.startReading(spreadId);
+    console.log('🎯 [startDrawing] canStart:', canStart);
+    
+    if (!canStart) {
+      console.log('🎯 [startDrawing] 점괘를 볼 수 없음 - 유료 배열 제한');
+      // 점괘를 볼 수 없는 경우 - 유료 배열 하루 1회 제한
+      await showPremiumSpreadLimit();
+      return;
+    }
 
-  // 광고 상태 업데이트
-  updateAdStatus();
-  
-  // 카드 뽑기 진행
-  await drawCards();
+    // 광고 상태 업데이트
+    updateAdStatus();
+    
+    // 카드 뽑기 진행
+    console.log('🎯 [startDrawing] 카드 뽑기 진행');
+    await drawCards();
+  } catch (error) {
+    console.error('🎯 [startDrawing] 에러:', error);
+    await alert(
+      '카드 뽑기 중 오류가 발생했습니다. 다시 시도해주세요.',
+      '오류'
+    );
+  }
 };
 
 const drawCards = async () => {
@@ -641,6 +724,59 @@ const goToResult = async () => {
   
   // 처리 시작
   isProcessingResult.value = true;
+  
+  // 무료 사용자인 경우 광고 표시 (test@example.com 포함)
+  if (!userStore.isPremium) {
+    console.log('📺 [goToResult] 무료 사용자 - 광고 표시');
+    
+    const confirmed = await confirm(
+      '해석을 보려면 광고를 시청해야 합니다.\n계속하시겠습니까?',
+      '광고 시청'
+    );
+    
+    if (!confirmed) {
+      isProcessingResult.value = false;
+      return;
+    }
+    
+    // 광고 표시 - admob 서비스 사용
+    try {
+      console.log('📺 [goToResult] 광고 표시 시작...');
+      const { showInterstitialAd } = await import('../services/admob');
+      const adWatched = await showInterstitialAd();
+      console.log('📺 [goToResult] 광고 표시 결과:', adWatched);
+      
+      if (!adWatched) {
+        console.log('📺 [goToResult] 광고 시청 실패');
+        await alert(
+          '광고 로드에 실패했습니다. 다시 시도해주세요.',
+          '광고 오류'
+        );
+        isProcessingResult.value = false;
+        return;
+      }
+    } catch (error) {
+      console.error('📺 [goToResult] 광고 표시 오류:', error);
+      // 광고 오류 시에도 진행 (사용자 경험 우선)
+      await alert(
+        '광고 로드 중 오류가 발생했습니다. 해석 화면으로 이동합니다.',
+        '알림'
+      );
+    }
+  }
+  
+  // 테스트 계정인지 확인
+  const isTestAccount = userStore.user?.email === 'test@example.com';
+  
+  // 유료 배열인 경우 사용 기록 (결과를 보려고 할 때 기록)
+  const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
+  const premiumSpreads = ['celtic_cross', 'seven_star', 'cup_of_relationship'];
+  const isPremiumSpread = premiumSpreads.includes(spreadId);
+  
+  if (isPremiumSpread && !userStore.isPremium && !adStatus.value.isTemporaryPremium && !isTestAccount) {
+    console.log('📋 [goToResult] 유료 배열 사용 기록 시작:', spreadId);
+    await adManager.recordPremiumSpreadUsage(spreadId);
+  }
   
   // 로딩 화면 표시
   isGeneratingInterpretation.value = true;
@@ -887,6 +1023,16 @@ const showPremiumSpreadLimit = async () => {
   
   const spreadId = tarotStore.selectedSpread?.spreadId || '';
   const spreadName = spreadNames[spreadId] || '유료 배열';
+  
+  // 테스트 계정인지 확인
+  const isTestAccount = userStore.user?.email === 'test@example.com';
+  
+  if (isTestAccount) {
+    console.log('🧪 [showPremiumSpreadLimit] 테스트 계정 - 유료 배열 제한 없이 진행');
+    // 테스트 계정은 그냥 진행 (이 함수가 호출되면 안되지만 혁시라도)
+    await drawCards();
+    return;
+  }
   
   // 사용 가능한 시간 계산
   const now = new Date();

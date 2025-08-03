@@ -1,39 +1,51 @@
 /**
- * 웹 전용 플랫폼 감지 유틸리티
+ * 플랫폼 감지 유틸리티 (Capacitor 지원)
  */
 export const Platform = {
   /**
-   * 웹 플랫폼 여부 (항상 true)
+   * 웹 플랫폼 여부
    */
   get isWeb(): boolean {
+    if (typeof (window as any).Capacitor !== 'undefined') {
+      return (window as any).Capacitor.getPlatform() === 'web';
+    }
     return true;
   },
 
   /**
-   * iOS 플랫폼 여부 (웹에서는 항상 false)
+   * iOS 플랫폼 여부
    */
   get isIOS(): boolean {
+    if (typeof (window as any).Capacitor !== 'undefined') {
+      return (window as any).Capacitor.getPlatform() === 'ios';
+    }
     return false;
   },
 
   /**
-   * Android 플랫폼 여부 (웹에서는 항상 false)
+   * Android 플랫폼 여부
    */
   get isAndroid(): boolean {
+    if (typeof (window as any).Capacitor !== 'undefined') {
+      return (window as any).Capacitor.getPlatform() === 'android';
+    }
     return false;
   },
 
   /**
-   * 모바일 플랫폼 여부 (웹에서는 항상 false)
+   * 모바일 플랫폼 여부
    */
   get isMobile(): boolean {
-    return false;
+    return this.isIOS || this.isAndroid;
   },
 
   /**
-   * 현재 플랫폼 이름 (웹에서는 항상 'web')
+   * 현재 플랫폼 이름
    */
   get name(): 'web' | 'ios' | 'android' {
+    if (typeof (window as any).Capacitor !== 'undefined') {
+      return (window as any).Capacitor.getPlatform() as 'web' | 'ios' | 'android';
+    }
     return 'web';
   }
 };

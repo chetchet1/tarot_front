@@ -98,9 +98,9 @@
         <div v-if="!userStore.isPremium" class="premium-spread-notice">
           <p class="notice-text">
             <span class="icon">ℹ️</span>
-            {{ getFreeUserMessage() }}
+            {{ freeUserMessage || '유료 배열(켈틱 크로스, 세븐스타, 컵 오브 릴레이션쉽)은 하루 1회 무료로 이용 가능합니다.' }}
           </p>
-          <p v-if="hasUsedPremiumSpreadToday()" class="reset-time">
+          <p v-if="hasPremiumUsageToday" class="reset-time">
             다음 무료 이용: {{ getTimeUntilReset() }} 후
           </p>
         </div>
@@ -127,10 +127,10 @@
                 {{ getDifficultyText(spread.difficulty) }}
               </span>
             </div>
-            <div v-if="spread.isPremium && !userStore.isPremium && !canUsePremiumSpread(spread.id, userStore.isPremium)" class="premium-overlay">
+            <div v-if="spread.isPremium && !userStore.isPremium && hasPremiumUsageToday" class="premium-overlay">
               <p>오늘 이미 사용</p>
             </div>
-            <div v-else-if="spread.isPremium && !userStore.isPremium && canUsePremiumSpread(spread.id, userStore.isPremium)" class="free-badge">
+            <div v-else-if="spread.isPremium && !userStore.isPremium && !hasPremiumUsageToday" class="free-badge">
               <span>오늘 1회 무료</span>
             </div>
             <div v-else-if="spread.id === 'seven_star' || spread.id === 'cup_of_relationship'" class="updating-overlay">
@@ -189,7 +189,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
@@ -201,8 +201,9 @@ import {
   hasUsedPremiumSpreadToday,
   getFreeUserMessage,
   getTimeUntilReset,
-  isPremiumSpread
-} from '../utils/premiumSpreadTracker';
+  isPremiumSpread,
+  isTestAccount
+} from '../services/premium/premiumSpreadService';
 
 interface Topic {
   id: string;
@@ -229,15 +230,40 @@ const selectedSpread = ref<string>('');
 const showQuestionModal = ref(false);
 const customQuestion = ref<string>('');
 const isMobile = ref(false);
+const isCheckingPremiumUsage = ref(false);
+const hasPremiumUsageToday = ref(false);
+const freeUserMessage = ref('');
+const isStarting = ref(false); // 중복 클릭 방지를 위한 변수
 
 // 화면 크기 감지
 const checkMobile = () => {
   isMobile.value = window.innerWidth <= 768;
 };
 
-onMounted(() => {
+onMounted(async () => {
   checkMobile();
   window.addEventListener('resize', checkMobile);
+  
+  // 로그인한 사용자의 경우 유료 배열 사용 여부 체크
+  if (userStore.currentUser && !userStore.isPremium && !userStore.currentUser.isAnonymous) {
+    isCheckingPremiumUsage.value = true;
+    try {
+      hasPremiumUsageToday.value = await hasUsedPremiumSpreadToday(userStore.currentUser.id);
+      freeUserMessage.value = await getFreeUserMessage(userStore.currentUser.id);
+    } catch (error) {
+      console.error('Error checking premium usage:', error);
+    } finally {
+      isCheckingPremiumUsage.value = false;
+    }
+  }
+  
+  // 익명 사용자의 경우 로컬 스토리지 사용
+  if (userStore.currentUser?.isAnonymous && !userStore.isPremium) {
+    // 기존 premiumSpreadTracker 함수 import 필요
+    const { hasUsedPremiumSpreadToday: hasUsedLocal, getFreeUserMessage: getMessageLocal } = await import('../utils/premiumSpreadTracker');
+    hasPremiumUsageToday.value = hasUsedLocal();
+    freeUserMessage.value = getMessageLocal();
+  }
 });
 
 onUnmounted(() => {
@@ -324,34 +350,66 @@ const spreads = computed(() => {
 });
 
 const canStartReading = computed(() => {
-  if (!selectedTopic.value || !selectedSpread.value) return false;
+  console.log('[CanStartReading] 계산 시작', {
+    selectedTopic: selectedTopic.value,
+    selectedSpread: selectedSpread.value,
+    isPremium: userStore.isPremium,
+    hasPremiumUsageToday: hasPremiumUsageToday.value,
+    isAnonymous: userStore.currentUser?.isAnonymous,
+    userId: userStore.currentUser?.id
+  });
+  
+  if (!selectedTopic.value || !selectedSpread.value) {
+    console.log('[CanStartReading] 주제나 배열법 미선택');
+    return false;
+  }
   
   // 세븐스타와 릴레이션십 배열법은 업데이트 중
   if (selectedSpread.value === 'seven_star' || selectedSpread.value === 'cup_of_relationship') {
+    console.log('[CanStartReading] 업데이트 중인 배열법');
     return false;
   }
   
   // 커스텀 질문인 경우 켈틱 크로스만 확인
   if (selectedTopic.value === 'custom') {
     const spread = getSpreadById(selectedSpread.value);
-    if (!spread) return false;
+    if (!spread) {
+      console.log('[CanStartReading] 커스텀 - 스프레드 없음');
+      return false;
+    }
     
     // 프리미엄 스프레드인데 프리미엄이 아닌 경우
-    if (spread.isPremium && !userStore.isPremium) return false;
+    if (spread.isPremium && !userStore.isPremium) {
+      console.log('[CanStartReading] 커스텀 - 프리미엄 필요');
+      return false;
+    }
     
     return true;
   }
   
   // 일반 주제인 경우 기존 로직 사용
   const spread = getSpreadsByTopic(selectedTopic.value).find(s => s.spreadId === selectedSpread.value);
-  if (!spread) return false;
+  if (!spread) {
+    console.log('[CanStartReading] 일반 - 스프레드 없음');
+    return false;
+  }
   
   // 프리미엄 스프레드인데 프리미엄이 아닌 경우
   if (spread.isPremium && !userStore.isPremium) {
     // 무료 사용자의 유료 배열 사용 가능 여부 확인
-    return canUsePremiumSpread(selectedSpread.value, userStore.isPremium);
+    const canStart = !hasPremiumUsageToday.value;
+    console.log('[CanStartReading] 프리미엄 스프레드 체크', {
+      isPremium: spread.isPremium,
+      userIsPremium: userStore.isPremium,
+      hasPremiumUsageToday: hasPremiumUsageToday.value,
+      canStart,
+      spreadId: spread.spreadId,
+      spreadName: spread.nameKr
+    });
+    return canStart;
   }
   
+  console.log('[CanStartReading] 통과 - true 반환');
   return true;
 });
 
@@ -381,7 +439,7 @@ const handleQuestionCancel = () => {
   }
 };
 
-const selectSpread = (spread: Spread) => {
+const selectSpread = async (spread: Spread) => {
   // 세븐스타와 릴레이션쉽 배열법 확인
   if (spread.id === 'seven_star' || spread.id === 'cup_of_relationship') {
     alert(`${spread.name} 배열법은 현재 업데이트 중입니다!\n\n빠른 시일 내에 서비스를 재개할 예정입니다.`);
@@ -389,10 +447,27 @@ const selectSpread = (spread: Spread) => {
   }
   
   if (spread.isPremium && !userStore.isPremium) {
-    // 무료 사용자가 유료 배열을 사용할 수 있는지 확인
-    if (!canUsePremiumSpread(spread.id, userStore.isPremium)) {
-      alert(`오늘의 무료 유료 배열을 이미 사용하셨습니다.\n\n프리미엄으로 업그레이드하시면 무제한으로 이용하실 수 있습니다.`);
-      return;
+    // 익명 사용자의 경우 로컬 스토리지 체크
+    if (userStore.currentUser?.isAnonymous) {
+      const { canUsePremiumSpread: canUseLocal } = await import('../utils/premiumSpreadTracker');
+      if (!canUseLocal(spread.id, userStore.isPremium)) {
+        alert(`오늘의 무료 유료 배열을 이미 사용하셨습니다.\n\n프리미엄으로 업그레이드하시면 무제한으로 이용하실 수 있습니다.`);
+        return;
+      }
+    } 
+    // 로그인한 사용자의 경우 DB 체크
+    else if (userStore.currentUser) {
+      const canUse = await canUsePremiumSpread(
+        spread.id, 
+        userStore.isPremium, 
+        userStore.currentUser.id,
+        userStore.currentUser.email
+      );
+      
+      if (!canUse) {
+        alert(`오늘의 무료 유료 배열을 이미 사용하셨습니다.\n\n프리미엄으로 업그레이드하시면 무제한으로 이용하실 수 있습니다.`);
+        return;
+      }
     }
   }
   selectedSpread.value = spread.id;
@@ -445,7 +520,7 @@ const getStartButtonText = () => {
   
   const spread = spreads.value.find(s => s.id === selectedSpread.value);
   if (spread?.isPremium && !userStore.isPremium) {
-    if (!canUsePremiumSpread(selectedSpread.value, userStore.isPremium)) {
+    if (hasPremiumUsageToday.value) {
       return '오늘 이미 사용 (내일 다시 이용 가능)';
     }
     return '오늘 1회 무료로 시작하기';
@@ -455,7 +530,44 @@ const getStartButtonText = () => {
 };
 
 const startReading = async () => {
-  if (!canStartReading.value) return;
+  // 중복 클릭 방지
+  if (isStarting.value) {
+    console.log('[StartReading] 이미 진행 중');
+    return;
+  }
+  
+  isStarting.value = true;
+  
+  console.log('[StartReading] 시작', {
+    canStartReading: canStartReading.value,
+    selectedTopic: selectedTopic.value,
+    selectedSpread: selectedSpread.value,
+    isPremium: userStore.isPremium,
+    hasPremiumUsageToday: hasPremiumUsageToday.value,
+    currentUser: userStore.currentUser
+  });
+  
+  // 디버그: window.debugPremiumSpread 사용 가능 여부 확인
+  if (typeof window !== 'undefined' && (window as any).debugPremiumSpread) {
+    console.log('[StartReading] debugPremiumSpread 함수 사용 가능');
+    await (window as any).debugPremiumSpread();
+  }
+  
+  // Haptics 피드백은 나중에 실행 (디버그를 위해 제거)
+  // try {
+  //   if (window.Capacitor && window.Capacitor.Plugins.Haptics) {
+  //     console.log('[StartReading] 햅틱 피드백 실행');
+  //     await window.Capacitor.Plugins.Haptics.impact({ style: 'heavy' });
+  //   }
+  // } catch (error) {
+  //   console.error('[StartReading] 햅틱 오류:', error);
+  // }
+  
+  if (!canStartReading.value) {
+    console.log('[StartReading] canStartReading이 false여서 종료');
+    alert('카드를 뽑을 수 없습니다. 선택 사항을 확인해주세요.');
+    return;
+  }
   
   // 세븐스타와 릴레이션쉽 배열법 확인
   if (selectedSpread.value === 'seven_star' || selectedSpread.value === 'cup_of_relationship') {
@@ -474,16 +586,90 @@ const startReading = async () => {
     selectedSpreadData = getSpreadsByTopic(selectedTopic.value).find(s => s.spreadId === selectedSpread.value);
   }
   
-  if (selectedTopicData && selectedSpreadData) {
-    try {
+  console.log('[StartReading] 선택된 데이터', {
+    selectedTopicData,
+    selectedSpreadData
+  });
+  
+  if (!selectedTopicData) {
+    console.error('[StartReading] 선택된 주제 데이터가 없음');
+    alert('주제가 올바르게 선택되지 않았습니다.');
+    return;
+  }
+  
+  if (!selectedSpreadData) {
+    console.error('[StartReading] 선택된 배열법 데이터가 없음');
+    alert('배열법이 올바르게 선택되지 않았습니다.');
+    return;
+  }
+  
+  try {
+      // 테스트 계정 확인 (로그인한 사용자만)
+      if (userStore.currentUser && !userStore.currentUser.isAnonymous && 
+          userStore.currentUser.email === 'test@example.com' && 
+          !userStore.isPremium && isPremiumSpread(selectedSpread.value)) {
+        // 테스트 계정이고 이미 사용했는지 체크
+        const hasUsed = await hasUsedPremiumSpreadToday(userStore.currentUser.id);
+        if (hasUsed) {
+          const confirmResult = confirm(
+            '테스트 계정이시군요!\n\n' +
+            '정상적으로는 하루 1회만 사용 가능하지만,\n' +
+            '개발 테스트를 위해 허용합니다.\n\n' +
+            '계속하시겠습니까?'
+          );
+          
+          if (!confirmResult) {
+            return;
+          }
+        }
+      }
+      
       // 무료 사용자가 유료 배열을 사용하는 경우 기록
       if (!userStore.isPremium && isPremiumSpread(selectedSpread.value)) {
-        recordPremiumSpreadUsage(selectedSpread.value);
+        console.log('[StartReading] 무료 사용자가 유료 배열 사용', {
+          spreadId: selectedSpread.value,
+          isAnonymous: userStore.currentUser?.isAnonymous,
+          userId: userStore.currentUser?.id
+        });
+        
+        // 익명 사용자의 경우 로컬 스토리지에 기록
+        if (userStore.currentUser?.isAnonymous) {
+          console.log('[StartReading] 익명 사용자 - 로컬 스토리지에 기록');
+          const { recordPremiumSpreadUsage: recordLocal } = await import('../utils/premiumSpreadTracker');
+          recordLocal(selectedSpread.value);
+        } 
+        // 로그인한 사용자의 경우 DB에 기록
+        else if (userStore.currentUser) {
+          console.log('[StartReading] 로그인 사용자 - DB에 기록');
+          await recordPremiumSpreadUsage(
+            selectedSpread.value, 
+            userStore.currentUser.id,
+            userStore.currentUser.email
+          );
+        }
       }
       
       // 선택 정보를 스토어에 저장
-      tarotStore.setSelectedTopic(selectedTopicData);
-      tarotStore.setSelectedSpread(selectedSpreadData);
+      console.log('[StartReading] 스토어에 정보 저장 시작');
+      
+      // 타로 스토어에 선택 정보 저장 시도
+      try {
+        tarotStore.setSelectedTopic(selectedTopicData);
+        console.log('[StartReading] 주제 저장 완료', tarotStore.selectedTopic);
+      } catch (error) {
+        console.error('[StartReading] 주제 저장 오류:', error);
+        alert('주제 저장 중 오류가 발생했습니다.');
+        return;
+      }
+      
+      try {
+        tarotStore.setSelectedSpread(selectedSpreadData);
+        console.log('[StartReading] 배열법 저장 완료', tarotStore.selectedSpread);
+      } catch (error) {
+        console.error('[StartReading] 배열법 저장 오류:', error);
+        alert('배열법 저장 중 오류가 발생했습니다.');
+        return;
+      }
       
       // 커스텀 질문이 있다면 저장
       if (selectedTopic.value === 'custom' && customQuestion.value) {
@@ -491,16 +677,41 @@ const startReading = async () => {
       } else {
         tarotStore.setCustomQuestion('');
       }
+      console.log('[StartReading] 커스텀 질문 저장 완료');
       
 
       
+      // 이동 전 디버그 로그
+      console.log('[StartReading] 라우터 이동 전 상태 확인', {
+        routerReady: router.isReady,
+        currentRoute: router.currentRoute.value.path,
+        targetRoute: '/card-drawing'
+      });
+      
       // 카드 뽑기 페이지로 이동
-      await router.push('/card-drawing');
+      console.log('[StartReading] 카드 뽑기 페이지로 이동 시도');
+      console.log('[StartReading] 현재 경로:', router.currentRoute.value.path);
+      console.log('[StartReading] 스토어 상태 최종 확인:', {
+        selectedTopic: tarotStore.selectedTopic,
+        selectedSpread: tarotStore.selectedSpread,
+        customQuestion: tarotStore.customQuestion
+      });
+      
+      // 스토어 업데이트가 완료될 때까지 짧은 대기
+      await nextTick();
+      
+      // 단순하게 push로만 시도
+      console.log('[StartReading] 카드 뽑기 페이지로 이동');
+      router.push('/card-drawing');
     } catch (error) {
+      console.error('[StartReading] 오류 발생:', error);
+      alert(`카드 뽑기 페이지로 이동 중 오류가 발생했습니다: ${error.message}`);
       // 페이지 새로고침으로 대체
-      window.location.href = '/card-drawing';
+      // window.location.href = '/card-drawing';
+    } finally {
+      // 버튼 상태 초기화
+      isStarting.value = false;
     }
-  }
 };
 
 const goBack = () => {

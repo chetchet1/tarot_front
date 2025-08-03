@@ -23,6 +23,19 @@ app.use(pinia);
 app.use(router);
 app.use(AlertPlugin);
 
+// 전역 오류 핸들러 추가
+app.config.errorHandler = (err, instance, info) => {
+  console.error('[Vue Error Handler]', err);
+  console.error('[Vue Error Info]', info);
+  console.error('[Vue Error Stack]', err.stack);
+};
+
+// 경고 핸들러 추가
+app.config.warnHandler = (msg, instance, trace) => {
+  console.warn('[Vue Warning]', msg);
+  console.warn('[Vue Warning Trace]', trace);
+};
+
 app.mount('#app');
 
 // Store 초기화는 마운트 후에 실행

@@ -24,7 +24,8 @@
   },
   "include": [
     "app/**/*.ts",
-    "app/**/*.vue"
+    "app/**/*.vue",
+    "app/**/*.d.ts"
   ],
   "exclude": [
     "node_modules",

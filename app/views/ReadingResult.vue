@@ -206,8 +206,8 @@
         </div>
       </section>
 
-      <!-- AI 해석 (프리미엄 사용자 + 켈틱 크로스) -->
-      <section v-if="userStore.isPremium && reading.spreadId === 'celtic_cross' && (reading.aiInterpretation || isLoadingInterpretation)" class="ai-interpretation-section">
+      <!-- AI 해석 (켈틱 크로스) -->
+      <section v-if="reading.spreadId === 'celtic_cross' && (reading.aiInterpretation || isLoadingInterpretation)" class="ai-interpretation-section">
         <h2>해석 전문</h2>
         
         <!-- 로딩 상태 -->
@@ -246,16 +246,7 @@
         </div>
       </section>
 
-      <!-- 프리미엄 업그레이드 안내 (켈틱 크로스가 아닌 경우) -->
-      <section v-if="reading.spreadId !== 'one_card' && reading.spreadId !== 'three_card_timeline' && (!userStore.isPremium || reading.spreadId !== 'celtic_cross' || !reading.aiInterpretation)" class="no-interpretation-section">
-        <div class="no-interpretation-card">
-          <h2>🔮 AI 타로 해석</h2>
-          <p>AI 타로 해석은 프리미엄 회원님께 켈틱 크로스 배열법에서만 제공됩니다.</p>
-          <button class="btn btn-premium" @click="router.push('/premium')">
-            프리미엄으로 업그레이드
-          </button>
-        </div>
-      </section>
+
 
       <!-- 액션 버튼 -->
       <section class="actions">
@@ -503,7 +494,16 @@ const showAIInterpretationWithAd = async () => {
 
 // AI 해석 재생성 함수
 const regenerateAIInterpretation = async () => {
-  if (!reading.value || !userStore.isPremium) return;
+  if (!reading.value) return;
+  
+  // 켈틱 크로스는 무료 사용자도 AI 해석 가능
+  // 커스텀 질문은 프리미엄만 가능
+  const isCelticCross = reading.value.spreadId === 'celtic_cross';
+  const hasCustomQuestion = !!customQuestion.value;
+  
+  if (!isCelticCross && (!hasCustomQuestion || !userStore.isPremium)) {
+    return;
+  }
   
   isLoadingInterpretation.value = true;
   
@@ -511,7 +511,7 @@ const regenerateAIInterpretation = async () => {
     const interpretationResult = await generateAI({
       reading: reading.value,
       customQuestion: tarotStore.getCustomQuestion(),
-      isPremium: userStore.isPremium,
+      isPremium: true, // 이미 위에서 검증했으므로 여기서는 true로 설정
       getPositionName,
       userId: userStore.user?.id
     });
@@ -545,10 +545,16 @@ onMounted(async () => {
     return;
   }
   
-  // 프리미엄 사용자이고 켈틱 크로스이거나 커스텀 질문이 있는데 AI 해석이 없는 경우
-  if (reading.value && !reading.value.aiInterpretation && userStore.isPremium && 
-      (reading.value.spreadId === 'celtic_cross' || customQuestion.value)) {
-    await regenerateAIInterpretation();
+  // 켈틱 크로스는 무료 사용자도 하루 1회 사용 가능하므로 AI 해석 제공
+  // 커스텀 질문은 프리미엄만 가능
+  if (reading.value && !reading.value.aiInterpretation) {
+    if (reading.value.spreadId === 'celtic_cross') {
+      // 켈틱 크로스는 무조건 AI 해석 생성
+      await regenerateAIInterpretation();
+    } else if (customQuestion.value && userStore.isPremium) {
+      // 커스텀 질문은 프리미엄만
+      await regenerateAIInterpretation();
+    }
   }
 });
 </script>
