@@ -1,4 +1,4 @@
-import { ref, h, render, VNode } from 'vue';
+import { ref, h, render, VNode, watch } from 'vue';
 import Alert from '@/components/common/Alert.vue';
 
 export type AlertOptions = {
@@ -18,12 +18,20 @@ export function useAlert() {
       document.body.appendChild(container);
 
       const visible = ref(true);
+      let watchStop: any;
+
+      const cleanup = () => {
+        if (watchStop) watchStop();
+        render(null, container);
+        if (container.parentNode) {
+          document.body.removeChild(container);
+        }
+      };
 
       const handleConfirm = () => {
         visible.value = false;
         setTimeout(() => {
-          render(null, container);
-          document.body.removeChild(container);
+          cleanup();
           resolve(true);
         }, 200);
       };
@@ -31,22 +39,30 @@ export function useAlert() {
       const handleCancel = () => {
         visible.value = false;
         setTimeout(() => {
-          render(null, container);
-          document.body.removeChild(container);
+          cleanup();
           resolve(false);
         }, 200);
       };
 
-      const vnode = h(Alert, {
-        ...options,
-        visible: visible.value,
-        showConfirm: true,
-        onConfirm: handleConfirm,
-        onCancel: handleCancel,
-        onClose: handleCancel
-      });
+      const updateVNode = () => {
+        const vnode = h(Alert, {
+          ...options,
+          visible: visible.value,
+          showConfirm: true,
+          onConfirm: handleConfirm,
+          onCancel: handleCancel,
+          onClose: handleCancel
+        });
+        render(vnode, container);
+      };
 
-      render(vnode, container);
+      // visible 상태 변경 시 재렌더링
+      watchStop = watch(visible, () => {
+        updateVNode();
+      });
+      
+      // 초기 렌더링
+      updateVNode();
     });
   };
 

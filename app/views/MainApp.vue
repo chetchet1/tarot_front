@@ -108,6 +108,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
+import { showAlert } from '../utils/alerts';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -153,9 +154,19 @@ const getGreetingMessage = () => {
   }
 };
 
-const showDailyCard = () => {
-  console.log('☀️ 오늘의 카드 클릭');
-  router.push('/card-drawing?spread=daily');
+const showDailyCard = async () => {
+  console.log('☀️ 오늘의 카드 클릭됨!');
+  console.log('유료 여부:', userStore.isPremium);
+  console.log('사용자:', userStore.currentUser?.email);
+  
+  // 공통 Alert 사용
+  await showAlert({
+    title: '오늘의 카드',
+    message: '해당 기능은 개발중입니다.'
+  });
+  
+  // TODO: 오늘의 카드 기능 구현 예정
+  // router.push('/card-drawing?spread=daily');
 };
 
 const toggleUserMenu = (event: MouseEvent) => {
@@ -199,8 +210,11 @@ const goToPremium = () => {
   router.push('/premium');
 };
 
-const showHistoryAlert = () => {
-  alert('해당 기능은 차후 업데이트 됩니다');
+const showHistoryAlert = async () => {
+  await showAlert({
+    title: '점괴 기록',
+    message: '해당 기능은 차후 업데이트 됩니다.'
+  });
 };
 
 const handleClickOutside = (event: MouseEvent) => {

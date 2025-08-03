@@ -206,6 +206,7 @@ import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
 import { getSpreadsByTopic, getSpreadById } from '../data/spreads';
 import CustomQuestionModal from '../components/CustomQuestionModal.vue';
+import { showAlert, showConfirm } from '../utils/alerts';
 import { 
   canUsePremiumSpread, 
   recordPremiumSpreadUsage,
@@ -468,7 +469,10 @@ const handleQuestionCancel = () => {
 const selectSpread = async (spread: Spread) => {
   // 세븐스타와 릴레이션쉽 배열법 확인
   if (spread.id === 'seven_star' || spread.id === 'cup_of_relationship') {
-    alert(`${spread.name} 배열법은 현재 업데이트 중입니다!\n\n빠른 시일 내에 서비스를 재개할 예정입니다.`);
+    await showAlert({
+      title: '업데이트 중',
+      message: `${spread.name} 배열법은 현재 업데이트 중입니다!\n\n빠른 시일 내에 서비스를 재개할 예정입니다.`
+    });
     return;
   }
   
@@ -485,7 +489,10 @@ const selectSpread = async (spread: Spread) => {
     if (userStore.currentUser?.isAnonymous) {
       const { canUsePremiumSpread: canUseLocal } = await import('../utils/premiumSpreadTracker');
       if (!canUseLocal(spread.id, userStore.isPremium)) {
-        alert(`오늘의 무료 유료 배열을 이미 사용하셨습니다.\n\n프리미엄으로 업그레이드하시면 무제한으로 이용하실 수 있습니다.`);
+        await showAlert({
+          title: '일일 무료 이용 완료',
+          message: `오늘의 무료 유료 배열을 이미 사용하셨습니다.\n\n프리미엄으로 업그레이드하시면 무제한으로 이용하실 수 있습니다.`
+        });
         return;
       }
     } 
@@ -499,7 +506,10 @@ const selectSpread = async (spread: Spread) => {
       );
       
       if (!canUse) {
-        alert(`오늘의 무료 유료 배열을 이미 사용하셨습니다.\n\n프리미엄으로 업그레이드하시면 무제한으로 이용하실 수 있습니다.`);
+        await showAlert({
+          title: '일일 무료 이용 완료',
+          message: `오늘의 무료 유료 배열을 이미 사용하셨습니다.\n\n프리미엄으로 업그레이드하시면 무제한으로 이용하실 수 있습니다.`
+        });
         return;
       }
     }
@@ -604,14 +614,20 @@ const startReading = async () => {
   
   if (!canStartReading.value) {
     console.log('[StartReading] canStartReading이 false여서 종료');
-    alert('카드를 뽑을 수 없습니다. 선택 사항을 확인해주세요.');
+    await showAlert({
+      title: '선택 필요',
+      message: '카드를 뽑을 수 없습니다. 선택 사항을 확인해주세요.'
+    });
     return;
   }
   
   // 세븐스타와 릴레이션쉽 배열법 확인
   if (selectedSpread.value === 'seven_star' || selectedSpread.value === 'cup_of_relationship') {
     const spreadName = getSpreadName(selectedSpread.value);
-    alert(`${spreadName} 배열법은 현재 업데이트 중입니다!\n\n빠른 시일 내에 서비스를 재개할 예정입니다.`);
+    await showAlert({
+      title: '업데이트 중',
+      message: `${spreadName} 배열법은 현재 업데이트 중입니다!\n\n빠른 시일 내에 서비스를 재개할 예정입니다.`
+    });
     return;
   }
   
@@ -632,13 +648,19 @@ const startReading = async () => {
   
   if (!selectedTopicData) {
     console.error('[StartReading] 선택된 주제 데이터가 없음');
-    alert('주제가 올바르게 선택되지 않았습니다.');
+    await showAlert({
+      title: '오류',
+      message: '주제가 올바르게 선택되지 않았습니다.'
+    });
     return;
   }
   
   if (!selectedSpreadData) {
     console.error('[StartReading] 선택된 배열법 데이터가 없음');
-    alert('배열법이 올바르게 선택되지 않았습니다.');
+    await showAlert({
+      title: '오류',
+      message: '배열법이 올바르게 선택되지 않았습니다.'
+    });
     return;
   }
   
@@ -650,12 +672,12 @@ const startReading = async () => {
         // 테스트 계정이고 이미 사용했는지 체크
         const hasUsed = await hasUsedPremiumSpreadToday(userStore.currentUser.id);
         if (hasUsed) {
-          const confirmResult = confirm(
-            '테스트 계정이시군요!\n\n' +
-            '정상적으로는 하루 1회만 사용 가능하지만,\n' +
-            '개발 테스트를 위해 허용합니다.\n\n' +
-            '계속하시겠습니까?'
-          );
+          const confirmResult = await showConfirm({
+            title: '테스트 계정 확인',
+            message: '테스트 계정이시군요!\n\n정상적으로는 하루 1회만 사용 가능하지만,\n개발 테스트를 위해 허용합니다.\n\n계속하시겠습니까?',
+            confirmText: '계속하기',
+            cancelText: '취소'
+          });
           
           if (!confirmResult) {
             return;
@@ -697,7 +719,10 @@ const startReading = async () => {
         console.log('[StartReading] 주제 저장 완료', tarotStore.selectedTopic);
       } catch (error) {
         console.error('[StartReading] 주제 저장 오류:', error);
-        alert('주제 저장 중 오류가 발생했습니다.');
+        await showAlert({
+          title: '오류',
+          message: '주제 저장 중 오류가 발생했습니다.'
+        });
         return;
       }
       
@@ -706,7 +731,10 @@ const startReading = async () => {
         console.log('[StartReading] 배열법 저장 완료', tarotStore.selectedSpread);
       } catch (error) {
         console.error('[StartReading] 배열법 저장 오류:', error);
-        alert('배열법 저장 중 오류가 발생했습니다.');
+        await showAlert({
+          title: '오류',
+          message: '배열법 저장 중 오류가 발생했습니다.'
+        });
         return;
       }
       
@@ -744,7 +772,10 @@ const startReading = async () => {
       router.push('/card-drawing');
     } catch (error) {
       console.error('[StartReading] 오류 발생:', error);
-      alert(`카드 뽑기 페이지로 이동 중 오류가 발생했습니다: ${error.message}`);
+      await showAlert({
+        title: '오류',
+        message: `카드 뽑기 페이지로 이동 중 오류가 발생했습니다: ${error.message}`
+      });
       // 페이지 새로고침으로 대체
       // window.location.href = '/card-drawing';
     } finally {

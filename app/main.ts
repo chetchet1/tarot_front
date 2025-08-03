@@ -7,7 +7,6 @@ import { NativeUtils } from './utils/capacitor';
 import { initializeAdMob } from './services/admob';
 import { initializeSubscription } from './services/purchasesWeb';
 import { Platform } from './utils/platform';
-import AlertPlugin from './plugins/alert';
 import { setupDeepLinks } from './utils/deepLinks';
 
 // Capacitor 초기화
@@ -21,7 +20,6 @@ const app = createApp(App);
 
 app.use(pinia);
 app.use(router);
-app.use(AlertPlugin);
 
 // 전역 오류 핸들러 추가
 app.config.errorHandler = (err, instance, info) => {

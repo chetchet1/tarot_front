@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>타로의 정원 - 아이콘 생성기</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        canvas {
+            border: 1px solid #ddd;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        .preview {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .preview-item {
+            text-align: center;
+        }
+        .preview canvas {
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>타로의 정원 - 앱 아이콘 생성</h1>
+        <p>아래 캔버스를 클릭하면 1024x1024 PNG 파일이 다운로드됩니다.</p>
+        
+        <canvas id="iconCanvas" width="1024" height="1024"></canvas>
+        
+        <div>
+            <button onclick="generateIcon('style1')">스타일 1: 신비로운 정원</button>
+            <button onclick="generateIcon('style2')">스타일 2: 타로 카드</button>
+            <button onclick="generateIcon('style3')">스타일 3: 천체와 별</button>
+        </div>
+        
+        <div class="preview" id="preview"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('iconCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function generateIcon(style) {
+            ctx.clearRect(0, 0, 1024, 1024);
+            
+            if (style === 'style1') {
+                // 스타일 1: 신비로운 정원
+                // 배경 그라데이션
+                const gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
+                gradient.addColorStop(0, '#1E1B4B'); // 진한 남색
+                gradient.addColorStop(0.5, '#312E81'); // 인디고
+                gradient.addColorStop(1, '#4C1D95'); // 보라색
+                
+                // 둥근 사각형 배경
+                ctx.fillStyle = gradient;
+                roundRect(ctx, 0, 0, 1024, 1024, 200);
+                ctx.fill();
+                
+                // 정원의 문 (아치형)
+                ctx.strokeStyle = '#F9FAFB';
+                ctx.lineWidth = 20;
+                ctx.beginPath();
+                ctx.arc(512, 600, 300, Math.PI, 0, false);
+                ctx.stroke();
+                
+                // 문 기둥
+                ctx.beginPath();
+                ctx.moveTo(212, 600);
+                ctx.lineTo(212, 850);
+                ctx.moveTo(812, 600);
+                ctx.lineTo(812, 850);
+                ctx.stroke();
+                
+                // 중앙의 달
+                ctx.fillStyle = '#F9FAFB';
+                ctx.beginPath();
+                ctx.arc(512, 400, 120, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 달의 음영
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(540, 380, 100, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 별들
+                drawStar(ctx, 200, 200, 30, '#F9FAFB');
+                drawStar(ctx, 824, 200, 40, '#F9FAFB');
+                drawStar(ctx, 150, 700, 25, '#F9FAFB');
+                drawStar(ctx, 874, 700, 25, '#F9FAFB');
+                
+                // 아래쪽 장식 (덩굴)
+                ctx.strokeStyle = '#F9FAFB';
+                ctx.lineWidth = 15;
+                ctx.beginPath();
+                // 왼쪽 덩굴
+                ctx.moveTo(100, 950);
+                ctx.quadraticCurveTo(200, 900, 300, 920);
+                ctx.quadraticCurveTo(400, 940, 450, 900);
+                // 오른쪽 덩굴
+                ctx.moveTo(924, 950);
+                ctx.quadraticCurveTo(824, 900, 724, 920);
+                ctx.quadraticCurveTo(624, 940, 574, 900);
+                ctx.stroke();
+                
+            } else if (style === 'style2') {
+                // 스타일 2: 타로 카드
+                // 배경
+                const gradient = ctx.createRadialGradient(512, 512, 0, 512, 512, 512);
+                gradient.addColorStop(0, '#4C1D95');
+                gradient.addColorStop(1, '#1E1B4B');
+                
+                ctx.fillStyle = gradient;
+                roundRect(ctx, 0, 0, 1024, 1024, 200);
+                ctx.fill();
+                
+                // 카드 3장 (겹쳐진 형태)
+                ctx.strokeStyle = '#F9FAFB';
+                ctx.lineWidth = 20;
+                ctx.fillStyle = 'rgba(249, 250, 251, 0.1)';
+                
+                // 첫 번째 카드
+                ctx.save();
+                ctx.translate(512, 512);
+                ctx.rotate(-15 * Math.PI / 180);
+                roundRect(ctx, -200, -280, 400, 560, 40);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+                
+                // 두 번째 카드
+                ctx.save();
+                ctx.translate(512, 512);
+                ctx.rotate(15 * Math.PI / 180);
+                roundRect(ctx, -200, -280, 400, 560, 40);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+                
+                // 세 번째 카드 (중앙)
+                ctx.fillStyle = 'rgba(249, 250, 251, 0.2)';
+                roundRect(ctx, 312, 232, 400, 560, 40);
+                ctx.fill();
+                ctx.stroke();
+                
+                // 중앙 카드의 태양 문양
+                ctx.fillStyle = '#F9FAFB';
+                ctx.beginPath();
+                ctx.arc(512, 512, 80, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 태양 광선
+                for (let i = 0; i < 12; i++) {
+                    ctx.save();
+                    ctx.translate(512, 512);
+                    ctx.rotate(i * 30 * Math.PI / 180);
+                    ctx.beginPath();
+                    ctx.moveTo(0, -100);
+                    ctx.lineTo(-10, -140);
+                    ctx.lineTo(10, -140);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }
+                
+            } else if (style === 'style3') {
+                // 스타일 3: 천체와 별
+                // 우주 배경
+                const gradient = ctx.createRadialGradient(512, 512, 100, 512, 512, 800);
+                gradient.addColorStop(0, '#312E81');
+                gradient.addColorStop(0.5, '#1E1B4B');
+                gradient.addColorStop(1, '#0F0A3C');
+                
+                ctx.fillStyle = gradient;
+                roundRect(ctx, 0, 0, 1024, 1024, 200);
+                ctx.fill();
+                
+                // 별자리 선
+                ctx.strokeStyle = 'rgba(249, 250, 251, 0.3)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([10, 10]);
+                
+                // 별자리 연결선
+                ctx.beginPath();
+                ctx.moveTo(300, 300);
+                ctx.lineTo(512, 200);
+                ctx.lineTo(724, 300);
+                ctx.lineTo(800, 512);
+                ctx.lineTo(724, 724);
+                ctx.lineTo(512, 824);
+                ctx.lineTo(300, 724);
+                ctx.lineTo(224, 512);
+                ctx.closePath();
+                ctx.stroke();
+                
+                ctx.setLineDash([]);
+                
+                // 중앙의 큰 별
+                drawDetailedStar(ctx, 512, 512, 150, '#F9FAFB', '#FCD34D');
+                
+                // 주변 별들
+                const starPositions = [
+                    {x: 300, y: 300, size: 40},
+                    {x: 512, y: 200, size: 50},
+                    {x: 724, y: 300, size: 40},
+                    {x: 800, y: 512, size: 45},
+                    {x: 724, y: 724, size: 40},
+                    {x: 512, y: 824, size: 50},
+                    {x: 300, y: 724, size: 40},
+                    {x: 224, y: 512, size: 45}
+                ];
+                
+                starPositions.forEach(star => {
+                    drawStar(ctx, star.x, star.y, star.size, '#F9FAFB');
+                });
+                
+                // 반짝이는 작은 별들
+                for (let i = 0; i < 50; i++) {
+                    const x = Math.random() * 1024;
+                    const y = Math.random() * 1024;
+                    const size = Math.random() * 5 + 2;
+                    
+                    ctx.fillStyle = 'rgba(249, 250, 251, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(x, y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // 미리보기 업데이트
+            updatePreview();
+        }
+        
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+        
+        function drawStar(ctx, cx, cy, size, color) {
+            const spikes = 5;
+            const outerRadius = size;
+            const innerRadius = size * 0.5;
+            
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            
+            for (let i = 0; i < spikes * 2; i++) {
+                const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                const angle = (i * Math.PI) / spikes - Math.PI / 2;
+                const x = cx + Math.cos(angle) * radius;
+                const y = cy + Math.sin(angle) * radius;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        function drawDetailedStar(ctx, cx, cy, size, outerColor, innerColor) {
+            // 외부 광선
+            ctx.fillStyle = outerColor;
+            ctx.globalAlpha = 0.3;
+            drawStar(ctx, cx, cy, size * 1.5, outerColor);
+            
+            ctx.globalAlpha = 0.5;
+            drawStar(ctx, cx, cy, size * 1.2, outerColor);
+            
+            ctx.globalAlpha = 1;
+            drawStar(ctx, cx, cy, size, outerColor);
+            
+            // 내부 별
+            const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, size);
+            gradient.addColorStop(0, innerColor);
+            gradient.addColorStop(1, outerColor);
+            ctx.fillStyle = gradient;
+            drawStar(ctx, cx, cy, size * 0.8, innerColor);
+        }
+        
+        function updatePreview() {
+            const previewDiv = document.getElementById('preview');
+            previewDiv.innerHTML = '<h3>미리보기 (다양한 크기)</h3>';
+            
+            const sizes = [48, 72, 96, 144, 192];
+            
+            sizes.forEach(size => {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+                
+                const previewCanvas = document.createElement('canvas');
+                previewCanvas.width = size;
+                previewCanvas.height = size;
+                
+                const previewCtx = previewCanvas.getContext('2d');
+                previewCtx.drawImage(canvas, 0, 0, size, size);
+                
+                const label = document.createElement('p');
+                label.textContent = `${size}x${size}`;
+                
+                previewItem.appendChild(previewCanvas);
+                previewItem.appendChild(label);
+                previewDiv.appendChild(previewItem);
+            });
+        }
+        
+        // 캔버스 클릭시 다운로드
+        canvas.addEventListener('click', function() {
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'tarot-garden-icon.png';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        });
+        
+        // 기본 아이콘 생성
+        generateIcon('style1');
+    </script>
+</body>
+</html>
