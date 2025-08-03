@@ -198,7 +198,7 @@
 <script>
 import { ref, computed, watch } from 'vue';
 import { useUserStore } from '../store/user';
-import { useAlert } from '../composables/useAlert';
+import { showAlert, showConfirm } from '../utils/alerts';
 
 export default {
   name: 'LoginModal',
@@ -217,7 +217,6 @@ export default {
   emits: ['close', 'success', 'show-email-verification'],
   setup(props, { emit }) {
     const userStore = useUserStore();
-    const alert = useAlert();
     
     console.log('LoginModal setup 호출됨');
     console.log('props.isVisible:', props.isVisible);
@@ -406,10 +405,10 @@ export default {
 
     // 카카오 로그인 처리 (준비중)
     const handleKakaoLogin = async () => {
-      await alert.info(
-        '카카오 로그인은 앱 출시 이후 연동될 예정입니다.\n구글 로그인을 이용해 주세요.',
-        '서비스 준비중'
-      );
+      await showAlert({
+        title: '서비스 준비중',
+        message: '카카오 로그인은 앱 출시 이후 연동될 예정입니다.\n구글 로그인을 이용해 주세요.'
+      });
     };
 
     // 비밀번호 재설정

@@ -131,13 +131,13 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/store/user';
 import { NativeUtils } from '@/utils/capacitor';
-import { useAlert } from '@/composables/useAlert';
+import { showAlert, showConfirm } from '@/utils/alerts';
 import { useSubscriptionStatus } from '@/composables/useSubscriptionStatus';
 import { supabase } from '@/services/supabase';
 
 const router = useRouter();
 const userStore = useUserStore();
-const alert = useAlert();
+
 const { isSubscribed } = useSubscriptionStatus();
 
 const isNative = NativeUtils.isNative;
@@ -176,10 +176,10 @@ const updateSettings = (): void => {
 };
 
 const clearHistory = async (): Promise<void> => {
-  const confirmed = await alert.confirm(
-    '모든 점괘 기록을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
-    '히스토리 삭제'
-  );
+  const confirmed = await showConfirm({
+    title: '히스토리 삭제',
+    message: '모든 점괘 기록을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'
+  });
   if (!confirmed) return;
   
   await NativeUtils.buttonTapHaptic();
@@ -194,10 +194,16 @@ const clearHistory = async (): Promise<void> => {
       if (error) throw error;
     }
     
-    await alert.success('히스토리가 삭제되었습니다.');
+    await showAlert({
+      title: '성공',
+      message: '히스토리가 삭제되었습니다.'
+    });
   } catch (error) {
     console.error('Error clearing history:', error);
-    await alert.error('히스토리 삭제 중 오류가 발생했습니다.');
+    await showAlert({
+      title: '오류',
+      message: '히스토리 삭제 중 오류가 발생했습니다.'
+    });
   }
 };
 
@@ -243,10 +249,16 @@ const exportData = async (): Promise<void> => {
     a.click();
     
     URL.revokeObjectURL(url);
-    await alert.success('데이터가 내보내졌습니다.');
+    await showAlert({
+      title: '성공',
+      message: '데이터가 내보내졌습니다.'
+    });
   } catch (error) {
     console.error('Error exporting data:', error);
-    await alert.error('데이터 내보내기 중 오류가 발생했습니다.');
+    await showAlert({
+      title: '오류',
+      message: '데이터 내보내기 중 오류가 발생했습니다.'
+    });
   }
 };
 
@@ -270,7 +282,10 @@ const rateApp = async (): Promise<void> => {
 };
 
 const logout = async (): Promise<void> => {
-  const confirmed = await alert.confirm('로그아웃 하시겠습니까?', '로그아웃');
+  const confirmed = await showConfirm({
+    title: '로그아웃',
+    message: '로그아웃 하시겠습니까?'
+  });
   if (!confirmed) return;
   
   await NativeUtils.buttonTapHaptic();
