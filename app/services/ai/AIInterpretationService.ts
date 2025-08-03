@@ -47,6 +47,13 @@ export class AIInterpretationService {
     
     try {
       // Supabase Edge Function 호출
+      console.log('🚀 [generateInterpretation] Edge Function 호출 시작:', {
+        cardsCount: cards.length,
+        topic,
+        spreadType,
+        isPremium: this.isPremium
+      });
+      
       const { data, error } = await supabase.functions.invoke('generate-interpretation', {
         body: {
           card,
@@ -382,6 +389,13 @@ ${message.ending}`;
       }
       
       // Supabase Edge Function 호출
+      console.log('🚀 [generateInterpretation] Edge Function 호출 시작:', {
+        cardsCount: cards.length,
+        topic,
+        spreadType,
+        isPremium: this.isPremium
+      });
+      
       const { data, error } = await supabase.functions.invoke('generate-interpretation', {
         body: {
           cards,
@@ -391,6 +405,8 @@ ${message.ending}`;
           isPremium: this.isPremium
         }
       });
+      
+      console.log('🚀 [generateInterpretation] Edge Function 결과:', { data, error });
       
       if (error) throw error;
       

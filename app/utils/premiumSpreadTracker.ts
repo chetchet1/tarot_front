@@ -39,8 +39,17 @@ async function getCurrentUserId(): Promise<string | null> {
 export async function hasUsedPremiumSpreadToday(): Promise<boolean> {
   console.log('📊 [hasUsedPremiumSpreadToday] 호출됨');
   try {
-    const userId = await getCurrentUserId();
-    console.log('📊 [hasUsedPremiumSpreadToday] userId:', userId);
+    // 현재 사용자 정보 가져오기
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || null;
+    const userEmail = user?.email;
+    console.log('📊 [hasUsedPremiumSpreadToday] userId:', userId, 'email:', userEmail);
+    
+    // 테스트 계정은 항상 false 반환 (제한 없음)
+    if (userEmail === 'test@example.com') {
+      console.log('📊 [hasUsedPremiumSpreadToday] 테스트 계정 - 제한 없음');
+      return false;
+    }
     
     if (!userId) {
       console.warn('사용자 ID를 찾을 수 없습니다.');
@@ -90,6 +99,13 @@ export async function canUsePremiumSpread(spreadId: string, isPremiumUser: boole
     return true;
   }
   
+  // 테스트 계정 확인
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user?.email === 'test@example.com') {
+    console.log('📊 [canUsePremiumSpread] 테스트 계정 - 모든 배열 사용 가능');
+    return true;
+  }
+  
   // 유료 배열이 아니면 사용 가능
   if (!isPremiumSpread(spreadId)) {
     return true;
@@ -109,7 +125,17 @@ export async function recordPremiumSpreadUsage(spreadId: string): Promise<void> 
   }
 
   try {
-    const userId = await getCurrentUserId();
+    // 현재 사용자 정보 가져오기
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || null;
+    const userEmail = user?.email;
+    
+    // 테스트 계정은 기록하지 않음
+    if (userEmail === 'test@example.com') {
+      console.log('📊 [recordPremiumSpreadUsage] 테스트 계정 - 사용 기록 건너뜀');
+      return;
+    }
+    
     if (!userId) {
       console.error('사용자 ID를 찾을 수 없습니다.');
       return;

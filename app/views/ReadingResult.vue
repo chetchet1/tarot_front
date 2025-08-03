@@ -269,6 +269,12 @@
         </button>
       </div>
     </div>
+    
+    <!-- AI 해석 로딩 화면 -->
+    <TarotLoadingScreen 
+      :isVisible="isLoadingInterpretation" 
+      :progress="interpretationProgress"
+    />
   </div>
 </template>
 
@@ -283,6 +289,7 @@ import { adService } from '../services/AdService';
 import { getCardImagePath, handleImageError } from '../utils/cardUtils';
 import { useSubscriptionStatus } from '../composables/useSubscriptionStatus';
 import { AIInterpretationService } from '../services/ai/AIInterpretationService';
+import TarotLoadingScreen from '../components/loading/TarotLoadingScreen.vue';
 import type { DrawnCard } from '../models/tarot';
 
 const router = useRouter();
@@ -312,6 +319,7 @@ const userRating = ref(0);
 
 // AI 해석 로딩 상태
 const isLoadingInterpretation = ref(false);
+const interpretationProgress = ref(0);
 
 // 카드 이미지 URL 생성 함수 사용
 const getCardImageUrl = (card: DrawnCard) => getCardImagePath(card);
@@ -386,6 +394,14 @@ const generateAIInterpretation = async () => {
   if (!reading.value || reading.value.aiInterpretation) return;
   
   isLoadingInterpretation.value = true;
+  interpretationProgress.value = 0;
+  
+  // 프로그레스 업데이트 시뮬레이션
+  const progressInterval = setInterval(() => {
+    if (interpretationProgress.value < 90) {
+      interpretationProgress.value += Math.random() * 15;
+    }
+  }, 500);
   
   try {
     const interpretationResult = await generateAI({
@@ -396,6 +412,10 @@ const generateAIInterpretation = async () => {
       userId: userStore.user?.id
     });
     
+    // 프로그레스 완료
+    clearInterval(progressInterval);
+    interpretationProgress.value = 100;
+    
     if (interpretationResult.success && interpretationResult.interpretation) {
       reading.value.aiInterpretation = interpretationResult.interpretation;
       reading.value.aiInterpretationId = interpretationResult.interpretationId || null;
@@ -405,6 +425,7 @@ const generateAIInterpretation = async () => {
     }
     
   } catch (error) {
+    clearInterval(progressInterval);
     console.error('AI 해석 생성 오류:', error);
     await showConfirm({
       title: '오류',
@@ -413,7 +434,10 @@ const generateAIInterpretation = async () => {
       showCancel: false
     });
   } finally {
+    // 잔시 대기 후 로딩 화면 숨기기
+    await new Promise(resolve => setTimeout(resolve, 300));
     isLoadingInterpretation.value = false;
+    interpretationProgress.value = 0;
   }
 };
 
@@ -436,8 +460,26 @@ const showAIInterpretationWithAd = async () => {
   if (!confirmed) return;
   
   try {
-    // AI 해석 Promise 생성 (광고와 동시 진행)
-    const aiInterpretationPromise = generateAI({
+    // 먼저 광고를 보여줌
+    const adWatched = await adService.showInterstitialAd();
+    
+    if (!adWatched) {
+      return;
+    }
+    
+    // 광고 시청 후 로딩 화면 표시
+    isLoadingInterpretation.value = true;
+    interpretationProgress.value = 0;
+    
+    // 프로그레스 업데이트 시뮬레이션
+    const progressInterval = setInterval(() => {
+      if (interpretationProgress.value < 90) {
+        interpretationProgress.value += Math.random() * 15;
+      }
+    }, 500);
+    
+    // AI 해석 생성
+    const interpretationResult = await generateAI({
       reading: currentReading,
       customQuestion: currentCustomQuestion,
       isPremium: false,
@@ -445,27 +487,15 @@ const showAIInterpretationWithAd = async () => {
       userId: userStore.user?.id
     });
     
-    // 광고 시청과 AI 해석 생성을 동시에 진행
-    const [adWatched, interpretationResult] = await Promise.all([
-      adService.showInterstitialAd(),
-      aiInterpretationPromise
-    ]);
-    
-    if (!adWatched) {
-      return;
-    }
+    // 프로그레스 완료
+    clearInterval(progressInterval);
+    interpretationProgress.value = 100;
     
     // 현재 페이지가 여전히 같은 reading을 보고 있는지 확인
     if (readingId.value !== currentReadingId) {
       console.warn('페이지가 변경되었습니다. AI 해석을 건너뜁니다.');
       return;
     }
-    
-    // 로딩 화면 표시 (광고 후 잠시 보여주기)
-    isLoadingInterpretation.value = true;
-    
-    // 최소 로딩 시간 보장 (사용자 경험 향상)
-    await new Promise(resolve => setTimeout(resolve, 1000));
     
     if (interpretationResult.success && interpretationResult.interpretation) {
       // 현재 reading이 여전히 동일한지 다시 확인
@@ -488,7 +518,10 @@ const showAIInterpretationWithAd = async () => {
       showCancel: false
     });
   } finally {
+    // 잠시 대기 후 로딩 화면 숨기기
+    await new Promise(resolve => setTimeout(resolve, 300));
     isLoadingInterpretation.value = false;
+    interpretationProgress.value = 0;
   }
 };
 

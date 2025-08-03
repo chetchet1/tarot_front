@@ -191,7 +191,8 @@ export class AdManager {
       // 테스트 계정은 유료 배열 제한 없음
       if (isTestAccount) {
         console.log('🔍 [AdManager.startReading] 테스트 계정 - 유료 배열 제한 없음');
-        // 테스트 계정은 광고는 표시하지만 제한은 없음
+        // 테스트 계정은 제한 없이 진행
+        return true;
       } else {
         // 유료 배열인 경우, 오늘 사용 여부 확인
         console.log('🔍 [AdManager.startReading] 유료 배열 사용 여부 확인 중...');
@@ -201,19 +202,13 @@ export class AdManager {
         
         if (hasUsed) {
           console.log('🔍 [AdManager.startReading] 이미 사용했음 - false 반환');
-          // 이미 사용했으면 광고 시청 불가
+          // 이미 사용했으면 점괘 불가
           return false;
         }
       }
     }
 
-    // 무료 사용자는 광고 표시
-    const adShown = await this.showAd();
-    if (!adShown) {
-      // 광고 시청을 거부한 경우
-      return false;
-    }
-
+    // 무료 사용자는 광고 없이 진행 (광고는 해석 보기 시점에 표시)
     // 점괘 카운트 증가 (통계용)
     this.dailyReadingCount.value++;
     this.saveState();

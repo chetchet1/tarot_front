@@ -256,6 +256,7 @@ import { customInterpretationService } from '../services/ai/customInterpretation
 import { AIInterpretationService } from '../services/ai/AIInterpretationService';
 import { useAlert } from '../composables/useAlert';
 import { getCardImagePath, handleImageError } from '../utils/cardUtils';
+import { showInterstitialAd } from '../services/admob'; // 직접 import 추가
 
 // 컴포넌트 직접 import로 변경
 // import AdModal from '../components/AdModal.vue'; // 기획 변경으로 사용하지 않음
@@ -707,9 +708,13 @@ const generateCelticCrossInterpretation = async () => {
 const isProcessingResult = ref(false);
 
 const goToResult = async () => {
+  console.log('🎯 [goToResult] 함수 호출됨!');
+  console.log('🎯 [goToResult] isProcessingResult:', isProcessingResult.value);
+  console.log('🎯 [goToResult] allCardsRevealed:', allCardsRevealed.value);
   
   // 이미 처리 중이면 중복 호출 방지
   if (isProcessingResult.value) {
+    console.log('🎯 [goToResult] 이미 처리 중 - 중복 호출 방지');
     return;
   }
   
@@ -726,24 +731,42 @@ const goToResult = async () => {
   isProcessingResult.value = true;
   
   // 무료 사용자인 경우 광고 표시 (test@example.com 포함)
-  if (!userStore.isPremium) {
+  // 1장과 3장 배열은 광고 없이 진행
+  const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
+  const isSimpleSpread = spreadId === 'one_card' || spreadId === 'three_card_timeline';
+  
+  if (!userStore.isPremium && !isSimpleSpread) {
     console.log('📺 [goToResult] 무료 사용자 - 광고 표시');
+    console.log('📺 [goToResult] spreadId:', spreadId);
     
-    const confirmed = await confirm(
-      '해석을 보려면 광고를 시청해야 합니다.\n계속하시겠습니까?',
-      '광고 시청'
-    );
+    // 임시로 confirm 건너뛰기 - 디버깅용
+    /*
+    console.log('📺 [goToResult] confirm 호출 전');
     
-    if (!confirmed) {
-      isProcessingResult.value = false;
-      return;
+    try {
+      const confirmed = await confirm(
+        '해석을 보려면 광고를 시청해야 합니다.\n계속하시겠습니까?',
+        '광고 시청'
+      );
+      
+      console.log('📺 [goToResult] confirm 결과:', confirmed);
+      
+      if (!confirmed) {
+        console.log('📺 [goToResult] 사용자가 취소함');
+        isProcessingResult.value = false;
+        return;
+      }
+    } catch (error) {
+      console.error('📺 [goToResult] confirm 에러:', error);
+      // confirm 에러 시에도 진행
     }
+    */
     
     // 광고 표시 - admob 서비스 사용
     try {
       console.log('📺 [goToResult] 광고 표시 시작...');
-      const { showInterstitialAd } = await import('../services/admob');
-      const adWatched = await showInterstitialAd();
+      // const { showInterstitialAd } = await import('../services/admob'); // dynamic import 제거
+      const adWatched = await showInterstitialAd(); // 직접 import한 함수 사용
       console.log('📺 [goToResult] 광고 표시 결과:', adWatched);
       
       if (!adWatched) {
@@ -757,19 +780,25 @@ const goToResult = async () => {
       }
     } catch (error) {
       console.error('📺 [goToResult] 광고 표시 오류:', error);
+      console.error('📺 [goToResult] 오류 상세:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       // 광고 오류 시에도 진행 (사용자 경험 우선)
       await alert(
         '광고 로드 중 오류가 발생했습니다. 해석 화면으로 이동합니다.',
         '알림'
       );
     }
+  } else if (isSimpleSpread) {
+    console.log('📺 [goToResult] 1장/3장 배열 - 광고 없이 진행');
   }
   
   // 테스트 계정인지 확인
   const isTestAccount = userStore.user?.email === 'test@example.com';
   
   // 유료 배열인 경우 사용 기록 (결과를 보려고 할 때 기록)
-  const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
   const premiumSpreads = ['celtic_cross', 'seven_star', 'cup_of_relationship'];
   const isPremiumSpread = premiumSpreads.includes(spreadId);
   
@@ -778,7 +807,7 @@ const goToResult = async () => {
     await adManager.recordPremiumSpreadUsage(spreadId);
   }
   
-  // 로딩 화면 표시
+  // 모든 배열에서 로딩 화면 표시
   isGeneratingInterpretation.value = true;
   interpretationProgress.value = 0;
   
@@ -806,7 +835,7 @@ const goToResult = async () => {
     // 커스텀 질문이 있는 경우 별도로 AI 해석 생성 (모든 스프레드에 대해)
     const customQuestion = tarotStore.getCustomQuestion();
     
-    if (userStore.isPremium && customQuestion && reading) {
+    if ((userStore.isPremium || isTestAccount) && customQuestion && reading) {
       try {
         // 프로그레스 업데이트
         interpretationProgress.value = 30;
@@ -857,14 +886,14 @@ const goToResult = async () => {
         // AI 해석 생성 실패 시 무시
       }
     }
-    // 프리미엄 사용자인 경우 켈틱 크로스 AI 해석 생성 (커스텀 질문이 없는 경우)
-    else if (userStore.isPremium && isCelticCross.value && reading && !customQuestion) {
+    // 프리미엄 사용자 또는 테스트 계정인 경우 켈틱 크로스 AI 해석 생성 (커스텀 질문이 없는 경우)
+    else if ((userStore.isPremium || isTestAccount) && isCelticCross.value && reading && !customQuestion) {
       try {
         // 프로그레스 업데이트
         interpretationProgress.value = 30;
         
-        // AI 해석 서비스 인스턴스 생성
-        const aiService = new AIInterpretationService(userStore.isPremium);
+        // AI 해석 서비스 인스턴스 생성 (테스트 계정도 프리미엄으로 처리)
+        const aiService = new AIInterpretationService(userStore.isPremium || isTestAccount);
         
         // AI 해석 생성을 위한 카드 데이터 준비
         const cardsForAI = reading.cards.map((card: any, index: number) => ({
@@ -894,9 +923,10 @@ const goToResult = async () => {
         }));
         
         // AI 해석 생성
+        console.log('🎯 [goToResult] AI 해석 생성 - topic:', tarotStore.selectedTopic?.id);
         const result = await aiService.generateInterpretation(
           cardsForAI,
-          tarotStore.selectedTopic?.id || 'love', // 선택된 주제 사용
+          tarotStore.selectedTopic?.id || 'general', // 선택된 주제 사용 (기본값은 general)
           'celtic_cross'
         );
         

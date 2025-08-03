@@ -95,13 +95,21 @@
         </div>
         
         <!-- 무료 사용자 유료 배열 안내 -->
-        <div v-if="!userStore.isPremium" class="premium-spread-notice">
+        <div v-if="!userStore.isPremium && userStore.currentUser?.email !== 'test@example.com'" class="premium-spread-notice">
           <p class="notice-text">
             <span class="icon">ℹ️</span>
             {{ freeUserMessage || '유료 배열(켈틱 크로스, 세븐스타, 컵 오브 릴레이션쉽)은 하루 1회 무료로 이용 가능합니다.' }}
           </p>
           <p v-if="hasPremiumUsageToday" class="reset-time">
             다음 무료 이용: {{ getTimeUntilReset() }} 후
+          </p>
+        </div>
+        
+        <!-- 테스트 계정 안내 -->
+        <div v-if="!userStore.isPremium && userStore.currentUser?.email === 'test@example.com'" class="test-account-notice">
+          <p class="notice-text">
+            <span class="icon">🧪</span>
+            테스트 계정으로 접속하셨습니다. 모든 배열법을 무제한 사용할 수 있습니다.
           </p>
         </div>
         <div class="spread-grid">
@@ -127,11 +135,14 @@
                 {{ getDifficultyText(spread.difficulty) }}
               </span>
             </div>
-            <div v-if="spread.isPremium && !userStore.isPremium && hasPremiumUsageToday" class="premium-overlay">
+            <div v-if="spread.isPremium && !userStore.isPremium && hasPremiumUsageToday && userStore.currentUser?.email !== 'test@example.com'" class="premium-overlay">
               <p>오늘 이미 사용</p>
             </div>
-            <div v-else-if="spread.isPremium && !userStore.isPremium && !hasPremiumUsageToday" class="free-badge">
+            <div v-else-if="spread.isPremium && !userStore.isPremium && !hasPremiumUsageToday && userStore.currentUser?.email !== 'test@example.com'" class="free-badge">
               <span>오늘 1회 무료</span>
+            </div>
+            <div v-else-if="spread.isPremium && !userStore.isPremium && userStore.currentUser?.email === 'test@example.com'" class="test-badge">
+              <span>테스트 계정</span>
             </div>
             <div v-else-if="spread.id === 'seven_star' || spread.id === 'cup_of_relationship'" class="updating-overlay">
               <p>🔄 업데이트 중</p>
@@ -244,8 +255,11 @@ onMounted(async () => {
   checkMobile();
   window.addEventListener('resize', checkMobile);
   
+  // 테스트 계정이면 유료 배열 사용 여부 체크 생략
+  const isTestAccount = userStore.currentUser?.email === 'test@example.com';
+  
   // 로그인한 사용자의 경우 유료 배열 사용 여부 체크
-  if (userStore.currentUser && !userStore.isPremium && !userStore.currentUser.isAnonymous) {
+  if (userStore.currentUser && !userStore.isPremium && !userStore.currentUser.isAnonymous && !isTestAccount) {
     isCheckingPremiumUsage.value = true;
     try {
       hasPremiumUsageToday.value = await hasUsedPremiumSpreadToday(userStore.currentUser.id);
@@ -263,6 +277,12 @@ onMounted(async () => {
     const { hasUsedPremiumSpreadToday: hasUsedLocal, getFreeUserMessage: getMessageLocal } = await import('../utils/premiumSpreadTracker');
     hasPremiumUsageToday.value = hasUsedLocal();
     freeUserMessage.value = getMessageLocal();
+  }
+  
+  // 테스트 계정의 경우 특별 메시지 설정
+  if (isTestAccount && !userStore.isPremium) {
+    hasPremiumUsageToday.value = false; // 테스트 계정은 항상 사용 가능한 것처럼 표시
+    freeUserMessage.value = '테스트 계정 - 유료 배열을 무제한 이용 가능';
   }
 });
 
@@ -396,6 +416,12 @@ const canStartReading = computed(() => {
   
   // 프리미엄 스프레드인데 프리미엄이 아닌 경우
   if (spread.isPremium && !userStore.isPremium) {
+    // 테스트 계정은 항상 사용 가능
+    if (userStore.currentUser?.email === 'test@example.com') {
+      console.log('[CanStartReading] 테스트 계정 - 항상 허용');
+      return true;
+    }
+    
     // 무료 사용자의 유료 배열 사용 가능 여부 확인
     const canStart = !hasPremiumUsageToday.value;
     console.log('[CanStartReading] 프리미엄 스프레드 체크', {
@@ -447,6 +473,14 @@ const selectSpread = async (spread: Spread) => {
   }
   
   if (spread.isPremium && !userStore.isPremium) {
+    // 테스트 계정 확인
+    if (userStore.currentUser && !userStore.currentUser.isAnonymous && 
+        userStore.currentUser.email === 'test@example.com') {
+      // 테스트 계정은 체크하지 않고 바로 선택 가능
+      selectedSpread.value = spread.id;
+      return;
+    }
+    
     // 익명 사용자의 경우 로컬 스토리지 체크
     if (userStore.currentUser?.isAnonymous) {
       const { canUsePremiumSpread: canUseLocal } = await import('../utils/premiumSpreadTracker');
@@ -520,6 +554,11 @@ const getStartButtonText = () => {
   
   const spread = spreads.value.find(s => s.id === selectedSpread.value);
   if (spread?.isPremium && !userStore.isPremium) {
+    // 테스트 계정
+    if (userStore.currentUser?.email === 'test@example.com') {
+      return '카드 뽑기 시작 (테스트)';
+    }
+    
     if (hasPremiumUsageToday.value) {
       return '오늘 이미 사용 (내일 다시 이용 가능)';
     }
@@ -1025,6 +1064,31 @@ const resetSelection = () => {
   font-size: 13px;
 }
 
+/* 테스트 계정 안내 */
+.test-account-notice {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.test-account-notice .notice-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.test-account-notice .icon {
+  font-size: 18px;
+}
+
 /* 무료 사용 가능 배지 */
 .free-badge {
   position: absolute;
@@ -1038,6 +1102,21 @@ const resetSelection = () => {
   color: white;
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
   animation: shine 2s ease-in-out infinite;
+}
+
+/* 테스트 계정 배지 */
+.test-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(135deg, #6366F1, #8B5CF6);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes shine {
