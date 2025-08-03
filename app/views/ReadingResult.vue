@@ -444,11 +444,22 @@ const generateAIInterpretation = async () => {
 
 // 광고 시청 후 AI 해석 보기
 const showAIInterpretationWithAd = async () => {
+  console.log('🔮 [showAIInterpretationWithAd] 함수 시작');
+  console.log('🔮 현재 시간:', new Date().toISOString());
+  console.log('🔮 reading.value:', reading.value);
+  console.log('🔮 readingId.value:', readingId.value);
+  console.log('🔮 reading.aiInterpretation 존재?:', !!reading.value?.aiInterpretation);
+  console.log('🔮 adService.isAdReady:', adService.isAdReady.value);
+  console.log('🔮 adService.isLoading:', adService.isLoading.value);
+  
   const currentReading = reading.value;
   const currentReadingId = readingId.value;
   const currentCustomQuestion = tarotStore.getCustomQuestion();
   
-  if (!currentReading) return;
+  if (!currentReading) {
+    console.log('🔮 [showAIInterpretationWithAd] currentReading이 없어서 종료');
+    return;
+  }
   
   const confirmed = await showConfirm({
     title: '🔮 마법의 수정구슬',
@@ -457,13 +468,22 @@ const showAIInterpretationWithAd = async () => {
     cancelText: '취소'
   });
   
-  if (!confirmed) return;
+  if (!confirmed) {
+    console.log('🔮 [showAIInterpretationWithAd] 사용자가 취소함');
+    return;
+  }
   
   try {
+    console.log('🔮 [showAIInterpretationWithAd] 광고 표시 시작...');
+    console.log('🔮 광고 상태 - isAdReady:', adService.isAdReady.value, 'isLoading:', adService.isLoading.value);
+    
     // 먼저 광고를 보여줌
     const adWatched = await adService.showInterstitialAd();
+    console.log('🔮 [showAIInterpretationWithAd] 광고 시청 결과:', adWatched);
+    console.log('🔮 광고 시청 후 상태 - isAdReady:', adService.isAdReady.value, 'isLoading:', adService.isLoading.value);
     
     if (!adWatched) {
+      console.log('🔮 [showAIInterpretationWithAd] 광고 시청 실패로 종료');
       return;
     }
     
@@ -573,6 +593,11 @@ const regenerateAIInterpretation = async () => {
 };
 
 onMounted(async () => {
+  console.log('🎴 [ReadingResult] onMounted 시작');
+  console.log('🎴 readingId:', readingId.value);
+  console.log('🎴 reading:', reading.value);
+  console.log('🎴 aiInterpretation 존재?:', !!reading.value?.aiInterpretation);
+  
   if (!reading.value && !readingId.value) {
     router.push('/app');
     return;
@@ -583,11 +608,21 @@ onMounted(async () => {
   if (reading.value && !reading.value.aiInterpretation) {
     if (reading.value.spreadId === 'celtic_cross') {
       // 켈틱 크로스는 무조건 AI 해석 생성
+      console.log('🎴 [ReadingResult] 켈틱 크로스 - AI 해석 생성');
       await regenerateAIInterpretation();
     } else if (customQuestion.value && userStore.isPremium) {
       // 커스텀 질문은 프리미엄만
+      console.log('🎴 [ReadingResult] 커스텀 질문 - AI 해석 생성');
       await regenerateAIInterpretation();
+    } else {
+      console.log('🎴 [ReadingResult] AI 해석 생성 건너뛰기', {
+        spreadId: reading.value.spreadId,
+        hasCustomQuestion: !!customQuestion.value,
+        isPremium: userStore.isPremium
+      });
     }
+  } else {
+    console.log('🎴 [ReadingResult] 이미 AI 해석이 있음');
   }
 });
 </script>
