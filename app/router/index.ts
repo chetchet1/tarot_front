@@ -11,6 +11,7 @@ import Premium from '../views/Premium.vue';
 import History from '../views/History.vue';
 import TarotDictionary from '../views/TarotDictionary.vue';
 import AuthCallback from '../views/AuthCallback.vue';
+import SharedReading from '../views/SharedReading.vue';
 
 const routes = [
   {
@@ -47,6 +48,15 @@ const routes = [
     name: 'Premium',
     component: Premium,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/share/:id',
+    name: 'SharedReading',
+    component: SharedReading,
+    meta: { 
+      requiresAuth: false,  // 로그인 불필요
+      isPublic: true        // 공개 페이지
+    }
   },
   {
     path: '/history',

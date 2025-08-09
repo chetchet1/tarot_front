@@ -214,6 +214,7 @@ import { showAlert, showConfirm } from '../utils/alerts';
 import { CARD_BACK_BASE64 } from '../assets/card-back';
 // import TarotLoadingScreen from '../components/loading/TarotLoadingScreen.vue';
 import SimpleTarotLoading from '../components/loading/SimpleTarotLoading.vue';
+import { shareService } from '../services/ShareService';
 import type { TarotCard, DailyReading, DailyInterpretation } from '../types/tarot';
 
 const router = useRouter();
@@ -291,14 +292,21 @@ const loadTodayCard = async () => {
     if (isTestAccount) {
       console.log('테스트 계정 감지: 오늘의 카드 캐싱 비활성화');
       // 테스트 계정은 기존 데이터 삭제
-      const { error: deleteError } = await supabase
-        .from('daily_cards')
-        .delete()
-        .eq('user_id', userStore.currentUser.id)
-        .eq('date', today);
-      
-      if (deleteError) {
-        console.log('기존 데이터 삭제 실패 (무시):', deleteError);
+      try {
+        const { error: deleteError } = await supabase
+          .from('daily_cards')
+          .delete()
+          .eq('user_id', userStore.currentUser.id)
+          .eq('date', today);
+        
+        if (deleteError) {
+          console.log('기존 데이터 삭제 실패:', deleteError);
+          // 삭제 실패해도 계속 진행
+        } else {
+          console.log('테스트 계정 기존 데이터 삭제 완료');
+        }
+      } catch (err) {
+        console.log('삭제 중 오류 (무시):', err);
       }
       
       // 테스트 계정은 항상 새로 뽑기 가능하도록 null 반환
@@ -431,20 +439,42 @@ const drawCard = async () => {
 
     // DB에 저장
     const today = new Date().toISOString().split('T')[0];
-    const { data: savedReading, error: saveError } = await supabase
-      .from('daily_cards')
-      .insert({
-        user_id: userStore.currentUser?.id,
-        card_id: card.id,
-        date: today,
-        orientation: 'upright'
-      })
-      .select()
-      .single();
+    const isTestAccount = userStore.currentUser?.email === 'test@example.com';
     
-    console.log('카드 저장 결과:', savedReading, saveError);
-
-    if (saveError) throw saveError;
+    // 테스트 계정은 upsert로 처리 (있으면 업데이트, 없으면 삽입)
+    if (isTestAccount) {
+      console.log('테스트 계정: upsert 사용');
+      const { data: savedReading, error: saveError } = await supabase
+        .from('daily_cards')
+        .upsert({
+          user_id: userStore.currentUser?.id,
+          card_id: card.id,
+          date: today,
+          orientation: 'upright'
+        }, {
+          onConflict: 'user_id,date'
+        })
+        .select()
+        .single();
+      
+      console.log('테스트 계정 카드 저장 결과:', savedReading, saveError);
+      if (saveError) throw saveError;
+    } else {
+      // 일반 계정은 기존대로 insert
+      const { data: savedReading, error: saveError } = await supabase
+        .from('daily_cards')
+        .insert({
+          user_id: userStore.currentUser?.id,
+          card_id: card.id,
+          date: today,
+          orientation: 'upright'
+        })
+        .select()
+        .single();
+      
+      console.log('카드 저장 결과:', savedReading, saveError);
+      if (saveError) throw saveError;
+    }
 
     // 무료 사용자는 광고 표시
     if (!userStore.isPremium) {
@@ -726,13 +756,75 @@ const getCardImageUrl = (card: TarotCard | undefined | null) => {
     return card.image_url;
   }
   
-  // 이미지 URL이 없으면 파일 경로 기반으로 생성
-  const imageName = card.name.toLowerCase()
-    .replace(/[^a-z0-9]/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_|_$/g, '');
+  // 카드 타입별로 이미지 경로 생성
+  let imagePath = '';
   
-  return `/images/cards/${imageName}.jpg`;
+  // 메이저 아르카나
+  if (card.arcana === 'major') {
+    // 카드 번호를 2자리로 패딩 (00-21)
+    const cardNumber = (card.number !== undefined ? card.number : 0).toString().padStart(2, '0');
+    
+    // 카드 이름 포맷팅 - The Fool => the-Fool
+    let cardName = card.name;
+    
+    // 특수 케이스 처리
+    if (cardNumber === '00') {
+      cardName = 'the-Fool';
+    } else {
+      // 나머지 카드들은 기본 포맷 사용 (예: The-Magician)
+      cardName = card.name.replace(/ /g, '-');
+    }
+    
+    imagePath = `/assets/tarot-cards/major/${cardNumber}-${cardName}.png`;
+  } 
+  // 마이너 아르카나 - 숫자 카드 (Ace ~ Ten)
+  else if (card.arcana === 'minor' && card.number && card.number <= 10) {
+    // 숫자를 2자리로 패딩
+    const cardNumber = card.number.toString().padStart(2, '0');
+    
+    // 카드 이름 포맷팅
+    let cardName = '';
+    if (card.number === 1) {
+      cardName = `ace-of-${card.suit?.toLowerCase() || 'wands'}`;
+    } else {
+      const numberNames = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+      cardName = `${numberNames[card.number]}-of-${card.suit?.toLowerCase() || 'wands'}`;
+    }
+    
+    imagePath = `/assets/tarot-cards/minor/${cardNumber}-${cardName}.png`;
+  }
+  // 마이너 아르카나 - 코트 카드 (Page, Knight, Queen, King)
+  else if (card.arcana === 'minor' && card.court) {
+    // 코트 카드 번호 계산 (Page=41, Knight=42, Queen=43, King=44 for Wands)
+    const suitOrder = ['wands', 'cups', 'swords', 'pentacles'];
+    const courtOrder = ['page', 'knight', 'queen', 'king'];
+    const suitIndex = suitOrder.indexOf(card.suit?.toLowerCase() || 'wands');
+    const courtIndex = courtOrder.indexOf(card.court.toLowerCase());
+    
+    // 기본 번호: Wands=40, Cups=44, Swords=48, Pentacles=52
+    // 각 슈트별로 +1~+4 (Page~King)
+    const baseNumber = 41 + (suitIndex * 4);
+    const cardNumber = baseNumber + courtIndex;
+    
+    // 코트 카드 이름 포맷팅 (예: Page-of-Wands)
+    const courtName = card.court.charAt(0).toUpperCase() + card.court.slice(1).toLowerCase();
+    const suitName = card.suit?.charAt(0).toUpperCase() + card.suit?.slice(1).toLowerCase();
+    const cardName = `${courtName}-of-${suitName}`;
+    
+    imagePath = `/assets/tarot-cards/minor/${cardNumber}-${cardName}.png`;
+  }
+  // 기본값 (예상치 못한 경우)
+  else {
+    console.warn('Unexpected card type:', card);
+    const imageName = card.name.toLowerCase()
+      .replace(/[^a-z0-9]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '');
+    imagePath = `/assets/tarot-cards/${imageName}.png`;
+  }
+  
+  console.log('Generated image path:', imagePath);
+  return imagePath;
 };
 
 // 이미지 로드 에러 처리
@@ -742,31 +834,61 @@ const handleImageError = (event: Event) => {
   target.src = CARD_BACK_BASE64;
 };
 
-// 카드 공유
+// 카드 공유 (개선된 버전)
 const shareCard = async () => {
-  const shareData = {
-    title: '오늘의 타로 카드',
-    text: `오늘의 카드: ${selectedCard.value?.name_kr || todayCard.value?.card?.name_kr}\n행운의 색: ${interpretation.value?.luckyItems.color}\n행운의 숫자: ${interpretation.value?.luckyItems.number}`,
-    url: window.location.href
-  };
-
   try {
-    if (navigator.share) {
-      await navigator.share(shareData);
-    } else {
-      // 공유 API가 지원되지 않는 경우 클립보드에 복사
-      const textToCopy = `${shareData.title}\n${shareData.text}\n${shareData.url}`;
-      await navigator.clipboard.writeText(textToCopy);
+    // 공유할 카드와 해석 확인
+    const card = selectedCard.value || todayCard.value?.card;
+    if (!card || !interpretation.value) {
       await showAlert({
-        title: '공유 준비 완료',
-        message: '링크가 클립보드에 복사되었습니다.'
+        title: '알림',
+        message: '공유할 카드 정보가 없습니다.'
       });
+      return;
+    }
+
+    // 로딩 표시
+    const loadingMessage = showAlert({
+      title: '공유 준비 중...',
+      message: '잠시만 기다려주세요.',
+      showSpinner: true
+    });
+
+    // 공유 링크 생성
+    const shareUrl = await shareService.createDailyCardShareLink({
+      card: card,
+      interpretation: interpretation.value,
+      date: new Date()
+    });
+
+    // 공유 메시지 생성
+    const shareMessage = shareService.generateDailyCardShareMessage(
+      card,
+      interpretation.value,
+      shareUrl
+    );
+
+    // 로딩 닫기 (loadingMessage가 Promise인 경우 처리)
+    if (loadingMessage && typeof loadingMessage === 'object' && 'dismiss' in loadingMessage) {
+      (loadingMessage as any).dismiss?.();
+    }
+
+    // 네이티브 공유 실행
+    const shared = await shareService.shareWithNative(
+      '오늘의 타로 카드',
+      shareMessage,
+      shareUrl
+    );
+
+    if (shared) {
+      console.log('공유 완료');
+      // 공유 성공 시 별도 알림 없음 (이미 시스템에서 처리)
     }
   } catch (error) {
     console.error('공유 실패:', error);
     await showAlert({
-      title: '오류',
-      message: '공유에 실패했습니다.'
+      title: '공유 실패',
+      message: '공유 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
     });
   }
 };
@@ -1013,6 +1135,7 @@ const generateDefaultInterpretation = (card: TarotCard): DailyInterpretation => 
   flex-direction: column;
   align-items: center;
   gap: 16px;
+  width: 100%;  /* 전체 너비 사용 */
 }
 
 .card-image {
@@ -1020,7 +1143,10 @@ const generateDefaultInterpretation = (card: TarotCard): DailyInterpretation => 
   height: 300px;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  object-fit: cover;
+  object-fit: contain;  /* cover에서 contain으로 변경 - 이미지 전체가 보이도록 */
+  background-color: #f8f8f8;  /* 여백 부분 배경색 */
+  display: block;
+  margin: 0 auto;  /* 중앙 정렬 */
 }
 
 .card-name {
@@ -1348,8 +1474,10 @@ const generateDefaultInterpretation = (card: TarotCard): DailyInterpretation => 
   }
   
   .card-image {
-    width: 160px;
-    height: 240px;
+    width: 180px;  /* 너비 약간 증가 */
+    height: 270px;  /* 높이 약간 증가 */
+    object-fit: contain;
+    background-color: #f8f8f8;
   }
 }
 </style>

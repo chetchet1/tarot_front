@@ -3,7 +3,23 @@ import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    {
+      name: 'error-handler',
+      configureServer(server) {
+        server.middlewares.use((err, req, res, next) => {
+          if (err && req.url?.includes('.vue')) {
+            console.error('Vue file request error:', req.url, err);
+            res.statusCode = 500;
+            res.end('Vue file loading error');
+            return;
+          }
+          next(err);
+        });
+      }
+    }
+  ],
   
   // 빌드 설정
   build: {
@@ -36,6 +52,7 @@ export default defineConfig({
     cors: true,
     // 정적 파일 제공
     fs: {
+      strict: false,
       allow: ['..'],
     },
     // 웹소켓 연결 시간 초과 방지
@@ -47,8 +64,11 @@ export default defineConfig({
   
   // 최적화 설정 추가
   optimizeDeps: {
-    include: ['vue', 'vue-router', 'pinia'],
-    exclude: ['@/services/ai/customInterpretationService']
+    include: ['vue', 'vue-router', 'pinia', '@capacitor/core'],
+    exclude: ['@/services/ai/customInterpretationService'],
+    esbuildOptions: {
+      target: 'esnext'
+    }
   },
   
   // 경로 별칭 설정

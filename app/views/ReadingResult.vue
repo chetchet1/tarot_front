@@ -250,6 +250,9 @@
 
       <!-- 액션 버튼 -->
       <section class="actions">
+        <button class="btn btn-share" @click="shareReading">
+          📤 결과 공유하기
+        </button>
         <button class="btn btn-primary" @click="newReading">
           새로운 점괘 보기
         </button>
@@ -284,11 +287,13 @@ import { useRouter, useRoute } from 'vue-router';
 import { useTarotStore } from '../store/tarot';
 import { useUserStore } from '../store/user';
 import { generateAIInterpretation as generateAI } from '../services/ai/aiInterpretationHelper';
-import { showConfirm } from '../utils/alerts';
+import { showConfirm, showAlert } from '../utils/alerts';
 import { adService } from '../services/AdService';
 import { getCardImagePath, handleImageError } from '../utils/cardUtils';
 import { useSubscriptionStatus } from '../composables/useSubscriptionStatus';
 import { AIInterpretationService } from '../services/ai/AIInterpretationService';
+// 공유 기능을 위한 import
+import { supabase } from '../services/supabase';
 import TarotLoadingScreen from '../components/loading/TarotLoadingScreen.vue';
 import type { DrawnCard } from '../models/tarot';
 
@@ -337,6 +342,144 @@ const newReading = () => {
   router.push('/reading-select');
 };
 
+// 공유 관련 헬퍼 함수들
+const getPositionName = (spreadId: string, index: number): string => {
+  const positions: Record<string, string[]> = {
+    'three_card_timeline': ['과거', '현재', '미래'],
+    'celtic_cross': [
+      '현재 내면', '현재 외부', '근본', '과거',
+      '드러나는 모습', '미래', '내가 보는 나',
+      '남이 보는 나', '예상하는 결과', '실제 결과'
+    ]
+  };
+  return positions[spreadId]?.[index] || `카드 ${index + 1}`;
+};
+
+const createShareLink = async (reading: any): Promise<string> => {
+  try {
+    const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+    
+    const shareData = {
+      spread_type: reading.spreadId,
+      cards: reading.cards.map((card: any) => ({
+        cardNumber: card.cardNumber || card.number || card.id || 0,
+        nameKr: card.nameKr || card.name_kr || '',
+        name: card.name || '',
+        orientation: card.orientation || 'upright',
+        position: card.position
+      })),
+      custom_question: reading.customQuestion || null,
+      basic_interpretation: reading.overallMessage || null,
+      ai_interpretation: reading.aiInterpretation || null,
+      shared_by: reading.userId || null
+    };
+    
+    console.log('Creating share link with data:', shareData);
+    
+    const { data, error } = await supabase
+      .from('shared_readings')
+      .insert(shareData)
+      .select('id')
+      .single();
+    
+    if (error) {
+      console.error('Error creating share:', error);
+      throw error;
+    }
+    
+    const shareUrl = `${baseUrl}/share/${data.id}`;
+    console.log('Share URL created:', shareUrl);
+    return shareUrl;
+    
+  } catch (error) {
+    console.error('공유 링크 생성 실패:', error);
+    throw error;
+  }
+};
+
+const generateShareMessage = (reading: any, shareUrl: string): string => {
+  let message = '🔮 타로 점괘 결과를 공유합니다\n\n';
+  
+  if (reading.customQuestion) {
+    message += `❓ 질문: ${reading.customQuestion}\n\n`;
+  }
+  
+  const spreadNames: Record<string, string> = {
+    'one_card': '원 카드',
+    'three_card_timeline': '시간의 흐름 (3장)',
+    'celtic_cross': '켈틱 크로스 (10장)'
+  };
+  message += `📋 배열법: ${spreadNames[reading.spreadId] || reading.spreadId}\n\n`;
+  
+  message += '🎴 뽑은 카드:\n';
+  reading.cards.forEach((card: any, index: number) => {
+    const position = card.position?.name || getPositionName(reading.spreadId, index);
+    const orientation = card.orientation === 'reversed' ? '(역)' : '';
+    message += `${index + 1}. ${position}: ${card.nameKr || card.name}${orientation}\n`;
+  });
+  
+  message += `\n👉 자세한 해석 보기\n${shareUrl}\n\n`;
+  message += '🎯 나만의 타로 - 매일 무료 타로 점';
+  
+  return message;
+};
+
+
+
+// 공유 기능
+const shareReading = async () => {
+  try {
+    if (!reading.value) {
+      await showAlert({
+        title: '알림',
+        message: '공유할 점괘 정보가 없습니다.'
+      });
+      return;
+    }
+
+    // Reading 객체에 userId 추가
+    const readingWithUser = {
+      ...reading.value,
+      userId: userStore.user?.id || null,
+      customQuestion: customQuestion.value || null
+    };
+
+    // 공유 링크 생성
+    const shareUrl = await createShareLink(readingWithUser);
+
+    // 공유 메시지 생성
+    const shareMessage = generateShareMessage(
+      readingWithUser,
+      shareUrl
+    );
+
+    // 동적으로 shareUtils import
+    const { shareWithNative, initializeShare } = await import('../utils/shareUtils');
+    await initializeShare();
+    
+    // 네이티브 공유 실행
+    const shared = await shareWithNative(
+      '타로 점괘 결과',
+      shareMessage,
+      shareUrl
+    );
+
+    if (!shared) {
+      // 클립보드 복사의 경우
+      await showAlert({
+        title: '공유 준비 완료',
+        message: '링크가 클립보드에 복사되었습니다. 원하는 곳에 붙여넣기 하세요.'
+      });
+    }
+  } catch (error) {
+    console.error('공유 실패:', error);
+    await showAlert({
+      title: '공유 실패',
+      message: '공유 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+    });
+  }
+};
+
 // 평점 제출
 const submitRating = async (rating: number) => {
   if (!reading.value?.aiInterpretationId || userRating.value > 0) {
@@ -368,16 +511,7 @@ const getRatingHint = () => {
   return '';
 };
 
-// 포지션 이름 가져오기
-const getPositionName = (spreadId: string, index: number) => {
-  if (spreadId === 'one_card') {
-    return '조언';
-  } else if (spreadId === 'three_card_timeline') {
-    const positions = ['과거', '현재', '미래'];
-    return positions[index] || '';
-  }
-  return '';
-};
+
 
 // 카드 의미 가져오기
 const getCardMeaning = (card: DrawnCard, topic: string) => {
@@ -593,6 +727,8 @@ const regenerateAIInterpretation = async () => {
 };
 
 onMounted(async () => {
+  // 공유 기능 초기화 - shareReading 함수 내에서 동적으로 import하므로 여기서는 제거
+  
   console.log('🎴 [ReadingResult] onMounted 시작');
   console.log('🎴 readingId:', readingId.value);
   console.log('🎴 reading:', reading.value);
@@ -1389,6 +1525,20 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.15);
 }
 
+/* 공유 버튼 스타일 */
+.btn-share {
+  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-share:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+}
+
 /* 에러 상태 */
 .error-state {
   text-align: center;
@@ -1623,5 +1773,19 @@ onMounted(async () => {
     top: 16%;
     right: 0;
   }
+}
+/* 공유 버튼 스타일 */
+.btn-share {
+  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.btn-share:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
 }
 </style>

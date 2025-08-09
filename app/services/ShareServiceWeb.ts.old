@@ -1,0 +1,418 @@
+// services/ShareServiceWeb.ts
+// 웹 환경 안전한 타로 점괘 공유 기능 서비스
+// 작성일: 2024-12-28
+
+import { supabase } from './supabase';
+import type { TarotCard } from '../types/tarot';
+
+// DailyInterpretation 인터페이스 정의
+export interface DailyInterpretation {
+  fortuneIndex?: {
+    overall: number;
+    love: number;
+    money: number;
+    health: number;
+    work: number;
+  };
+  detailedFortune?: {
+    mainMessage: string;
+    keyPoint?: string;
+    advice?: string;
+  };
+  luckyItems?: {
+    color: string;
+    number: number;
+  };
+}
+
+// Reading 인터페이스 정의
+export interface Reading {
+  id?: string;
+  userId?: string;
+  spreadId: string;
+  cards: Array<{
+    cardNumber?: number;
+    number?: number;
+    nameKr?: string;
+    name_kr?: string;
+    name: string;
+    orientation: 'upright' | 'reversed';
+    position?: {
+      index: number;
+      name: string;
+    };
+  }>;
+  customQuestion?: string;
+  overallMessage?: string;
+  aiInterpretation?: string;
+  createdAt?: Date;
+}
+
+// 공유 데이터 인터페이스
+export interface SharedReading {
+  id: string;
+  createdAt: Date;
+  expiresAt: Date;
+  spreadType: string;
+  cards: Array<{
+    cardNumber: number;
+    nameKr: string;
+    name: string;
+    orientation: 'upright' | 'reversed';
+    position?: {
+      index: number;
+      name: string;
+    };
+  }>;
+  customQuestion?: string;
+  basicInterpretation?: string;
+  aiInterpretation?: string;
+  sharedBy?: string;
+  viewCount: number;
+}
+
+// 오늘의 카드 공유 데이터 인터페이스
+export interface DailyCardShareData {
+  card: TarotCard;
+  interpretation: DailyInterpretation;
+  date: Date;
+}
+
+export class ShareServiceWeb {
+  private baseUrl: string;
+  private capacitorShare: any = null;
+  private capacitor: any = null;
+
+  constructor() {
+    // 환경에 따라 URL 설정
+    this.baseUrl = import.meta.env.VITE_APP_URL || 
+                   (import.meta.env.DEV ? 'http://localhost:8082' : 'https://your-app.vercel.app');
+    
+    // Capacitor 플러그인 비동기 로드 (에러 무시)
+    this.loadCapacitorPlugins();
+  }
+
+  private async loadCapacitorPlugins() {
+    try {
+      // 동적 import로 Capacitor 플러그인 로드
+      const [capacitorCore, capacitorShare] = await Promise.all([
+        import('@capacitor/core').catch(() => null),
+        import('@capacitor/share').catch(() => null)
+      ]);
+      
+      if (capacitorCore) {
+        this.capacitor = capacitorCore.Capacitor;
+      }
+      if (capacitorShare) {
+        this.capacitorShare = capacitorShare.Share;
+      }
+    } catch (error) {
+      // 웹 환경에서는 에러 무시
+      console.log('Capacitor plugins not available in web environment');
+    }
+  }
+
+  /**
+   * 일반 점괘 결과를 공유 가능한 링크로 생성
+   */
+  async createShareLink(reading: Reading): Promise<string> {
+    try {
+      // 1. 공유 데이터 준비
+      const shareData = {
+        spread_type: reading.spreadId,
+        cards: reading.cards.map(card => ({
+          cardNumber: card.cardNumber || card.number || 0,
+          nameKr: card.nameKr || card.name_kr || '',
+          name: card.name || '',
+          orientation: card.orientation || 'upright',
+          position: card.position
+        })),
+        custom_question: reading.customQuestion || null,
+        basic_interpretation: reading.overallMessage || null,
+        ai_interpretation: reading.aiInterpretation || null,
+        shared_by: reading.userId || null
+      };
+      
+      console.log('Creating share link with data:', shareData);
+      
+      // 2. Supabase에 저장
+      const { data, error } = await supabase
+        .from('shared_readings')
+        .insert(shareData)
+        .select('id')
+        .single();
+      
+      if (error) {
+        console.error('Error creating share:', error);
+        throw error;
+      }
+      
+      // 3. 공유 URL 생성
+      const shareUrl = `${this.baseUrl}/share/${data.id}`;
+      console.log('Share URL created:', shareUrl);
+      
+      return shareUrl;
+      
+    } catch (error) {
+      console.error('공유 링크 생성 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 오늘의 카드를 공유 가능한 링크로 생성
+   */
+  async createDailyCardShareLink(data: DailyCardShareData): Promise<string> {
+    try {
+      // 오늘의 카드용 공유 데이터
+      const shareData = {
+        spread_type: 'daily_card',
+        cards: [{
+          cardNumber: data.card.number,
+          nameKr: data.card.name_kr,
+          name: data.card.name,
+          orientation: 'upright' as const,
+          position: null
+        }],
+        custom_question: null,
+        basic_interpretation: this.formatDailyInterpretation(data.interpretation),
+        ai_interpretation: null,
+        shared_by: null
+      };
+      
+      const { data: sharedData, error } = await supabase
+        .from('shared_readings')
+        .insert(shareData)
+        .select('id')
+        .single();
+      
+      if (error) throw error;
+      
+      return `${this.baseUrl}/share/${sharedData.id}`;
+      
+    } catch (error) {
+      console.error('오늘의 카드 공유 링크 생성 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 공유 메시지 생성
+   */
+  generateShareMessage(reading: Reading, shareUrl: string): string {
+    let message = '🔮 타로 점괘 결과를 공유합니다\n\n';
+    
+    // 커스텀 질문이 있으면 포함
+    if (reading.customQuestion) {
+      message += `❓ 질문: ${reading.customQuestion}\n\n`;
+    }
+    
+    // 스프레드 타입
+    const spreadNames: Record<string, string> = {
+      'one_card': '원 카드',
+      'three_card_timeline': '시간의 흐름 (3장)',
+      'celtic_cross': '켈틱 크로스 (10장)'
+    };
+    message += `📋 배열법: ${spreadNames[reading.spreadId] || reading.spreadId}\n\n`;
+    
+    // 뽑은 카드들
+    message += '🎴 뽑은 카드:\n';
+    reading.cards.forEach((card, index) => {
+      const position = card.position?.name || this.getPositionName(reading.spreadId, index);
+      const orientation = card.orientation === 'reversed' ? '(역)' : '';
+      message += `${index + 1}. ${position}: ${card.nameKr || card.name}${orientation}\n`;
+    });
+    
+    message += `\n👉 자세한 해석 보기\n${shareUrl}\n\n`;
+    message += '🎯 나만의 타로 - 매일 무료 타로 점';
+    
+    return message;
+  }
+
+  /**
+   * 오늘의 카드 공유 메시지 생성
+   */
+  generateDailyCardShareMessage(
+    card: TarotCard, 
+    interpretation: DailyInterpretation, 
+    shareUrl: string
+  ): string {
+    let message = `🔮 오늘의 타로 카드\n\n`;
+    message += `🎴 ${card.name_kr}\n\n`;
+    
+    // 운세 지수
+    if (interpretation?.fortuneIndex) {
+      message += `📊 오늘의 운세\n`;
+      const fi = interpretation.fortuneIndex;
+      message += `전체운: ${'⭐'.repeat(fi.overall)}\n`;
+      message += `애정운: ${'⭐'.repeat(fi.love)}\n`;
+      message += `금전운: ${'⭐'.repeat(fi.money)}\n`;
+      message += `건강운: ${'⭐'.repeat(fi.health)}\n\n`;
+    }
+    
+    // 주요 메시지
+    if (interpretation?.detailedFortune) {
+      message += `💫 ${interpretation.detailedFortune.mainMessage}\n\n`;
+    }
+    
+    // 행운 아이템
+    if (interpretation?.luckyItems) {
+      message += `🍀 행운의 아이템\n`;
+      message += `색상: ${interpretation.luckyItems.color} | `;
+      message += `숫자: ${interpretation.luckyItems.number}\n\n`;
+    }
+    
+    // 링크
+    message += `👉 상세 운세 보기\n${shareUrl}\n\n`;
+    message += `🎯 매일 무료 타로 - 나만의 타로`;
+    
+    return message;
+  }
+
+  /**
+   * 네이티브 공유 실행
+   */
+  async shareWithNative(title: string, text: string, url: string): Promise<boolean> {
+    try {
+      // 1. Capacitor 네이티브 환경 체크
+      if (this.capacitor?.isNativePlatform?.() && this.capacitorShare) {
+        await this.capacitorShare.share({
+          title: title,
+          text: text,
+          url: url,
+          dialogTitle: '공유하기'
+        });
+        return true;
+      }
+      
+      // 2. Web Share API 지원 체크
+      if (navigator.share) {
+        await navigator.share({
+          title: title,
+          text: text,
+          url: url
+        });
+        return true;
+      }
+      
+      // 3. 클립보드 복사 (폴백)
+      const fullText = `${title}\n\n${text}\n\n${url}`;
+      await navigator.clipboard.writeText(fullText);
+      
+      // alert 대신 return false로 처리하여 상위에서 showAlert 호출
+      console.log('Link copied to clipboard');
+      return false; // 클립보드 복사는 false 반환
+      
+    } catch (error) {
+      console.error('공유 실패:', error);
+      // 사용자가 공유를 취소한 경우는 에러로 처리하지 않음
+      if (error instanceof Error && error.name === 'AbortError') {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * 공유된 점괘 조회
+   */
+  async getSharedReading(shareId: string): Promise<SharedReading | null> {
+    try {
+      const { data, error } = await supabase
+        .from('shared_readings')
+        .select('*')
+        .eq('id', shareId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching shared reading:', error);
+        return null;
+      }
+      
+      // 만료 체크
+      if (new Date(data.expires_at) < new Date()) {
+        console.log('Shared reading has expired');
+        return null;
+      }
+      
+      return {
+        id: data.id,
+        createdAt: new Date(data.created_at),
+        expiresAt: new Date(data.expires_at),
+        spreadType: data.spread_type,
+        cards: data.cards,
+        customQuestion: data.custom_question,
+        basicInterpretation: data.basic_interpretation,
+        aiInterpretation: data.ai_interpretation,
+        sharedBy: data.shared_by,
+        viewCount: data.view_count
+      };
+      
+    } catch (error) {
+      console.error('공유 점괘 조회 실패:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 포지션 이름 가져오기 헬퍼
+   */
+  private getPositionName(spreadId: string, index: number): string {
+    const positions: Record<string, string[]> = {
+      'three_card_timeline': ['과거', '현재', '미래'],
+      'celtic_cross': [
+        '현재 내면', '현재 외부', '근본', '과거',
+        '드러나는 모습', '미래', '내가 보는 나',
+        '남이 보는 나', '예상하는 결과', '실제 결과'
+      ]
+    };
+    
+    return positions[spreadId]?.[index] || `카드 ${index + 1}`;
+  }
+
+  /**
+   * 오늘의 카드 해석을 텍스트로 포맷팅
+   */
+  private formatDailyInterpretation(interpretation: DailyInterpretation): string {
+    let text = '';
+    
+    // 운세 지수
+    if (interpretation.fortuneIndex) {
+      text += '📊 오늘의 운세 지수\n';
+      for (const [key, value] of Object.entries(interpretation.fortuneIndex)) {
+        const label = this.getFortuneLabel(key);
+        text += `${label}: ${'⭐'.repeat(value)}\n`;
+      }
+      text += '\n';
+    }
+    
+    // 상세 운세
+    if (interpretation.detailedFortune) {
+      text += '🔮 오늘의 메시지\n';
+      text += interpretation.detailedFortune.mainMessage + '\n\n';
+      
+      if (interpretation.detailedFortune.keyPoint) {
+        text += `💫 핵심 포인트: ${interpretation.detailedFortune.keyPoint}\n`;
+      }
+      if (interpretation.detailedFortune.advice) {
+        text += `💡 조언: ${interpretation.detailedFortune.advice}\n`;
+      }
+    }
+    
+    return text;
+  }
+
+  private getFortuneLabel(key: string): string {
+    const labels: Record<string, string> = {
+      overall: '전체운',
+      love: '애정운',
+      money: '금전운',
+      health: '건강운',
+      work: '학업/업무운'
+    };
+    return labels[key] || key;
+  }
+}
+
+// 싱글톤 인스턴스
+export const shareService = new ShareServiceWeb();

@@ -138,7 +138,7 @@
             <template #action-button>
               <button 
                 class="btn-action btn-result"
-                @click="goToResult"
+                @click="handleInterpretationClick"
                 :disabled="!allCardsRevealed"
               >
                 해석 보기
@@ -160,7 +160,7 @@
             <template #action-button>
               <button 
                 class="btn-action btn-result"
-                @click="goToResult"
+                @click="handleInterpretationClick"
                 :disabled="!allCardsRevealed"
               >
                 해석 보기
@@ -182,7 +182,7 @@
             <template #action-button>
               <button 
                 class="btn-action btn-result"
-                @click="goToResult"
+                @click="handleInterpretationClick"
                 :disabled="!allCardsRevealed"
               >
                 해석 보기
@@ -370,6 +370,22 @@ const debugClick = () => {
   console.log('[CardDrawing] 현재 URL:', window.location.pathname);
 };
 
+// 상태 초기화 함수
+const resetState = () => {
+  console.log('🔄 [resetState] 상태 초기화 시작');
+  drawMethod.value = null;
+  isDrawing.value = false;
+  isComplete.value = false;
+  progress.value = 0;
+  drawnCards.value = [];
+  manualSelectedCards.value = [];
+  improvedInterpretation.value = null;
+  isGeneratingInterpretation.value = false;
+  interpretationProgress.value = 0;
+  isProcessingResult.value = false;
+  console.log('🔄 [resetState] 상태 초기화 완료');
+};
+
 onMounted(async () => {
   console.log('🎴 [CardDrawing] onMounted 시작');
   console.log('📌 [CardDrawing] 선택된 주제:', tarotStore.selectedTopic);
@@ -385,6 +401,9 @@ onMounted(async () => {
     isDrawing: isDrawing.value,
     isComplete: isComplete.value
   });
+  
+  // 상태 초기화
+  resetState();
   
   // DOM이 마운트되었는지 확인
   console.log('🔍 [CardDrawing] DOM 확인:', {
@@ -434,6 +453,11 @@ const goBack = () => {
 
 // 드로우 방법 선택
 const selectDrawMethod = (method: 'random' | 'manual') => {
+  console.log('🎲 [selectDrawMethod] 방법 선택:', method);
+  
+  // 새로운 점괘 시작 시 상태 초기화
+  resetState();
+  
   drawMethod.value = method;
   
   if (method === 'manual') {
@@ -572,6 +596,9 @@ const processManualSelection = async () => {
 
 const startDrawing = async () => {
   console.log('🎯 [startDrawing] 시작');
+  console.log('🎯 [startDrawing] 현재 시간:', new Date().toISOString());
+  console.log('🎯 [startDrawing] 현재 user:', userStore.user);
+  console.log('🎯 [startDrawing] isProcessingResult:', isProcessingResult.value);
   
   // 버튼 클릭 햇틱 피드백
   await nativeUtils.buttonTapHaptic();
@@ -609,6 +636,7 @@ const startDrawing = async () => {
 };
 
 const drawCards = async () => {
+  console.log('🎲 [drawCards] 카드 뽑기 시작');
   isDrawing.value = true;
   progress.value = 0;
 
@@ -628,9 +656,11 @@ const drawCards = async () => {
 
   // 카드 개수 (스프레드에 따라 결정)
   const cardCount = tarotStore.selectedSpread?.cardCount || 1;
+  console.log('🎲 [drawCards] 카드 개수:', cardCount);
   
   // 실제 타로카드 데이터에서 랜덤 선택
   const selectedCards = tarotStore.drawCards(cardCount);
+  console.log('🎲 [drawCards] 선택된 카드:', selectedCards);
 
 
   tarotStore.setTempDrawnCards(selectedCards);
@@ -640,18 +670,34 @@ const drawCards = async () => {
     orientation: card.orientation,
     revealed: false
   }));
+  console.log('🎲 [drawCards] drawnCards 설정 완료:', drawnCards.value);
 
   isDrawing.value = false;
   isComplete.value = true;
+  console.log('🎲 [drawCards] 카드 뽑기 완료, isComplete:', isComplete.value);
+
+  // 테스트를 위한 자동 카드 공개 (개발 환경에서만)
+  if (userStore.user?.email === 'test@example.com') {
+    console.log('🧪 [테스트] 2초 후 모든 카드 자동 공개');
+    setTimeout(async () => {
+      console.log('🧪 [테스트] 자동 카드 공개 실행');
+      await revealAllCards();
+      console.log('🧪 [테스트] 자동 카드 공개 완료');
+    }, 2000);
+  }
 
   // 통계용 카운트 증가 (기획 변경으로 무료 제한 없음)
   // userStore.incrementFreeReading();
 };
 
 const revealCard = async (index: number) => {
+  console.log('🃏 [revealCard] 카드 공개:', index);
   // 카드 공개 햇틱 피드백
   await nativeUtils.buttonTapHaptic();
   drawnCards.value[index].revealed = true;
+  console.log('🃏 [revealCard] 카드 공개 후 상태:', drawnCards.value[index]);
+  console.log('🃏 [revealCard] 전체 카드 공개 상태:', drawnCards.value.map(c => c.revealed));
+  console.log('🃏 [revealCard] allCardsRevealed:', allCardsRevealed.value);
   
   // 켈틱 크로스인 경우, 모든 카드가 공개되면 해석 생성
   if (isCelticCross.value && allCardsRevealed.value && !improvedInterpretation.value) {
@@ -661,15 +707,20 @@ const revealCard = async (index: number) => {
 
 // 모든 카드 일괄 뒤집기
 const revealAllCards = async () => {
+  console.log('🎭 [revealAllCards] 모든 카드 뒤집기 시작');
   // 햅틱 피드백
   await nativeUtils.buttonTapHaptic();
   
   // 모든 카드를 순차적으로 뒤집기 (애니메이션 효과)
   for (let i = 0; i < drawnCards.value.length; i++) {
     drawnCards.value[i].revealed = true;
+    console.log(`🎭 [revealAllCards] 카드 ${i} 공개됨`);
     // 카드 사이에 약간의 딜레이 추가
     await new Promise(resolve => setTimeout(resolve, 100));
   }
+  
+  console.log('🎭 [revealAllCards] 모든 카드 공개 완료');
+  console.log('🎭 [revealAllCards] allCardsRevealed:', allCardsRevealed.value);
   
   // 켈틱 크로스인 경우 해석 생성
   if (isCelticCross.value && !improvedInterpretation.value) {
@@ -707,10 +758,37 @@ const generateCelticCrossInterpretation = async () => {
 // 중복 호출 방지를 위한 플래그
 const isProcessingResult = ref(false);
 
+// 해석 보기 버튼 클릭 핸들러
+const handleInterpretationClick = async () => {
+  console.log('🔘 [handleInterpretationClick] 버튼 클릭 됨!');
+  console.log('🔘 [handleInterpretationClick] 현재 시간:', new Date().toISOString());
+  console.log('🔘 [handleInterpretationClick] 현재 allCardsRevealed:', allCardsRevealed.value);
+  console.log('🔘 [handleInterpretationClick] 현재 drawnCards:', drawnCards.value);
+  console.log('🔘 [handleInterpretationClick] userStore.user:', userStore.user);
+  console.log('🔘 [handleInterpretationClick] userStore.isPremium:', userStore.isPremium);
+  console.log('🔘 [handleInterpretationClick] 테스트 계정 여부:', userStore.user?.email === 'test@example.com');
+  
+  // 버튼 클릭 시 햅틱 피드백
+  await nativeUtils.buttonTapHaptic();
+  
+  // goToResult 함수 호출
+  try {
+    console.log('🔘 [handleInterpretationClick] goToResult 호출 시작');
+    await goToResult();
+    console.log('🔘 [handleInterpretationClick] goToResult 호출 완료');
+  } catch (error) {
+    console.error('🔘 [handleInterpretationClick] goToResult 에러:', error);
+  }
+};
+
 const goToResult = async () => {
   console.log('🎯 [goToResult] 함수 호출됨!');
   console.log('🎯 [goToResult] isProcessingResult:', isProcessingResult.value);
   console.log('🎯 [goToResult] allCardsRevealed:', allCardsRevealed.value);
+  console.log('🎯 [goToResult] drawnCards:', drawnCards.value);
+  console.log('🎯 [goToResult] 현재 시간:', new Date().toISOString());
+  console.log('🎯 [goToResult] spreadId:', tarotStore.selectedSpread?.spreadId);
+  console.log('🎯 [goToResult] 사용자 이메일:', userStore.user?.email);
   
   // 이미 처리 중이면 중복 호출 방지
   if (isProcessingResult.value) {
@@ -720,6 +798,7 @@ const goToResult = async () => {
   
   // 모든 카드가 공개되지 않았으면 경고
   if (!allCardsRevealed.value) {
+    console.log('🎯 [goToResult] 모든 카드가 공개되지 않음');
     await showAlert({
       title: '카드 공개 필요',
       message: '모든 카드를 먼저 공개해주세요!'
@@ -738,6 +817,14 @@ const goToResult = async () => {
   // 테스트 계정과 임시 프리미엄 확인
   const isTestAccount = userStore.user?.email === 'test@example.com';
   const hasTempPremium = adStatus.value.isTemporaryPremium;
+  
+  console.log('🎯 [goToResult] 광고 표시 체크:', {
+    isPremium: userStore.isPremium,
+    isSimpleSpread,
+    hasTempPremium,
+    isTestAccount,
+    spreadId
+  });
   
   if (!userStore.isPremium && !isSimpleSpread && !hasTempPremium) {
     console.log('📺 [goToResult] 무료 사용자 - 광고 표시');
@@ -970,7 +1057,9 @@ const goToResult = async () => {
     isGeneratingInterpretation.value = false;
     
     // 점괴 결과 화면으로 이동
+    console.log('🎯 [goToResult] 결과 화면으로 이동 시도:', `/reading-result?readingId=${reading.id}`);
     router.push(`/reading-result?readingId=${reading.id}`);
+    console.log('🎯 [goToResult] router.push 호출 완료');
   } catch (error) {
     
     // 프로그레스 정리
@@ -1055,6 +1144,7 @@ const onImageError = (event: Event) => {
 
 // 유료 배열 하루 1회 제한 안내
 const showPremiumSpreadLimit = async () => {
+  console.log('💵 [showPremiumSpreadLimit] 호출됨');
   const spreadNames = {
     'celtic_cross': '켈틱 크로스',
     'seven_star': '세븐 스타',
@@ -1063,9 +1153,12 @@ const showPremiumSpreadLimit = async () => {
   
   const spreadId = tarotStore.selectedSpread?.spreadId || '';
   const spreadName = spreadNames[spreadId] || '유료 배열';
+  console.log('💵 [showPremiumSpreadLimit] spreadId:', spreadId);
+  console.log('💵 [showPremiumSpreadLimit] spreadName:', spreadName);
   
   // 테스트 계정인지 확인
   const isTestAccount = userStore.user?.email === 'test@example.com';
+  console.log('💵 [showPremiumSpreadLimit] isTestAccount:', isTestAccount);
   
   if (isTestAccount) {
     console.log('🧪 [showPremiumSpreadLimit] 테스트 계정 - 유료 배열 제한 없이 진행');
@@ -1083,10 +1176,10 @@ const showPremiumSpreadLimit = async () => {
   const hoursUntilReset = Math.floor((tomorrow.getTime() - now.getTime()) / (1000 * 60 * 60));
   const minutesUntilReset = Math.floor(((tomorrow.getTime() - now.getTime()) % (1000 * 60 * 60)) / (1000 * 60));
   
-  await alert(
-    `${spreadName} 배열법은 하루에 한 번만 사용할 수 있습니다.\n\n다음 사용 가능 시간: ${hoursUntilReset}시간 ${minutesUntilReset}분 후\n\n💡 무료 배열법(1장, 3장)은 광고 시청으로 무제한 이용 가능합니다!`,
-    '유료 배열 사용 제한'
-  );
+  await showAlert({
+    title: '유료 배열 사용 제한',
+    message: `${spreadName} 배열법은 하루에 한 번만 사용할 수 있습니다.\n\n다음 사용 가능 시간: ${hoursUntilReset}시간 ${minutesUntilReset}분 후\n\n💡 무료 배열법(1장, 3장)은 광고 시청으로 무제한 이용 가능합니다!`
+  });
   
   // 스프레드 선택 화면으로 돌아가기
   router.push('/spread-selection');

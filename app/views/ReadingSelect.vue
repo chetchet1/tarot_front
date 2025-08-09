@@ -618,6 +618,7 @@ const startReading = async () => {
       title: '선택 필요',
       message: '카드를 뽑을 수 없습니다. 선택 사항을 확인해주세요.'
     });
+    isStarting.value = false;
     return;
   }
   
@@ -628,6 +629,7 @@ const startReading = async () => {
       title: '업데이트 중',
       message: `${spreadName} 배열법은 현재 업데이트 중입니다!\n\n빠른 시일 내에 서비스를 재개할 예정입니다.`
     });
+    isStarting.value = false;
     return;
   }
   
@@ -652,6 +654,7 @@ const startReading = async () => {
       title: '오류',
       message: '주제가 올바르게 선택되지 않았습니다.'
     });
+    isStarting.value = false;
     return;
   }
   
@@ -661,6 +664,7 @@ const startReading = async () => {
       title: '오류',
       message: '배열법이 올바르게 선택되지 않았습니다.'
     });
+    isStarting.value = false;
     return;
   }
   
@@ -669,19 +673,22 @@ const startReading = async () => {
       if (userStore.currentUser && !userStore.currentUser.isAnonymous && 
           userStore.currentUser.email === 'test@example.com' && 
           !userStore.isPremium && isPremiumSpread(selectedSpread.value)) {
-        // 테스트 계정이고 이미 사용했는지 체크
+        // 테스트 계정은 매번 확인 메시지 표시
         const hasUsed = await hasUsedPremiumSpreadToday(userStore.currentUser.id);
-        if (hasUsed) {
-          const confirmResult = await showConfirm({
-            title: '테스트 계정 확인',
-            message: '테스트 계정이시군요!\n\n정상적으로는 하루 1회만 사용 가능하지만,\n개발 테스트를 위해 허용합니다.\n\n계속하시겠습니까?',
-            confirmText: '계속하기',
-            cancelText: '취소'
-          });
-          
-          if (!confirmResult) {
-            return;
-          }
+        const message = hasUsed 
+          ? '테스트 계정이시군요!\n\n정상적으로는 하루 1회만 사용 가능하지만,\n개발 테스트를 위해 허용합니다.\n\n계속하시겠습니까?'
+          : '테스트 계정으로 유료 배열을 사용합니다.\n\n테스트 목적으로 무제한 사용 가능합니다.\n\n계속하시겠습니까?';
+        
+        const confirmResult = await showConfirm({
+          title: '🧪 테스트 계정 확인',
+          message: message,
+          confirmText: '계속하기',
+          cancelText: '취소'
+        });
+        
+        if (!confirmResult) {
+          isStarting.value = false;
+          return;
         }
       }
       
@@ -723,6 +730,7 @@ const startReading = async () => {
           title: '오류',
           message: '주제 저장 중 오류가 발생했습니다.'
         });
+        isStarting.value = false;
         return;
       }
       
@@ -735,6 +743,7 @@ const startReading = async () => {
           title: '오류',
           message: '배열법 저장 중 오류가 발생했습니다.'
         });
+        isStarting.value = false;
         return;
       }
       

@@ -51,7 +51,8 @@ export class AdManager {
       return { 
         isPremium: false,
         canUseFreeReading: true,
-        incrementFreeReading: () => {}
+        incrementFreeReading: () => {},
+        user: null // user 속성 추가
       };
     }
     
@@ -198,6 +199,14 @@ export class AdManager {
       if (isTestAccount) {
         console.log('🔍 [AdManager.startReading] 테스트 계정 - 유료 배열 제한 없음');
         // 테스트 계정은 제한 없이 진행
+        // 테스트를 위한 알림 표시
+        setTimeout(async () => {
+          const { showAlert } = await import('../utils/alerts');
+          await showAlert({
+            title: '🧪 테스트 계정',
+            message: '테스트 계정은 유료 배열을 무제한 사용할 수 있습니다.'
+          });
+        }, 100);
         return true;
       } else {
         // 유료 배열인 경우, 오늘 사용 여부 확인

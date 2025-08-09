@@ -1,0 +1,71 @@
+// 간단한 공유 서비스 (디버깅용)
+import { supabase } from './supabase';
+
+// 공유 데이터 인터페이스
+export interface SharedReading {
+  id: string;
+  createdAt: Date;
+  expiresAt: Date;
+  spreadType: string;
+  cards: Array<{
+    cardNumber: number;
+    nameKr: string;
+    name: string;
+    orientation: 'upright' | 'reversed';
+    position?: {
+      index: number;
+      name: string;
+    };
+  }>;
+  customQuestion?: string;
+  basicInterpretation?: string;
+  aiInterpretation?: string;
+  sharedBy?: string;
+  viewCount: number;
+}
+
+export class ShareServiceSimple {
+  /**
+   * 공유된 점괘 조회
+   */
+  async getSharedReading(shareId: string): Promise<SharedReading | null> {
+    try {
+      const { data, error } = await supabase
+        .from('shared_readings')
+        .select('*')
+        .eq('id', shareId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching shared reading:', error);
+        return null;
+      }
+      
+      // 만료 체크
+      if (new Date(data.expires_at) < new Date()) {
+        console.log('Shared reading has expired');
+        return null;
+      }
+      
+      return {
+        id: data.id,
+        createdAt: new Date(data.created_at),
+        expiresAt: new Date(data.expires_at),
+        spreadType: data.spread_type,
+        cards: data.cards,
+        customQuestion: data.custom_question,
+        basicInterpretation: data.basic_interpretation,
+        aiInterpretation: data.ai_interpretation,
+        sharedBy: data.shared_by,
+        viewCount: data.view_count || 0
+      };
+      
+    } catch (error) {
+      console.error('공유 점괘 조회 실패:', error);
+      return null;
+    }
+  }
+}
+
+// 싱글톤 인스턴스
+export const shareServiceSimple = new ShareServiceSimple();
