@@ -159,14 +159,8 @@ const showDailyCard = async () => {
   console.log('유료 여부:', userStore.isPremium);
   console.log('사용자:', userStore.currentUser?.email);
   
-  // 공통 Alert 사용
-  await showAlert({
-    title: '오늘의 카드',
-    message: '해당 기능은 개발중입니다.'
-  });
-  
-  // TODO: 오늘의 카드 기능 구현 예정
-  // router.push('/card-drawing?spread=daily');
+  // 오늘의 카드 페이지로 이동
+  router.push('/daily-card');
 };
 
 const toggleUserMenu = (event: MouseEvent) => {

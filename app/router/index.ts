@@ -83,6 +83,12 @@ const routes = [
     component: () => import('../views/TestPremium.vue'),
     meta: { requiresAuth: true }
   },
+  {
+    path: '/daily-card',
+    name: 'DailyCard',
+    component: () => import('../views/DailyCard.vue'),
+    meta: { requiresAuth: true }
+  },
 ];
 
 const router = createRouter({

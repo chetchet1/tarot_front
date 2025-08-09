@@ -101,9 +101,99 @@ class MockAdMobService implements AdMobService {
   }
 
   async showRewardedAd(): Promise<boolean> {
-    console.log('🌐 [Web] 리워드 광고 표시 (모킹됨)');
+    console.log('🌐 [Web] 15초 강제 시청 광고 표시 (모킹됨)');
+    console.log('🌐 [Web] 현재 시간:', new Date().toISOString());
+    
+    // 15초 강제 시청 광고 시뮬레이션
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+    `;
+    
+    let timeRemaining = 15;
+    let completed = false;
+    
+    const updateOverlay = () => {
+      overlay.innerHTML = `
+        <div style="text-align: center;">
+          <h2 style="margin-bottom: 20px;">🎬 리워드 광고 시뮬레이션</h2>
+          <p style="font-size: 24px; font-weight: bold;">15초 강제 시청 광고</p>
+          <p style="font-size: 18px; margin-top: 20px; color: #ffd700;">${timeRemaining}초 남음</p>
+          <div style="margin-top: 30px; font-size: 72px;">📺</div>
+          <div style="margin-top: 20px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+            <p style="font-size: 16px;">실제 앱에서는 동영상 광고가 재생됩니다</p>
+            <p style="font-size: 14px; margin-top: 10px; opacity: 0.8;">광고를 끝까지 시청하면 보상을 받습니다</p>
+          </div>
+          ${timeRemaining > 0 ? 
+            `<p style="margin-top: 30px; font-size: 14px; opacity: 0.7;">스킵 불가능 (${timeRemaining}초)</p>` : 
+            `<button onclick="this.parentElement.parentElement.remove()" style="
+              margin-top: 30px;
+              padding: 12px 24px;
+              font-size: 16px;
+              background: #4CAF50;
+              color: white;
+              border: none;
+              border-radius: 5px;
+              cursor: pointer;
+            ">✅ 보상 받기</button>`
+          }
+        </div>
+      `;
+    };
+    
+    updateOverlay();
+    document.body.appendChild(overlay);
+    
     return new Promise(resolve => {
-      setTimeout(() => resolve(true), 2000);
+      const timer = setInterval(() => {
+        timeRemaining--;
+        updateOverlay();
+        
+        if (timeRemaining <= 0) {
+          clearInterval(timer);
+          completed = true;
+          
+          // 보상 받기 버튼 클릭 대기
+          const button = overlay.querySelector('button');
+          if (button) {
+            button.addEventListener('click', () => {
+              console.log('🌐 [Web] 사용자가 보상을 받았습니다');
+              resolve(true);
+            });
+          }
+        }
+      }, 1000);
+      
+      // ESC 키나 백 버튼 방지
+      const preventClose = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && timeRemaining > 0) {
+          e.preventDefault();
+          console.log('🌐 [Web] 광고 중 ESC 키 차단됨');
+        }
+      };
+      
+      document.addEventListener('keydown', preventClose);
+      
+      // 광고 종료 시 이벤트 리스너 제거
+      overlay.addEventListener('DOMNodeRemoved', () => {
+        document.removeEventListener('keydown', preventClose);
+        if (!completed) {
+          console.log('🌐 [Web] 광고가 중단되었습니다');
+          resolve(false);
+        }
+      });
     });
   }
 
@@ -242,10 +332,14 @@ class RealAdMobService implements AdMobService {
         await this.initializeAdMob();
       }
 
-      console.log('📱 [Mobile] 리워드 광고 로드 중...');
+      console.log('📱 [Mobile] 15초 강제 시청 리워드 광고 로드 중...');
+      console.log('📱 [Mobile] 현재 시간:', new Date().toISOString());
       
       const { AdMob, RewardAdPluginEvents } = await import('@capacitor-community/admob');
 
+      // 기존 리스너 제거
+      this.removeAllListeners();
+      
       // 광고 로드
       await AdMob.prepareRewardVideoAd({
         adId: adMobConfig.rewardedAdId,
@@ -255,30 +349,68 @@ class RealAdMobService implements AdMobService {
       // 광고 표시
       return new Promise((resolve) => {
         let rewardEarned = false;
+        let resolved = false;
 
-        // 리워드 획득 이벤트
-        AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward) => {
+        // 리워드 획득 이벤트 (사용자가 광고를 끝까지 시청)
+        const rewardedListener = AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward) => {
           console.log('📱 [Mobile] 리워드 광고 보상 획득:', reward);
+          console.log('📱 [Mobile] 15초 강제 시청 완료');
           rewardEarned = true;
         });
+        this.listenerMap.set('rewarded', rewardedListener);
 
         // 광고 닫힘 이벤트
-        AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
-          console.log('📱 [Mobile] 리워드 광고 닫힘, 보상 획득:', rewardEarned);
-          resolve(rewardEarned);
+        const dismissedListener = AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
+          if (!resolved) {
+            resolved = true;
+            console.log('📱 [Mobile] 리워드 광고 닫힘');
+            console.log('📱 [Mobile] 보상 획득 여부:', rewardEarned);
+            this.removeAllListeners();
+            resolve(rewardEarned);
+          }
         });
+        this.listenerMap.set('dismissed', dismissedListener);
 
         // 광고 실패 이벤트
-        AdMob.addListener(RewardAdPluginEvents.FailedToLoad, (error) => {
-          console.error('📱 [Mobile] 리워드 광고 로드 실패:', error);
-          resolve(false);
+        const failedListener = AdMob.addListener(RewardAdPluginEvents.FailedToLoad, (error) => {
+          if (!resolved) {
+            resolved = true;
+            console.error('📱 [Mobile] 리워드 광고 로드 실패:', error);
+            this.removeAllListeners();
+            resolve(false);
+          }
         });
+        this.listenerMap.set('failed', failedListener);
+
+        // 광고 표시 시작 이벤트
+        const showedListener = AdMob.addListener(RewardAdPluginEvents.Showed, () => {
+          console.log('📱 [Mobile] 리워드 광고 표시 시작 (15초 강제 시청)');
+        });
+        this.listenerMap.set('showed', showedListener);
 
         // 광고 표시
-        AdMob.showRewardVideoAd();
+        AdMob.showRewardVideoAd().catch((error) => {
+          if (!resolved) {
+            resolved = true;
+            console.error('📱 [Mobile] 리워드 광고 표시 실패:', error);
+            this.removeAllListeners();
+            resolve(false);
+          }
+        });
+        
+        // 타임아웃 설정 (60초 - 리워드 광고는 더 길 수 있음)
+        setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            console.warn('📱 [Mobile] 리워드 광고 타임아웃');
+            this.removeAllListeners();
+            resolve(rewardEarned); // 타임아웃 시 현재까지의 보상 상태 반환
+          }
+        }, 60000);
       });
     } catch (error) {
       console.error('📱 [Mobile] 리워드 광고 표시 실패:', error);
+      this.removeAllListeners();
       return false;
     }
   }
