@@ -5,6 +5,7 @@ export interface TarotCard {
   arcana: 'major' | 'minor';
   number?: number;
   suit?: 'cups' | 'wands' | 'swords' | 'pentacles';
+  court?: 'page' | 'knight' | 'queen' | 'king';  // 코트 카드 타입 추가
   keywords?: {
     upright: string[];
     reversed: string[];

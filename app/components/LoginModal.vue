@@ -288,13 +288,30 @@ export default {
       errorMessage.value = '';
       successMessage.value = '';
 
+      // 전체 타임아웃 설정 (10초)
+      const timeoutId = setTimeout(() => {
+        if (isLoading.value) {
+          console.log('인증 타임아웃');
+          isLoading.value = false;
+          errorMessage.value = '요청 시간이 초과되었습니다. 다시 시도해주세요.';
+        }
+      }, 10000);
+
       try {
         if (isLoginMode.value) {
           // 로그인
+          console.log('로그인 시도:', formData.value.email);
           await userStore.login(formData.value.email, formData.value.password);
           
+          // 타임아웃 클리어
+          clearTimeout(timeoutId);
+          
           // 로그인 성공 메시지
+          console.log('로그인 성공, 모달 닫기');
           successMessage.value = '로그인 성공! 잠시만 기다려주세요...';
+          
+          // 즉시 로딩 해제
+          isLoading.value = false;
           
           // 로그인 성공 후 처리
           setTimeout(() => {
@@ -309,6 +326,12 @@ export default {
             { name: formData.value.name }
           );
           
+          // 타임아웃 클리어
+          clearTimeout(timeoutId);
+          
+          // 즉시 로딩 해제
+          isLoading.value = false;
+          
           // 이메일 인증 모달 표시 이벤트 발생
           emit('show-email-verification', formData.value.email);
           
@@ -316,9 +339,10 @@ export default {
           closeModal();
         }
       } catch (error) {
-        errorMessage.value = getErrorMessage(error.message);
-      } finally {
+        console.error('인증 오류:', error);
+        clearTimeout(timeoutId);
         isLoading.value = false;
+        errorMessage.value = getErrorMessage(error.message || error);
       }
     };
 

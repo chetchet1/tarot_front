@@ -262,6 +262,8 @@ export const authService = {
     }
   },
 
+
+
   // Google 소셜 로그인
   async signInWithGoogle() {
     try {
@@ -327,8 +329,14 @@ export const authService = {
 
   // 로그아웃
   async signOut() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      console.log('✅ 로그아웃 성공');
+    } catch (error) {
+      console.error('❌ 로그아웃 실패:', error);
+      throw error;
+    }
   },
 
   // 세션 갱신
@@ -340,10 +348,16 @@ export const authService = {
 
   // 비밀번호 재설정 이메일 전송
   async resetPassword(email: string) {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`
-    });
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`
+      });
+      if (error) throw error;
+      console.log('✅ 비밀번호 재설정 이메일 전송');
+    } catch (error) {
+      console.error('❌ 비밀번호 재설정 실패:', error);
+      throw error;
+    }
   },
 
   // 비밀번호 업데이트
@@ -375,11 +389,17 @@ export const authService = {
 
   // 이메일 확인 재전송
   async resendConfirmation(email: string) {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: email
-    });
-    if (error) throw error;
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email
+      });
+      if (error) throw error;
+      console.log('✅ 인증 이메일 재전송');
+    } catch (error) {
+      console.error('❌ 인증 이메일 재전송 실패:', error);
+      throw error;
+    }
   }
 };
 

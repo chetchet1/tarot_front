@@ -42,6 +42,7 @@ export const useTarotStore = defineStore('tarot', () => {
   const selectedSpread = ref<any>(null);
   const tempDrawnCards = ref<DrawnCard[] | null>(null);
   const customQuestion = ref<string>('');  // 커스텀 질문 저장
+  const hasPendingPremiumUsage = ref<boolean>(false);  // 유료 배열 사용 대기 플래그
 
   // 로컬 스토리지 관련 함수들
   const saveReadingsToStorage = () => {
@@ -1317,6 +1318,21 @@ export const useTarotStore = defineStore('tarot', () => {
     localStorage.removeItem('tarotCustomQuestion');
   };
   
+  // 유료 배열 사용 플래그 관리
+  const setPremiumSpreadUsage = (hasUsage: boolean) => {
+    hasPendingPremiumUsage.value = hasUsage;
+    console.log('[TarotStore] setPremiumSpreadUsage:', hasUsage);
+  };
+  
+  const getPremiumSpreadUsage = () => {
+    return hasPendingPremiumUsage.value;
+  };
+  
+  const clearPremiumSpreadUsage = () => {
+    hasPendingPremiumUsage.value = false;
+    console.log('[TarotStore] clearPremiumSpreadUsage');
+  };
+  
   // 개선된 해석 저장 (켈틱 크로스 등)
   const improvedInterpretation = ref<any>(null);
   
@@ -1375,6 +1391,9 @@ export const useTarotStore = defineStore('tarot', () => {
     setImprovedInterpretation,
     getImprovedInterpretation,
     clearImprovedInterpretation,
-    updateReading
+    updateReading,
+    setPremiumSpreadUsage,
+    getPremiumSpreadUsage,
+    clearPremiumSpreadUsage
   };
 });

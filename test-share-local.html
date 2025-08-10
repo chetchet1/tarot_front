@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>공유 기능 로컬 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+        }
+        button {
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #7c3aed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+        pre {
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .success {
+            color: #10b981;
+        }
+        .error {
+            color: #ef4444;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔮 타로 공유 기능 로컬 테스트</h1>
+    
+    <div>
+        <h2>1. Supabase 연결 테스트</h2>
+        <button onclick="testSupabaseConnection()">연결 테스트</button>
+        <div id="supabase-result"></div>
+    </div>
+    
+    <div>
+        <h2>2. 테스트 공유 데이터 생성</h2>
+        <button onclick="createTestShare('celtic_cross')">켈틱 크로스 테스트 데이터</button>
+        <button onclick="createTestShare('three_card')">3카드 테스트 데이터</button>
+        <button onclick="createTestShare('daily_card')">오늘의 카드 테스트 데이터</button>
+        <div id="create-result"></div>
+    </div>
+    
+    <div>
+        <h2>3. 공유 ID로 데이터 조회</h2>
+        <input type="text" id="share-id" placeholder="공유 ID 입력 (예: test123)">
+        <button onclick="fetchShareData()">데이터 조회</button>
+        <div id="fetch-result"></div>
+    </div>
+    
+    <div>
+        <h2>4. 최근 공유 목록</h2>
+        <button onclick="fetchRecentShares()">최근 5개 조회</button>
+        <div id="recent-result"></div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        
+        // Supabase 클라이언트 초기화
+        const supabase = createClient(
+            'https://yxywzsmggvxxujuplyly.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4eXd6c21nZ3Z4eHVqdXBseWx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1NTk2ODUsImV4cCI6MjA2OTEzNTY4NX0.8w3JYOmbmJKdzz9H0_GfgspIfb0SfjjOvkyxPNvFVSM'
+        );
+        
+        window.supabase = supabase;
+        
+        // 1. Supabase 연결 테스트
+        window.testSupabaseConnection = async function() {
+            const resultDiv = document.getElementById('supabase-result');
+            try {
+                const { data, error } = await supabase
+                    .from('shared_readings')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) throw error;
+                
+                resultDiv.innerHTML = `<div class="success">✅ Supabase 연결 성공!</div>`;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ 연결 실패: ${error.message}</div>`;
+            }
+        }
+        
+        // 2. 테스트 공유 데이터 생성
+        window.createTestShare = async function(type) {
+            const resultDiv = document.getElementById('create-result');
+            resultDiv.innerHTML = '<div>생성 중...</div>';
+            
+            try {
+                let testData;
+                
+                if (type === 'celtic_cross') {
+                    testData = {
+                        spread_type: 'celtic_cross',
+                        cards: Array.from({length: 10}, (_, i) => ({
+                            cardNumber: i,
+                            nameKr: `메이저 카드 ${i}`,
+                            name: `Major Card ${i}`,
+                            orientation: i % 2 === 0 ? 'upright' : 'reversed',
+                            position: i
+                        })),
+                        custom_question: '테스트 켈틱 크로스 질문',
+                        basic_interpretation: '켈틱 크로스 기본 해석입니다.',
+                        ai_interpretation: '켈틱 크로스 AI 해석입니다. 매우 상세한 해석...',
+                        is_active: true,
+                        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                    };
+                } else if (type === 'three_card') {
+                    testData = {
+                        spread_type: 'three_card_timeline',
+                        cards: [
+                            { cardNumber: 0, nameKr: '바보', name: 'The Fool', orientation: 'upright', position: 0 },
+                            { cardNumber: 1, nameKr: '마법사', name: 'The Magician', orientation: 'reversed', position: 1 },
+                            { cardNumber: 2, nameKr: '여사제', name: 'The High Priestess', orientation: 'upright', position: 2 }
+                        ],
+                        custom_question: '나의 미래는 어떻게 될까요?',
+                        basic_interpretation: '과거, 현재, 미래를 나타내는 3장의 카드입니다.',
+                        ai_interpretation: '당신의 여정은 새로운 시작에서 시작되어...',
+                        is_active: true,
+                        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                    };
+                } else if (type === 'daily_card') {
+                    testData = {
+                        spread_type: 'daily_card',
+                        cards: [
+                            { cardNumber: 19, nameKr: '태양', name: 'The Sun', orientation: 'upright', position: 0 }
+                        ],
+                        custom_question: '오늘의 운세',
+                        basic_interpretation: '밝고 긍정적인 하루가 될 것입니다.',
+                        ai_interpretation: JSON.stringify({
+                            fortuneIndex: {
+                                overall: 5,
+                                love: 4,
+                                money: 5,
+                                health: 4,
+                                work: 5
+                            },
+                            detailedFortune: {
+                                mainMessage: '오늘은 태양처럼 밝은 에너지가 당신을 감싸는 날입니다.',
+                                keyPoint: '자신감을 가지고 도전하세요',
+                                caution: '너무 낙관적이지 않도록 주의',
+                                luckyMoment: '오후 3시경'
+                            },
+                            luckyItems: {
+                                color: '황금색',
+                                number: '19',
+                                direction: '남쪽',
+                                activity: '야외 활동'
+                            },
+                            dailyQuote: '태양은 항상 구름 뒤에 있다'
+                        }),
+                        is_active: true,
+                        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                    };
+                }
+                
+                const { data, error } = await supabase
+                    .from('shared_readings')
+                    .insert(testData)
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                
+                const shareUrl = `http://localhost:8082/s/${data.id}`;
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ 공유 데이터 생성 성공!<br>
+                        ID: <strong>${data.id}</strong><br>
+                        URL: <a href="${shareUrl}" target="_blank" style="color: #8b5cf6">${shareUrl}</a>
+                    </div>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ 생성 실패: ${error.message}</div>`;
+            }
+        }
+        
+        // 3. 공유 데이터 조회
+        window.fetchShareData = async function() {
+            const shareId = document.getElementById('share-id').value;
+            const resultDiv = document.getElementById('fetch-result');
+            
+            if (!shareId) {
+                resultDiv.innerHTML = '<div class="error">공유 ID를 입력하세요</div>';
+                return;
+            }
+            
+            try {
+                const { data, error } = await supabase
+                    .from('shared_readings')
+                    .select('*')
+                    .eq('id', shareId)
+                    .eq('is_active', true)
+                    .single();
+                
+                if (error) throw error;
+                
+                if (!data) {
+                    resultDiv.innerHTML = '<div class="error">데이터를 찾을 수 없습니다</div>';
+                    return;
+                }
+                
+                // 만료 체크
+                const expiresAt = new Date(data.expires_at);
+                const now = new Date();
+                const isExpired = expiresAt < now;
+                
+                resultDiv.innerHTML = `
+                    <div class="${isExpired ? 'error' : 'success'}">
+                        ${isExpired ? '⏰ 만료됨' : '✅ 유효함'}<br>
+                        만료시간: ${expiresAt.toLocaleString()}<br>
+                        스프레드: ${data.spread_type}<br>
+                        카드 수: ${data.cards.length}
+                    </div>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ 조회 실패: ${error.message}</div>`;
+            }
+        }
+        
+        // 4. 최근 공유 목록
+        window.fetchRecentShares = async function() {
+            const resultDiv = document.getElementById('recent-result');
+            
+            try {
+                const { data, error } = await supabase
+                    .from('shared_readings')
+                    .select('id, spread_type, created_at, expires_at, is_active')
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+                
+                if (error) throw error;
+                
+                let html = '<div class="success">최근 공유 목록:</div><ul>';
+                data.forEach(item => {
+                    const isExpired = new Date(item.expires_at) < new Date();
+                    html += `
+                        <li>
+                            ID: <strong>${item.id}</strong> | 
+                            타입: ${item.spread_type} | 
+                            생성: ${new Date(item.created_at).toLocaleString()} |
+                            상태: ${isExpired ? '❌ 만료' : '✅ 활성'}
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ 조회 실패: ${error.message}</div>`;
+            }
+        }
+        
+        // 페이지 로드 시 자동으로 연결 테스트
+        window.addEventListener('load', () => {
+            testSupabaseConnection();
+        });
+    </script>
+</body>
+</html>

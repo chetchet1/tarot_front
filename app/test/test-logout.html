@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그아웃 테스트</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 500px;
+      width: 100%;
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      background: linear-gradient(135deg, #A855F7 0%, #7C3AED 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .status {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .status-item:last-child {
+      border-bottom: none;
+    }
+    
+    .status-label {
+      font-weight: 600;
+      color: #A855F7;
+    }
+    
+    .status-value {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    button {
+      background: linear-gradient(135deg, #A855F7 0%, #7C3AED 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 15px 20px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(168, 85, 247, 0.3);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .console {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .console-line {
+      margin: 5px 0;
+      opacity: 0.8;
+    }
+    
+    .console-line.error {
+      color: #ff6b6b;
+    }
+    
+    .console-line.success {
+      color: #51cf66;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔮 로그아웃 테스트</h1>
+    
+    <div class="status">
+      <div class="status-item">
+        <span class="status-label">현재 사용자:</span>
+        <span class="status-value" id="currentUser">확인 중...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">로그인 상태:</span>
+        <span class="status-value" id="loginStatus">확인 중...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">로딩 상태:</span>
+        <span class="status-value" id="loadingStatus">false</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">로컬 스토리지:</span>
+        <span class="status-value" id="localStorageStatus">확인 중...</span>
+      </div>
+    </div>
+    
+    <div class="button-group">
+      <button id="logoutBtn" onclick="testLogout()">
+        로그아웃 테스트
+      </button>
+      <button onclick="checkStatus()">
+        상태 새로고침
+      </button>
+      <button onclick="clearConsole()">
+        콘솔 지우기
+      </button>
+    </div>
+    
+    <div class="console" id="console">
+      <div class="console-line">콘솔 준비...</div>
+    </div>
+  </div>
+  
+  <script>
+    // 콘솔에 로그 추가
+    function addLog(message, type = '') {
+      const consoleEl = document.getElementById('console');
+      const line = document.createElement('div');
+      line.className = `console-line ${type}`;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      consoleEl.appendChild(line);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+    
+    // 상태 체크
+    function checkStatus() {
+      addLog('상태 체크 시작...');
+      
+      // 로컬 스토리지 체크
+      const tarotUser = localStorage.getItem('tarot_user');
+      document.getElementById('localStorageStatus').textContent = 
+        tarotUser ? '데이터 있음' : '비어있음';
+      
+      if (tarotUser) {
+        try {
+          const userData = JSON.parse(tarotUser);
+          document.getElementById('currentUser').textContent = 
+            userData.email || (userData.isAnonymous ? '익명 사용자' : '알 수 없음');
+          document.getElementById('loginStatus').textContent = 
+            userData.isAnonymous === false ? '로그인됨' : '익명';
+          addLog(`사용자 데이터: ${JSON.stringify(userData, null, 2)}`, 'success');
+        } catch (e) {
+          addLog('사용자 데이터 파싱 오류', 'error');
+        }
+      } else {
+        document.getElementById('currentUser').textContent = '없음';
+        document.getElementById('loginStatus').textContent = '로그아웃됨';
+      }
+    }
+    
+    // 로그아웃 시뮬레이션
+    async function testLogout() {
+      addLog('로그아웃 시뮬레이션 시작...');
+      const logoutBtn = document.getElementById('logoutBtn');
+      logoutBtn.disabled = true;
+      logoutBtn.innerHTML = '로그아웃 중... <span class="loading"></span>';
+      
+      // isLoading 상태 시뮬레이션
+      document.getElementById('loadingStatus').textContent = 'true (로딩 중)';
+      addLog('isLoading = true 설정', 'success');
+      
+      try {
+        // 로컬 상태 초기화
+        localStorage.removeItem('tarot_user');
+        addLog('로컬 스토리지 tarot_user 제거', 'success');
+        
+        // Supabase 토큰 제거
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.startsWith('sb-')) {
+            localStorage.removeItem(key);
+            addLog(`Supabase 토큰 제거: ${key}`, 'success');
+          }
+        });
+        
+        // 지연 시뮬레이션 (네트워크 요청)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        addLog('네트워크 요청 시뮬레이션 완료', 'success');
+        
+      } catch (error) {
+        addLog(`오류 발생: ${error.message}`, 'error');
+      } finally {
+        // finally 블록에서 isLoading 해제
+        setTimeout(() => {
+          document.getElementById('loadingStatus').textContent = 'false';
+          addLog('isLoading = false 설정 (finally 블록)', 'success');
+          
+          logoutBtn.disabled = false;
+          logoutBtn.innerHTML = '로그아웃 테스트';
+          
+          checkStatus();
+          addLog('로그아웃 완료!', 'success');
+        }, 100);
+      }
+    }
+    
+    // 콘솔 지우기
+    function clearConsole() {
+      const consoleEl = document.getElementById('console');
+      consoleEl.innerHTML = '<div class="console-line">콘솔 초기화됨</div>';
+    }
+    
+    // 페이지 로드 시 상태 체크
+    window.addEventListener('load', () => {
+      addLog('페이지 로드 완료', 'success');
+      checkStatus();
+    });
+  </script>
+</body>
+</html>

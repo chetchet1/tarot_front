@@ -173,6 +173,7 @@ export class AdManager {
   // 점괘 시작 시 호출 (스프레드 ID를 받아서 처리)
   async startReading(spreadId?: string): Promise<boolean> {
     console.log('🔍 [AdManager.startReading] 시작, spreadId:', spreadId);
+    console.log('🔍 [AdManager.startReading] 호출 시간:', new Date().toISOString());
     
     // 프리미엄 사용자는 광고 없이 바로 진행
     const isPremium = this.getUserStore().isPremium;
@@ -211,9 +212,11 @@ export class AdManager {
       } else {
         // 유료 배열인 경우, 오늘 사용 여부 확인
         console.log('🔍 [AdManager.startReading] 유료 배열 사용 여부 확인 중...');
+        console.log('🔍 [AdManager.startReading] 현재 날짜:', new Date().toLocaleDateString('ko-KR'));
         const { hasUsedPremiumSpreadToday } = await import('../utils/premiumSpreadTracker');
         const hasUsed = await hasUsedPremiumSpreadToday();
         console.log('🔍 [AdManager.startReading] hasUsed:', hasUsed);
+        console.log('🔍 [AdManager.startReading] 확인 완료 시간:', new Date().toISOString());
         
         if (hasUsed) {
           console.log('🔍 [AdManager.startReading] 이미 사용했음 - false 반환');
@@ -227,14 +230,27 @@ export class AdManager {
     // 점괘 카운트 증가 (통계용)
     this.dailyReadingCount.value++;
     this.saveState();
+    console.log('🔍 [AdManager.startReading] 점괘 허용 - true 반환');
     return true;
   }
 
   // 유료 배열 사용 기록 (결과를 볼 때 호출)
   async recordPremiumSpreadUsage(spreadId: string): Promise<void> {
-    console.log('🔍 [AdManager.recordPremiumSpreadUsage] 유료 배열 사용 기록:', spreadId);
+    console.log('🔍 [AdManager.recordPremiumSpreadUsage] 유료 배열 사용 기록 시작:', spreadId);
+    console.log('🔍 [AdManager.recordPremiumSpreadUsage] 호출 시간:', new Date().toISOString());
     const { recordPremiumSpreadUsage } = await import('../utils/premiumSpreadTracker');
     await recordPremiumSpreadUsage(spreadId);
+    console.log('🔍 [AdManager.recordPremiumSpreadUsage] 기록 완료');
+  }
+  
+  // 유료 배열 사용 횟수 확인 (디버그용)
+  async checkPremiumSpreadUsage(spreadId: string): Promise<{ usedToday: number, canUse: boolean }> {
+    console.log('🔍 [AdManager.checkPremiumSpreadUsage] 사용 횟수 확인:', spreadId);
+    const { getPremiumSpreadUsageToday } = await import('../utils/premiumSpreadTracker');
+    const usedToday = await getPremiumSpreadUsageToday(spreadId);
+    const canUse = usedToday < 1; // 하루 1회 제한
+    console.log('🔍 [AdManager.checkPremiumSpreadUsage] 결과:', { usedToday, canUse });
+    return { usedToday, canUse };
   }
 
   // 일반 광고 표시

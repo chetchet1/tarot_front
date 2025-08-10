@@ -59,13 +59,12 @@ export async function hasUsedPremiumSpreadToday(): Promise<boolean> {
     const today = getCurrentDate();
     console.log('📊 [hasUsedPremiumSpreadToday] today:', today);
     
-    // DB에서 오늘 사용 기록 확인
+    // DB에서 오늘 사용 기록 확인 (used_date 필드 사용)
     const { data, error } = await supabase
       .from('premium_spread_usage')
       .select('id, spread_id')
       .eq('user_id', userId)
-      .gte('used_at', `${today}T00:00:00`)
-      .lt('used_at', `${today}T23:59:59`);
+      .eq('used_date', today);
 
     console.log('📊 [hasUsedPremiumSpreadToday] DB 결과:', { data, error });
 
@@ -120,7 +119,12 @@ export async function canUsePremiumSpread(spreadId: string, isPremiumUser: boole
  * 유료 배열 사용 기록
  */
 export async function recordPremiumSpreadUsage(spreadId: string): Promise<void> {
+  console.log('📝 [recordPremiumSpreadUsage] 호출됨, spreadId:', spreadId);
+  console.log('📝 [recordPremiumSpreadUsage] 호출 시간:', new Date().toISOString());
+  console.log('📝 [recordPremiumSpreadUsage] 호출 스택:', new Error().stack?.split('\n').slice(1, 4).join('\n'));
+  
   if (!isPremiumSpread(spreadId)) {
+    console.log('📝 [recordPremiumSpreadUsage] 유료 배열이 아님 - 기록 건너뜀');
     return;
   }
 
@@ -129,32 +133,49 @@ export async function recordPremiumSpreadUsage(spreadId: string): Promise<void> 
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || null;
     const userEmail = user?.email;
+    console.log('📝 [recordPremiumSpreadUsage] userId:', userId, 'email:', userEmail);
     
-    // 테스트 계정은 기록하지 않음
-    if (userEmail === 'test@example.com') {
-      console.log('📊 [recordPremiumSpreadUsage] 테스트 계정 - 사용 기록 건너뜀');
+    // 테스트 계정은 기록하지 않음 - 강화된 체크
+    const testEmails = ['test@example.com', 'test@test.com'];
+    const emailLower = userEmail?.toLowerCase() || '';
+    if (testEmails.includes(emailLower) || emailLower.includes('test')) {
+      console.warn('📝 [recordPremiumSpreadUsage] 테스트 계정 감지 - 사용 기록 건너뜀');
+      console.warn('📝 [recordPremiumSpreadUsage] 이메일:', userEmail);
+      console.warn('📝 [recordPremiumSpreadUsage] 호출 스택:', new Error().stack?.split('\n').slice(1, 5).join('\n'));
       return;
     }
     
     if (!userId) {
-      console.error('사용자 ID를 찾을 수 없습니다.');
+      console.error('📝 [recordPremiumSpreadUsage] 사용자 ID를 찾을 수 없습니다.');
       return;
     }
 
     // DB에 사용 기록 저장
+    const now = new Date();
+    const usedDate = getCurrentDate();
+    console.log('📝 [recordPremiumSpreadUsage] DB에 저장할 데이터:', {
+      user_id: userId,
+      spread_id: spreadId,
+      used_at: now.toISOString(),
+      used_date: usedDate
+    });
+    
     const { error } = await supabase
       .from('premium_spread_usage')
       .insert({
         user_id: userId,
         spread_id: spreadId,
-        used_at: new Date().toISOString()
+        used_at: now.toISOString(),
+        used_date: usedDate
       });
 
     if (error) {
-      console.error('유료 배열 사용 기록 오류:', error);
+      console.error('📝 [recordPremiumSpreadUsage] DB 저장 오류:', error);
+    } else {
+      console.log('📝 [recordPremiumSpreadUsage] DB 저장 성공!');
     }
   } catch (error) {
-    console.error('유료 배열 사용 기록 중 오류:', error);
+    console.error('📝 [recordPremiumSpreadUsage] 예외 발생:', error);
   }
 }
 
@@ -174,8 +195,7 @@ export async function getUsedPremiumSpreadToday(): Promise<string | null> {
       .from('premium_spread_usage')
       .select('spread_id')
       .eq('user_id', userId)
-      .gte('used_at', `${today}T00:00:00`)
-      .lt('used_at', `${today}T23:59:59`);
+      .eq('used_date', today);
 
     if (error && error.code !== 'PGRST116') {
       console.error('사용한 유료 배열 조회 오류:', error);
@@ -186,6 +206,54 @@ export async function getUsedPremiumSpreadToday(): Promise<string | null> {
   } catch (error) {
     console.error('사용한 유료 배열 조회 중 오류:', error);
     return null;
+  }
+}
+
+/**
+ * 특정 스프레드의 오늘 사용 횟수 가져오기 (디버그용)
+ */
+export async function getPremiumSpreadUsageToday(spreadId: string): Promise<number> {
+  console.log('📊 [getPremiumSpreadUsageToday] 호출됨:', spreadId);
+  try {
+    const userId = await getCurrentUserId();
+    const { data: { user } } = await supabase.auth.getUser();
+    const userEmail = user?.email;
+    console.log('📊 [getPremiumSpreadUsageToday] userId:', userId, 'email:', userEmail);
+    
+    // 테스트 계정은 항상 0 반환 (제한 없음)
+    if (userEmail === 'test@example.com') {
+      console.log('📊 [getPremiumSpreadUsageToday] 테스트 계정 - 0 반환');
+      return 0;
+    }
+    
+    if (!userId) {
+      console.log('📊 [getPremiumSpreadUsageToday] userId 없음 - 0 반환');
+      return 0;
+    }
+
+    const today = getCurrentDate();
+    console.log('📊 [getPremiumSpreadUsageToday] today:', today);
+    
+    const { data, error } = await supabase
+      .from('premium_spread_usage')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('spread_id', spreadId)
+      .eq('used_date', today);
+
+    console.log('📊 [getPremiumSpreadUsageToday] DB 결과:', { data, error });
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('📊 [getPremiumSpreadUsageToday] 오류:', error);
+      return 0;
+    }
+
+    const count = data ? data.length : 0;
+    console.log('📊 [getPremiumSpreadUsageToday] 사용 횟수:', count);
+    return count;
+  } catch (error) {
+    console.error('📊 [getPremiumSpreadUsageToday] 예외 발생:', error);
+    return 0;
   }
 }
 

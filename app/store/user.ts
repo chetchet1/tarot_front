@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { User, UserPreferences, Subscription } from '../models/user';
 import { authService, profileService } from '../services/supabase';
 import { Capacitor } from '@capacitor/core';
+import { SUPABASE_CONFIG } from '../config/env';
 
 export const useUserStore = defineStore('user', () => {
   // State
@@ -311,9 +312,25 @@ export const useUserStore = defineStore('user', () => {
       // 무료 점괴 데이터 로드
       loadFreeReadingData();
       
-      // 로컬 스토리지에서 먼저 사용자 정보 로드 (빠른 UI 응답)
-      loadUser();
-      console.log('로컬 사용자 정보 로드 완료:', currentUser.value?.isAnonymous ? '익명' : '로그인');
+      // 로컬 스토리지에서 사용자 정보 로드 (BUT 익명 사용자는 무시)
+      const saved = localStorage.getItem('tarot_user');
+      if (saved) {
+        const userData = JSON.parse(saved);
+        // 익명 사용자는 무시하고 null로 설정
+        if (userData && userData.isAnonymous) {
+          console.log('저장된 익명 사용자 무시, 로그인 필요');
+          localStorage.removeItem('tarot_user');
+          currentUser.value = null;
+        } else if (userData && userData.id && userData.email) {
+          // 정상적인 로그인 사용자만 로드
+          currentUser.value = userData;
+          console.log('로컬 사용자 정보 로드 완료:', userData.email);
+        } else {
+          currentUser.value = null;
+        }
+      } else {
+        currentUser.value = null;
+      }
       
       // Supabase 인증 상태 확인 (웹에서만 자동 확인)
       const shouldCheckAuth = !Capacitor.isNativePlatform();
@@ -385,11 +402,11 @@ export const useUserStore = defineStore('user', () => {
           }
         } else {
           console.log('비로그인 상태 확인');
-          // 로컬에 로그인 사용자가 저장되어 있다면 익명으로 변경
-          if (currentUser.value && !currentUser.value.isAnonymous) {
-            console.log('로컬 로그인 정보 제거하고 익명 사용자로 전환');
-            currentUser.value = createAnonymousUser();
-            saveUser();
+          // 로그인되지 않은 경우 currentUser를 null로 설정 (익명 사용자 생성하지 않음)
+          if (currentUser.value) {
+            console.log('로컬 로그인 정보 제거');
+            localStorage.removeItem('tarot_user');
+            currentUser.value = null;
           }
         }
       } catch (authError) {
@@ -446,18 +463,18 @@ export const useUserStore = defineStore('user', () => {
           console.log('로그인 이벤트 처리 완료');
         } else if (event === 'SIGNED_OUT') {
           console.log('로그아웃 이벤트 처리');
-          currentUser.value = createAnonymousUser();
-          saveUser();
+          currentUser.value = null;
+          localStorage.removeItem('tarot_user');
         }
       });
       }
       
     } catch (error) {
       console.error('사용자 초기화 실패:', error);
-      // 최후의 수단으로 익명 사용자 생성
-      if (!currentUser.value) {
-        currentUser.value = createAnonymousUser();
-        saveUser();
+      // 오류 발생 시에도 currentUser는 null로 유지 (익명 사용자 생성하지 않음)
+      if (currentUser.value) {
+        localStorage.removeItem('tarot_user');
+        currentUser.value = null;
       }
     } finally {
       // 로딩 상태 해제
@@ -469,18 +486,35 @@ export const useUserStore = defineStore('user', () => {
 
   // 이메일 로그인
   const login = async (email: string, password: string) => {
+    console.log('로그인 시작:', email);
+    
     try {
       isLoading.value = true;
       
-      const { user } = await authService.signIn(email, password);
+      // 로그인 시도 (타임아웃 없이 직접 실행)
+      const data = await authService.signIn(email, password);
+      const user = data?.user;
       
       if (user) {
-        // 프로필 존재 확인 및 생성
-        await ensureProfileExists(user.id, user.email);
+        console.log('로그인 성공, 프로필 확인 중...');
         
-        // 프리미엄 상태 확인
-        const isPremiumUser = await checkPremiumStatus(user.id);
-        console.log('로그인 시 프리미엄 상태:', isPremiumUser);
+        // 프로필 존재 확인 및 생성 (에러 무시)
+        try {
+          await ensureProfileExists(user.id, user.email);
+        } catch (profileError) {
+          console.warn('프로필 확인 실패:', profileError);
+          // 프로필 실패해도 로그인은 계속 진행
+        }
+        
+        // 프리미엄 상태 확인 (에러 무시)
+        let isPremiumUser = false;
+        try {
+          isPremiumUser = await checkPremiumStatus(user.id);
+          console.log('로그인 시 프리미엄 상태:', isPremiumUser);
+        } catch (premiumError) {
+          console.warn('프리미엄 상태 확인 실패:', premiumError);
+          // 실패해도 기본값 false 사용
+        }
         
         currentUser.value = {
           id: user.id,
@@ -509,6 +543,8 @@ export const useUserStore = defineStore('user', () => {
           }
         };
         saveUser();
+        console.log('로그인 완료');
+        return user;
       }
     } catch (error) {
       console.error('로그인 실패:', error);
@@ -532,7 +568,8 @@ export const useUserStore = defineStore('user', () => {
     try {
       isLoading.value = true;
       
-      const { user } = await authService.signUp(email, password, userData);
+      const data = await authService.signUp(email, password, userData);
+      const user = data?.user;
       
       if (user) {
         console.log('회원가입 완료:', { email, userData });
@@ -581,21 +618,40 @@ export const useUserStore = defineStore('user', () => {
 
   // 로그아웃
   const logout = async () => {
+    console.log('로그아웃 시작');
+    
+    // 로딩 상태 즉시 설정
+    isLoading.value = true;
+    
     try {
-      isLoading.value = true;
+      // 먼저 로컬 상태 초기화
+      currentUser.value = null;
+      localStorage.removeItem('tarot_user');
       
-      await authService.signOut();
+      // 로컬 스토리지 정리
+      const supabaseKey = 'sb-' + SUPABASE_CONFIG.url.replace('https://', '').split('.')[0] + '-auth-token';
+      localStorage.removeItem(supabaseKey);
       
-      // 익명 사용자로 전환
-      currentUser.value = createAnonymousUser();
-      saveUser();
+      // Supabase 로그아웃 시도 (비동기, 에러 무시)
+      try {
+        await authService.signOut();
+        console.log('Supabase 로그아웃 성공');
+      } catch (error) {
+        console.warn('Supabase 로그아웃 실패 (무시):', error);
+        // Supabase 로그아웃 실패해도 로컬 로그아웃은 이미 완료
+      }
+      
+      console.log('로그아웃 완료');
     } catch (error) {
-      console.error('로그아웃 실패:', error);
+      console.error('로그아웃 처리 중 오류:', error);
       // 오류가 있어도 로컬에서는 로그아웃 처리
-      currentUser.value = createAnonymousUser();
-      saveUser();
+      currentUser.value = null;
+      localStorage.removeItem('tarot_user');
     } finally {
-      isLoading.value = false;
+      // 로딩 상태 해제 - 반드시 실행되도록 보장
+      setTimeout(() => {
+        isLoading.value = false;
+      }, 0);
     }
   };
 

@@ -11,7 +11,11 @@ import Premium from '../views/Premium.vue';
 import History from '../views/History.vue';
 import TarotDictionary from '../views/TarotDictionary.vue';
 import AuthCallback from '../views/AuthCallback.vue';
+// SharedReading import 제거 - 사용하지 않음
+// import SharedReading from '../views/SharedReading.vue';
+// import SharedReadingTest from '../views/SharedReadingTest.vue';
 import SharedReading from '../views/SharedReading.vue';
+import SharedReadingSimple from '../views/SharedReadingSimple.vue';
 
 const routes = [
   {
@@ -50,12 +54,21 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/share/:id',
+    path: '/s/:id',
     name: 'SharedReading',
-    component: SharedReading,
+    component: SharedReading, // 실제 공유 페이지 컴포넌트로 변경
     meta: { 
       requiresAuth: false,  // 로그인 불필요
       isPublic: true        // 공개 페이지
+    }
+  },
+  {
+    path: '/s/test/:id',
+    name: 'SharedReadingTest',
+    component: SharedReadingSimple, // 테스트용 컴포넌트
+    meta: { 
+      requiresAuth: false,
+      isPublic: true
     }
   },
   {
@@ -116,6 +129,13 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
     meta: to.meta
   });
   
+  // 공개 페이지는 인증 처리 건너뛰기
+  if (to.meta.isPublic || to.meta.requiresAuth === false) {
+    console.log('🆓 [Router Guard] 공개 페이지 - 인증 건너뛰기');
+    next();
+    return;
+  }
+  
   try {
     // store를 동적으로 import
     const { useUserStore } = await import('../store/user');
@@ -158,14 +178,14 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
         });
       }
       
-      // 로그인 상태 확인 (익명 사용자도 허용)
+      // 로그인 상태 확인 (익명 사용자 차단)
       console.log('👤 [Router Guard] 사용자 상태:', userStore.currentUser ? (
         userStore.currentUser.isAnonymous ? '익명' : '로그인'
       ) : '없음');
       
-      // 사용자가 없으면 홈으로
-      if (!userStore.currentUser) {
-        console.log('⛔ [Router Guard] 사용자 없음 - 홈으로 리다이렉트');
+      // 사용자가 없거나 익명 사용자면 홈으로
+      if (!userStore.currentUser || userStore.currentUser.isAnonymous) {
+        console.log('⛔ [Router Guard] 비로그인 상태 - 홈으로 리다이렉트');
         next({ name: 'Home' });
         return;
       }

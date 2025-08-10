@@ -183,12 +183,26 @@ const toggleUserMenu = (event: MouseEvent) => {
 };
 
 const handleLogout = async () => {
+  console.log('로그아웃 핸들러 실행');
+  
   try {
-    await userStore.logout();
+    // 드롭다운 먼저 닫기
     showUserDropdown.value = false;
-    router.push('/');
+    
+    // 로그아웃 실행
+    await userStore.logout();
+    
+    // 약간의 지연 후 페이지 이동 (상태 업데이트 보장)
+    setTimeout(() => {
+      console.log('로그아웃 후 홈으로 이동');
+      router.push('/');
+    }, 100);
   } catch (error) {
     console.error('로그아웃 실패:', error);
+    // 에러가 있어도 홈으로 이동
+    setTimeout(() => {
+      router.push('/');
+    }, 100);
   }
 };
 

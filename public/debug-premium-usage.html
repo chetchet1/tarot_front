@@ -1,0 +1,416 @@
+<!-- 유료 배열 사용 카운트 디버그 페이지 -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Spread Usage Debug</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        .info-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .label {
+            font-weight: bold;
+            color: #FFD700;
+        }
+        .value {
+            text-align: right;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        button.danger {
+            background: linear-gradient(135deg, #f93a5a 0%, #f7778c 100%);
+        }
+        .log-area {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .warning {
+            color: #FFD700;
+            font-weight: bold;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 5px;
+        }
+        .success {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .error {
+            color: #f44336;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Premium Spread Usage Debug Tool</h1>
+        
+        <div class="info-card">
+            <h2>현재 상태</h2>
+            <div class="info-row">
+                <span class="label">현재 시간:</span>
+                <span class="value" id="currentTime">-</span>
+            </div>
+            <div class="info-row">
+                <span class="label">로그인 이메일:</span>
+                <span class="value" id="userEmail">-</span>
+            </div>
+            <div class="info-row">
+                <span class="label">사용자 ID:</span>
+                <span class="value" id="userId">-</span>
+            </div>
+            <div class="info-row">
+                <span class="label">프리미엄 상태:</span>
+                <span class="value" id="premiumStatus">-</span>
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <h2>켈틱 크로스 사용 현황</h2>
+            <div class="info-row">
+                <span class="label">오늘 사용 횟수:</span>
+                <span class="value" id="todayUsage">-</span>
+            </div>
+            <div class="info-row">
+                <span class="label">사용 가능 여부:</span>
+                <span class="value" id="canUse">-</span>
+            </div>
+            <div class="info-row">
+                <span class="label">마지막 사용 시간:</span>
+                <span class="value" id="lastUsed">-</span>
+            </div>
+        </div>
+        
+        <div class="warning">
+            ⚠️ 이 도구는 개발/디버그 용도입니다. 실제 서비스에서는 사용하지 마세요.
+        </div>
+        
+        <div class="button-group">
+            <button onclick="checkUsage()">📊 사용 현황 조회</button>
+            <button onclick="simulateUsage()">🎮 사용 시뮬레이션</button>
+            <button class="danger" onclick="clearTodayUsage()">🗑️ 오늘 기록 삭제</button>
+        </div>
+        
+        <div class="log-area" id="logArea">
+            <div class="log-entry">디버그 로그가 여기에 표시됩니다...</div>
+        </div>
+    </div>
+    
+    <script type="module">
+        // Supabase 클라이언트 설정
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        
+        const supabaseUrl = 'https://tdzzmsbesbbytoehvrli.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkenptc2Jlc2JieXRvZWh2cmxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzM0MjE5MDAsImV4cCI6MjA0ODk5NzkwMH0.VcFtMEwXEGEOCVfCvT2j7az8z4IO12Z37NDPcQAmXyo';
+        
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        
+        // 로그 추가 함수
+        function addLog(message, type = 'info') {
+            const logArea = document.getElementById('logArea');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            const time = new Date().toLocaleTimeString('ko-KR');
+            let typeSymbol = 'ℹ️';
+            let className = '';
+            
+            if (type === 'success') {
+                typeSymbol = '✅';
+                className = 'success';
+            } else if (type === 'error') {
+                typeSymbol = '❌';
+                className = 'error';
+            } else if (type === 'warning') {
+                typeSymbol = '⚠️';
+                className = 'warning';
+            }
+            
+            entry.innerHTML = `<span class="${className}">[${time}] ${typeSymbol} ${message}</span>`;
+            logArea.insertBefore(entry, logArea.firstChild);
+            
+            // 로그가 너무 많으면 오래된 것 제거
+            while (logArea.children.length > 50) {
+                logArea.removeChild(logArea.lastChild);
+            }
+        }
+        
+        // 현재 시간 업데이트
+        function updateCurrentTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleString('ko-KR');
+        }
+        
+        // 사용자 정보 업데이트
+        async function updateUserInfo() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (user) {
+                    document.getElementById('userEmail').textContent = user.email || '-';
+                    document.getElementById('userId').textContent = user.id || '-';
+                    
+                    // 프리미엄 상태 확인
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('is_premium')
+                        .eq('id', user.id)
+                        .single();
+                    
+                    const isPremium = profile?.is_premium || false;
+                    document.getElementById('premiumStatus').textContent = isPremium ? '프리미엄 ✨' : '무료';
+                    
+                    addLog(`사용자 정보 로드 완료: ${user.email}`, 'success');
+                } else {
+                    document.getElementById('userEmail').textContent = '로그인 필요';
+                    document.getElementById('userId').textContent = '-';
+                    document.getElementById('premiumStatus').textContent = '-';
+                    addLog('로그인되지 않음', 'warning');
+                }
+            } catch (error) {
+                console.error('사용자 정보 로드 오류:', error);
+                addLog(`사용자 정보 로드 실패: ${error.message}`, 'error');
+            }
+        }
+        
+        // 사용 현황 조회
+        window.checkUsage = async function() {
+            addLog('켈틱 크로스 사용 현황 조회 시작...');
+            
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (!user) {
+                    addLog('로그인이 필요합니다', 'error');
+                    return;
+                }
+                
+                const today = new Date().toISOString().split('T')[0];
+                
+                // 오늘의 사용 기록 조회
+                const { data, error } = await supabase
+                    .from('premium_spread_usage')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('spread_id', 'celtic_cross')
+                    .eq('used_date', today)
+                    .order('used_at', { ascending: false });
+                
+                if (error) {
+                    throw error;
+                }
+                
+                const usageCount = data ? data.length : 0;
+                document.getElementById('todayUsage').textContent = `${usageCount}회`;
+                document.getElementById('canUse').textContent = usageCount === 0 ? '✅ 사용 가능' : '❌ 사용 불가 (하루 1회 제한)';
+                
+                if (data && data.length > 0) {
+                    const lastUsed = new Date(data[0].used_at);
+                    document.getElementById('lastUsed').textContent = lastUsed.toLocaleString('ko-KR');
+                    
+                    // 상세 로그
+                    data.forEach((record, index) => {
+                        const time = new Date(record.used_at).toLocaleTimeString('ko-KR');
+                        addLog(`사용 기록 ${index + 1}: ${time} (ID: ${record.id.substring(0, 8)}...)`);
+                    });
+                } else {
+                    document.getElementById('lastUsed').textContent = '사용 기록 없음';
+                    addLog('오늘은 아직 사용하지 않았습니다', 'success');
+                }
+                
+                addLog(`조회 완료: 오늘 ${usageCount}회 사용`, 'success');
+                
+            } catch (error) {
+                console.error('사용 현황 조회 오류:', error);
+                addLog(`조회 실패: ${error.message}`, 'error');
+            }
+        };
+        
+        // 사용 시뮬레이션
+        window.simulateUsage = async function() {
+            if (!confirm('켈틱 크로스 사용을 시뮬레이션하시겠습니까?\n(실제 DB에 기록됩니다)')) {
+                return;
+            }
+            
+            addLog('켈틱 크로스 사용 시뮬레이션 시작...');
+            
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (!user) {
+                    addLog('로그인이 필요합니다', 'error');
+                    return;
+                }
+                
+                // 테스트 계정 확인
+                if (user.email === 'test@example.com') {
+                    addLog('테스트 계정은 기록되지 않습니다', 'warning');
+                    return;
+                }
+                
+                const now = new Date();
+                const today = now.toISOString().split('T')[0];
+                
+                // DB에 기록
+                const { data, error } = await supabase
+                    .from('premium_spread_usage')
+                    .insert({
+                        user_id: user.id,
+                        spread_id: 'celtic_cross',
+                        used_at: now.toISOString(),
+                        used_date: today
+                    })
+                    .select();
+                
+                if (error) {
+                    throw error;
+                }
+                
+                addLog('시뮬레이션 완료: DB에 기록됨', 'success');
+                addLog(`기록 ID: ${data[0].id.substring(0, 8)}...`);
+                
+                // 사용 현황 다시 조회
+                setTimeout(() => {
+                    window.checkUsage();
+                }, 500);
+                
+            } catch (error) {
+                console.error('시뮬레이션 오류:', error);
+                addLog(`시뮬레이션 실패: ${error.message}`, 'error');
+            }
+        };
+        
+        // 오늘 기록 삭제
+        window.clearTodayUsage = async function() {
+            if (!confirm('정말로 오늘의 켈틱 크로스 사용 기록을 삭제하시겠습니까?')) {
+                return;
+            }
+            
+            addLog('오늘 사용 기록 삭제 시작...');
+            
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (!user) {
+                    addLog('로그인이 필요합니다', 'error');
+                    return;
+                }
+                
+                const today = new Date().toISOString().split('T')[0];
+                
+                // 삭제 전 조회
+                const { data: beforeData } = await supabase
+                    .from('premium_spread_usage')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .eq('spread_id', 'celtic_cross')
+                    .eq('used_date', today);
+                
+                const beforeCount = beforeData ? beforeData.length : 0;
+                
+                if (beforeCount === 0) {
+                    addLog('삭제할 기록이 없습니다', 'warning');
+                    return;
+                }
+                
+                // 삭제 실행
+                const { error } = await supabase
+                    .from('premium_spread_usage')
+                    .delete()
+                    .eq('user_id', user.id)
+                    .eq('spread_id', 'celtic_cross')
+                    .eq('used_date', today);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                addLog(`삭제 완료: ${beforeCount}개 기록 삭제됨`, 'success');
+                
+                // 사용 현황 다시 조회
+                setTimeout(() => {
+                    window.checkUsage();
+                }, 500);
+                
+            } catch (error) {
+                console.error('삭제 오류:', error);
+                addLog(`삭제 실패: ${error.message}`, 'error');
+            }
+        };
+        
+        // 초기화
+        async function init() {
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000);
+            
+            await updateUserInfo();
+            await window.checkUsage();
+        }
+        
+        // 페이지 로드 시 초기화
+        init();
+    </script>
+</body>
+</html>

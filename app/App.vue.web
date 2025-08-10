@@ -1,0 +1,107 @@
+<template>
+  <div class="app">
+    <!-- 웹에서 직접 접속한 경우 -->
+    <div v-if="!isSharedPage" class="web-landing">
+      <div class="container">
+        <h1>🔮 타로카드 앱</h1>
+        <p>모바일 앱에서 이용해주세요!</p>
+        
+        <div class="download-section">
+          <h2>📱 앱 다운로드</h2>
+          <button @click="downloadAPK" class="download-btn">
+            Android APK 다운로드
+          </button>
+          <p class="info">iOS는 준비 중입니다</p>
+        </div>
+        
+        <div class="features">
+          <h3>✨ 주요 기능</h3>
+          <ul>
+            <li>무료 타로 점보기</li>
+            <li>AI 해석</li>
+            <li>오늘의 운세</li>
+            <li>히스토리 저장</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 공유 페이지는 정상 표시 -->
+    <router-view v-else />
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
+import { Capacitor } from '@capacitor/core';
+
+const route = useRoute();
+
+// 공유 페이지인지 확인
+const isSharedPage = computed(() => {
+  return route.path.startsWith('/s/');
+});
+
+// APK 다운로드
+const downloadAPK = () => {
+  // APK 파일을 Vercel public 폴더에 업로드하고 링크 제공
+  window.location.href = '/download/tarot-app.apk';
+};
+
+// 네이티브 앱이면 정상 작동
+if (Capacitor.isNativePlatform()) {
+  // APK에서는 모든 기능 정상 작동
+}
+</script>
+
+<style scoped>
+.web-landing {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-align: center;
+}
+
+.download-btn {
+  background: white;
+  color: #667eea;
+  padding: 15px 30px;
+  border-radius: 30px;
+  font-size: 18px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  margin: 20px 0;
+}
+
+.download-btn:hover {
+  transform: scale(1.05);
+}
+
+.features {
+  margin-top: 40px;
+  text-align: left;
+  max-width: 300px;
+  margin: 40px auto 0;
+}
+
+.features ul {
+  list-style: none;
+  padding: 0;
+}
+
+.features li {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+
+.features li:before {
+  content: "✓ ";
+  color: #4ade80;
+  font-weight: bold;
+}
+</style>

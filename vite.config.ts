@@ -10,9 +10,13 @@ export default defineConfig({
       configureServer(server) {
         server.middlewares.use((err, req, res, next) => {
           if (err && req.url?.includes('.vue')) {
-            console.error('Vue file request error:', req.url, err);
-            res.statusCode = 500;
-            res.end('Vue file loading error');
+            console.error('=== Vue file request error ===');
+            console.error('URL:', req.url);
+            console.error('Error:', err);
+            console.error('Stack:', err.stack);
+            console.error('============================');
+            // 에러를 그대로 전달하여 정상적인 처리 경로로
+            next(err);
             return;
           }
           next(err);

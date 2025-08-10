@@ -1,11 +1,43 @@
 import { supabase } from '../services/supabase';
 import { initializeShare, shareWithNative } from '../utils/shareUtils';
+import { Capacitor } from '@capacitor/core';
 import type { Reading } from '../types/reading';
 
 export class ShareService {
   constructor() {
     // Share 플러그인 초기화
     initializeShare();
+  }
+
+  /**
+   * 공유용 베이스 URL 가져오기
+   * 앱 환경에 따라 적절한 URL 반환
+   */
+  private getShareBaseUrl(): string {
+    // 1. 환경 변수에서 고정 URL 확인 (권장)
+    if (import.meta.env.VITE_APP_URL) {
+      return import.meta.env.VITE_APP_URL;
+    }
+    
+    // 2. 네이티브 앱(APK)에서는 프로젝트 고정 URL 사용
+    if (Capacitor.isNativePlatform()) {
+      // Vercel 프로젝트의 실제 고정 URL
+      return 'https://tarot-app-psi-eight.vercel.app';
+    }
+
+    // 3. 프로덕션 환경 - 현재 origin 사용
+    if (import.meta.env.PROD && !window.location.origin.includes('localhost')) {
+      return window.location.origin;
+    }
+
+    // 4. Vercel 환경 변수 사용 (폴백)
+    if (import.meta.env.VITE_VERCEL_URL) {
+      return `https://${import.meta.env.VITE_VERCEL_URL}`;
+    }
+    
+    // 5. 개발 환경 폴백
+    console.warn('⚠️ 공유 URL이 localhost로 설정됩니다. 배포 또는 ngrok 설정이 필요합니다.');
+    return window.location.origin;
   }
 
   /**
@@ -41,9 +73,13 @@ export class ShareService {
         throw error;
       }
       
-      // 3. 공유 URL 생성
-      const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-      return `${baseUrl}/s/${data.id}`;
+      // 3. 공유 URL 생성 (개선된 방식)
+      const baseUrl = this.getShareBaseUrl();
+      const shareUrl = `${baseUrl}/s/${data.id}`;
+      
+      console.log('📤 생성된 공유 링크:', shareUrl);
+      
+      return shareUrl;
       
     } catch (error) {
       console.error('공유 링크 생성 실패:', error);
@@ -52,17 +88,18 @@ export class ShareService {
   }
   
   /**
-   * 공유 메시지 생성
+   * 공유 메시지 생성 (카카오톡 최적화)
    */
   generateShareMessage(reading: Reading, shareUrl: string): string {
     const emoji = '🔮';
-    const title = '타로 점괘 결과를 공유합니다';
+    const title = '타로 점괘 결과';
     
-    let message = `${emoji} ${title}\n\n`;
+    let message = `${emoji} ${title}\n`;
+    message += '━━━━━━━━━━━━━━━\n\n';
     
     // 질문 추가
     if (reading.customQuestion) {
-      message += `💭 "${reading.customQuestion}"\n\n`;
+      message += `💭 질문\n"${reading.customQuestion}"\n\n`;
     }
     
     // 스프레드 타입
@@ -74,56 +111,190 @@ export class ShareService {
       'hexagram': '헥사그램',
       'cup_of_relationship': '관계의 컵'
     };
-    message += `📍 ${spreadNames[reading.spreadId] || reading.spreadId}\n`;
+    message += `📍 배열법: ${spreadNames[reading.spreadId] || reading.spreadId}\n\n`;
     
     // 주요 카드 (최대 3장)
-    const mainCards = reading.cards.slice(0, 3).map(card => 
-      `${card.nameKr} (${card.orientation === 'upright' ? '정방향' : '역방향'})`
-    ).join(', ');
-    message += `🎴 ${mainCards}`;
+    message += '🎴 뽑은 카드\n';
+    const mainCards = reading.cards.slice(0, 3);
+    mainCards.forEach((card, index) => {
+      const orientation = card.orientation === 'upright' ? '정방향' : '역방향';
+      message += `${index + 1}. ${card.nameKr} (${orientation})\n`;
+    });
     
     if (reading.cards.length > 3) {
-      message += ` 외 ${reading.cards.length - 3}장`;
+      message += `... 외 ${reading.cards.length - 3}장 더\n`;
     }
-    message += '\n\n';
+    message += '\n';
     
-    // 간단한 해석 (50자 제한)
-    if (reading.aiInterpretation) {
-      const shortInterpretation = reading.aiInterpretation.substring(0, 50) + '...';
-      message += `✨ ${shortInterpretation}\n\n`;
-    } else if (reading.overallMessage) {
-      const shortMessage = reading.overallMessage.substring(0, 50) + '...';
-      message += `✨ ${shortMessage}\n\n`;
+    // 간단한 해석
+    if (reading.aiInterpretation || reading.overallMessage) {
+      const interpretation = reading.aiInterpretation || reading.overallMessage || '';
+      const shortInterpretation = interpretation.substring(0, 60);
+      message += `✨ 해석\n${shortInterpretation}...\n\n`;
     }
     
-    // 링크
-    message += `👉 전체 결과 보기\n${shareUrl}\n\n`;
-    message += `🎯 무료 타로 점보기 - 타로카드`;
+    // 구분선과 링크
+    message += '━━━━━━━━━━━━━━━\n';
+    message += '👇 전체 결과 보기\n';
+    message += `${shareUrl}\n\n`;
+    message += '🎯 무료 타로카드 점보기';
     
     return message;
   }
 
   /**
-   * 결과 공유하기
+   * 결과 공유하기 (개선된 버전)
    */
   async shareResult(reading: Reading): Promise<void> {
-    // 1. 공유 링크 생성
-    const shareUrl = await this.createShareLink(reading);
-    
-    // 2. 공유 메시지 생성
-    const shareMessage = this.generateShareMessage(reading, shareUrl);
-    
-    // 3. 네이티브 공유 실행
-    const shared = await shareWithNative(
-      '타로 점괘 결과',
-      shareMessage,
-      shareUrl
-    );
-    
-    if (!shared) {
-      // 클립보드에 복사된 경우
-      throw new Error('CLIPBOARD_COPY');
+    try {
+      // 1. 공유 링크 생성
+      const shareUrl = await this.createShareLink(reading);
+      
+      // 2. 공유 메시지 생성
+      const shareMessage = this.generateShareMessage(reading, shareUrl);
+      
+      // 3. 네이티브 공유 시도
+      const shared = await shareWithNative(
+        '타로 점괘 결과',
+        shareMessage,
+        shareUrl
+      );
+      
+      if (!shared) {
+        // 클립보드에 복사된 경우
+        throw new Error('CLIPBOARD_COPY');
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message === 'CLIPBOARD_COPY') {
+        // 클립보드 복사는 별도 처리
+        throw error;
+      }
+      console.error('공유 실패:', error);
+      throw error;
     }
+  }
+
+  /**
+   * 오늘의 카드 공유 링크 생성
+   */
+  async createDailyCardShareLink(dailyCard: any): Promise<string> {
+    try {
+      console.log('📤 [ShareService] 오늘의 카드 공유 데이터 준비');
+      console.log('  - card:', dailyCard.card);
+      console.log('  - interpretation 타입:', typeof dailyCard.interpretation);
+      
+      // AI 해석 데이터 처리
+      let aiInterpretationData = null;
+      if (dailyCard.interpretation) {
+        // 이미 문자열인 경우 그대로 사용
+        if (typeof dailyCard.interpretation === 'string') {
+          aiInterpretationData = dailyCard.interpretation;
+        } 
+        // 객체인 경우 JSON 문자열로 변환
+        else if (typeof dailyCard.interpretation === 'object') {
+          aiInterpretationData = JSON.stringify(dailyCard.interpretation);
+        }
+      }
+      
+      console.log('  - AI 해석 데이터 타입:', typeof aiInterpretationData);
+      console.log('  - AI 해석 데이터 길이:', aiInterpretationData?.length);
+      
+      // 1. 공유 데이터 준비
+      const shareData = {
+        spread_type: 'daily_card',
+        cards: [{
+          cardNumber: dailyCard.card.id || dailyCard.card.number,
+          nameKr: dailyCard.card.name_kr,
+          name: dailyCard.card.name,
+          orientation: 'upright',
+          position: 0
+        }],
+        custom_question: `${new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}의 오늘의 카드`,
+        basic_interpretation: dailyCard.interpretation?.detailedFortune?.mainMessage || null,
+        ai_interpretation: aiInterpretationData,
+        shared_by: (await supabase.auth.getUser()).data?.user?.id || null
+      };
+      
+      // 2. Supabase에 저장
+      const { data, error } = await supabase
+        .from('shared_readings')
+        .insert(shareData)
+        .select('id')
+        .single();
+      
+      if (error) {
+        console.error('Supabase 저장 에러:', error);
+        throw error;
+      }
+      
+      // 3. 공유 URL 생성 (개선된 방식)
+      const baseUrl = this.getShareBaseUrl();
+      const shareUrl = `${baseUrl}/s/${data.id}`;
+      
+      console.log('📤 생성된 오늘의 카드 공유 링크:', shareUrl);
+      
+      return shareUrl;
+      
+    } catch (error) {
+      console.error('오늘의 카드 공유 링크 생성 실패:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 오늘의 카드 공유 메시지 생성 (카카오톡 최적화)
+   */
+  generateDailyCardShareMessage(card: any, interpretation: any, shareUrl: string): string {
+    const emoji = '🌟';
+    const date = new Date().toLocaleDateString('ko-KR', { 
+      month: 'numeric',
+      day: 'numeric',
+      weekday: 'short'
+    });
+    
+    let message = `${emoji} ${date} 오늘의 타로\n`;
+    message += '━━━━━━━━━━━━━━━\n\n';
+    
+    // 카드 정보
+    message += `🎴 ${card.name_kr}\n`;
+    if (card.name) {
+      message += `   ${card.name}\n\n`;
+    }
+    
+    // 운세 지수
+    if (interpretation?.fortuneIndex) {
+      const overall = interpretation.fortuneIndex.overall || 3;
+      message += `📊 오늘의 운세\n`;
+      message += `${'⭐'.repeat(overall)}${'☆'.repeat(5 - overall)}\n\n`;
+    }
+    
+    // 오늘의 메시지
+    if (interpretation?.detailedFortune?.mainMessage) {
+      const shortMessage = interpretation.detailedFortune.mainMessage.substring(0, 60);
+      message += `💬 메시지\n${shortMessage}...\n\n`;
+    }
+    
+    // 행운 아이템
+    if (interpretation?.luckyItems) {
+      message += `🍀 행운 아이템\n`;
+      message += `색상: ${interpretation.luckyItems.color}\n`;
+      message += `숫자: ${interpretation.luckyItems.number}\n\n`;
+    }
+    
+    // 구분선과 링크
+    message += '━━━━━━━━━━━━━━━\n';
+    message += '👇 상세 운세 보기\n';
+    message += `${shareUrl}\n\n`;
+    message += '🔮 무료 타로카드 점보기';
+    
+    return message;
+  }
+
+  /**
+   * 네이티브 공유 실행 (공통)
+   */
+  async shareWithNative(title: string, message: string, url: string): Promise<boolean> {
+    return await shareWithNative(title, message, url);
   }
 }
 

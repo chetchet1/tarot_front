@@ -598,8 +598,11 @@ const startReading = async () => {
   
   // 디버그: window.debugPremiumSpread 사용 가능 여부 확인
   if (typeof window !== 'undefined' && (window as any).debugPremiumSpread) {
-    console.log('[StartReading] debugPremiumSpread 함수 사용 가능');
-    await (window as any).debugPremiumSpread();
+    console.log('[StartReading] debugPremiumSpread 객체 사용 가능');
+    // 디버그 모드 시작 (함수가 아닌 객체의 메서드 호출)
+    if ((window as any).debugPremiumSpread.start) {
+      (window as any).debugPremiumSpread.start();
+    }
   }
   
   // Haptics 피드백은 나중에 실행 (디버그를 위해 제거)
@@ -692,28 +695,19 @@ const startReading = async () => {
         }
       }
       
-      // 무료 사용자가 유료 배열을 사용하는 경우 기록
+      // 무료 사용자가 유료 배열을 사용하는 경우 - 기록은 결과 보기 시점으로 이동
       if (!userStore.isPremium && isPremiumSpread(selectedSpread.value)) {
-        console.log('[StartReading] 무료 사용자가 유료 배열 사용', {
+        console.log('[StartReading] 무료 사용자가 유료 배열 선택', {
           spreadId: selectedSpread.value,
           isAnonymous: userStore.currentUser?.isAnonymous,
-          userId: userStore.currentUser?.id
+          userId: userStore.currentUser?.id,
+          message: '실제 카운트는 해석 보기 시점에 기록됩니다'
         });
         
-        // 익명 사용자의 경우 로컬 스토리지에 기록
-        if (userStore.currentUser?.isAnonymous) {
-          console.log('[StartReading] 익명 사용자 - 로컬 스토리지에 기록');
-          const { recordPremiumSpreadUsage: recordLocal } = await import('../utils/premiumSpreadTracker');
-          recordLocal(selectedSpread.value);
-        } 
-        // 로그인한 사용자의 경우 DB에 기록
-        else if (userStore.currentUser) {
-          console.log('[StartReading] 로그인 사용자 - DB에 기록');
-          await recordPremiumSpreadUsage(
-            selectedSpread.value, 
-            userStore.currentUser.id,
-            userStore.currentUser.email
-          );
+        // 테스트 계정이 아닌 경우 플래그 설정
+        if (userStore.currentUser?.email !== 'test@example.com') {
+          // 타로 스토어에 유료 배열 사용 플래그 저장
+          tarotStore.setPremiumSpreadUsage(true);
         }
       }
       

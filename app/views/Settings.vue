@@ -1,5 +1,9 @@
 <template>
   <div class="settings-page">
+    <!-- 로딩 스피너 -->
+    <div v-if="userStore.isLoading" class="loading-overlay">
+      <div class="spinner"></div>
+    </div>
     <!-- 헤더 -->
     <header class="header">
       <button @click="goBack" class="back-button">
@@ -18,11 +22,11 @@
           <div class="settings-group">
             <div class="setting-item">
               <div class="setting-label">이메일</div>
-              <div class="setting-value">{{ userStore.user?.email || '게스트' }}</div>
+              <div class="setting-value">{{ userStore.currentUser?.email || '게스트' }}</div>
             </div>
             <div class="setting-item">
               <div class="setting-label">가입일</div>
-              <div class="setting-value">{{ formatDate(userStore.user?.created_at) }}</div>
+              <div class="setting-value">{{ formatDate(userStore.currentUser?.createdAt?.toISOString()) }}</div>
             </div>
             <div class="setting-item">
               <div class="setting-label">구독 상태</div>
@@ -108,7 +112,7 @@
         </section>
 
         <!-- 계정 관리 -->
-        <section class="settings-section" v-if="userStore.isAuthenticated">
+        <section class="settings-section" v-if="userStore.isLoggedIn">
           <div class="settings-group">
             <button @click="logout" class="action-button logout">
               🚪 로그아웃
@@ -185,11 +189,11 @@ const clearHistory = async (): Promise<void> => {
   await NativeUtils.buttonTapHaptic();
   
   try {
-    if (userStore.user?.id) {
+    if (userStore.currentUser?.id) {
       const { error } = await supabase
         .from('reading_history')
         .delete()
-        .eq('user_id', userStore.user.id);
+        .eq('user_id', userStore.currentUser.id);
       
       if (error) throw error;
     }
@@ -213,7 +217,7 @@ const exportData = async (): Promise<void> => {
   try {
     let readings = [];
     
-    if (userStore.user?.id) {
+    if (userStore.currentUser?.id) {
       const { data, error } = await supabase
         .from('reading_history')
         .select(`
@@ -223,7 +227,7 @@ const exportData = async (): Promise<void> => {
             card:tarot_cards(*)
           )
         `)
-        .eq('user_id', userStore.user.id)
+        .eq('user_id', userStore.currentUser.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -232,8 +236,8 @@ const exportData = async (): Promise<void> => {
     
     const exportData = {
       user: {
-        email: userStore.user?.email,
-        created_at: userStore.user?.created_at
+        email: userStore.currentUser?.email,
+        created_at: userStore.currentUser?.createdAt?.toISOString()
       },
       readings,
       exportDate: new Date().toISOString(),
@@ -289,8 +293,26 @@ const logout = async (): Promise<void> => {
   if (!confirmed) return;
   
   await NativeUtils.buttonTapHaptic();
-  await userStore.logout();
-  router.push('/');
+  
+  console.log('Settings: 로그아웃 시작');
+  
+  try {
+    // 로그아웃 실행
+    await userStore.logout();
+    console.log('Settings: 로그아웃 완료');
+    
+    // 약간의 지연 후 페이지 이동 (상태 업데이트 보장)
+    setTimeout(() => {
+      console.log('Settings: 홈으로 이동');
+      router.push('/');
+    }, 100);
+  } catch (error) {
+    console.error('Settings: 로그아웃 오류:', error);
+    // 오류가 있어도 홈으로 이동
+    setTimeout(() => {
+      router.push('/');
+    }, 100);
+  }
 };
 
 const goBack = async (): Promise<void> => {
@@ -534,6 +556,34 @@ input:checked + .toggle-slider:before {
 
 .copyright {
   font-size: 0.75rem;
+}
+
+/* 로딩 오버레이 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #A855F7;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* 반응형 디자인 */

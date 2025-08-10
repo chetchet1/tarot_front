@@ -387,7 +387,7 @@ const createShareLink = async (reading: any): Promise<string> => {
       throw error;
     }
     
-    const shareUrl = `${baseUrl}/share/${data.id}`;
+    const shareUrl = `${baseUrl}/s/${data.id}`;
     console.log('Share URL created:', shareUrl);
     return shareUrl;
     
