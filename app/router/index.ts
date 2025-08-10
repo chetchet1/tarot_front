@@ -13,8 +13,21 @@ import TarotDictionary from '../views/TarotDictionary.vue';
 import AuthCallback from '../views/AuthCallback.vue';
 // 공유 페이지 컴포넌트 import
 import SharedReading from '../views/SharedReading.vue';
+import AppDownload from '../views/AppDownload.vue';
+
+// 플랫폼 감지
+import { detectPlatform, shouldRedirectToAppStore } from '../utils/platformDetector';
 
 const routes = [
+  {
+    path: '/download',
+    name: 'AppDownload',
+    component: AppDownload,
+    meta: { 
+      requiresAuth: false,
+      isPublic: true
+    }
+  },
   {
     path: '/',
     name: 'Home',
@@ -117,6 +130,28 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
     params: to.params,
     meta: to.meta
   });
+  
+  // 공유 페이지 접속 시 앱 설치 유도 체크
+  // TODO: 앱 스토어 등록 후 주석 해제
+  /*
+  if (to.name === 'SharedReading') {
+    const platform = detectPlatform();
+    
+    // 웹브라우저에서 접속한 경우 (앱이 아닌 경우)
+    if (!platform.isCapacitor && !platform.isInApp && shouldRedirectToAppStore()) {
+      console.log('📱 [Router Guard] 웹 브라우저 접속 - 앱 다운로드 페이지로 리다이렉트');
+      // 공유 ID를 쿼리 파라미터로 전달
+      next({
+        name: 'AppDownload',
+        query: {
+          from: 'share',
+          shareId: to.params.id as string
+        }
+      });
+      return;
+    }
+  }
+  */
   
   // 공개 페이지는 인증 처리 건너뛰기
   if (to.meta.isPublic || to.meta.requiresAuth === false) {

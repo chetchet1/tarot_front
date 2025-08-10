@@ -32,6 +32,24 @@
                 <data android:scheme="com.tarotgarden.app" />
             </intent-filter>
             
+            <!-- 앱 딥링크 스킴 (tarotgarden://) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="tarotgarden" />
+            </intent-filter>
+            
+            <!-- 공유 링크로 앱 열기 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data 
+                    android:scheme="tarotgarden"
+                    android:host="share" />
+            </intent-filter>
+            
             <!-- Supabase OAuth 콜백을 위한 추가 설정 -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

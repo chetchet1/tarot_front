@@ -208,7 +208,7 @@ const formattedDailyInterpretation = computed(() => {
 
 // 카드 이미지 URL 생성
 const getCardImageUrl = (card: any) => {
-  const cardNum = card.cardNumber || 0;
+  const cardNum = card.cardNumber || card.id || 0;
   
   // 메이저 아르카나 (0-21)
   if (cardNum <= 21) {
@@ -227,7 +227,44 @@ const getCardImageUrl = (card: any) => {
     return `/assets/tarot-cards/major/${fileName}`;
   }
   
-  // 마이너 아르카나는 추후 추가
+  // 마이너 아르카나 (22-77)
+  // Wands: 22-35, Cups: 36-49, Swords: 50-63, Pentacles: 64-77
+  const minorCardMap: Record<number, string> = {
+    // Wands
+    22: '01-ace-of-wands.png', 23: '02-two-of-wands.png', 24: '03-three-of-wands.png',
+    25: '04-four-of-wands.png', 26: '05-five-of-wands.png', 27: '06-six-of-wands.png',
+    28: '07-seven-of-wands.png', 29: '08-eight-of-wands.png', 30: '09-nine-of-wands.png',
+    31: '10-ten-of-wands.png', 32: '11-Page-of-Wands.png', 33: '12-Knight-of-Wands.png',
+    34: '13-Queen-of-Wands.png', 35: '14-King-of-Wands.png',
+    // Cups
+    36: '01-ace-of-cups.png', 37: '02-two-of-cups.png', 38: '03-three-of-cups.png',
+    39: '04-four-of-cups.png', 40: '05-five-of-cups.png', 41: '06-six-of-cups.png',
+    42: '07-seven-of-cups.png', 43: '08-eight-of-cups.png', 44: '09-nine-of-cups.png',
+    45: '10-ten-of-cups.png', 46: '11-Page-of-Cups.png', 47: '12-Knight-of-Cups.png',
+    48: '13-Queen-of-Cups.png', 49: '14-King-of-Cups.png',
+    // Swords
+    50: '01-ace-of-swords.png', 51: '02-two-of-swords.png', 52: '03-three-of-swords.png',
+    53: '04-four-of-swords.png', 54: '05-five-of-swords.png', 55: '06-six-of-swords.png',
+    56: '07-seven-of-swords.png', 57: '08-eight-of-swords.png', 58: '09-nine-of-swords.png',
+    59: '10-ten-of-swords.png', 60: '11-Page-of-Swords.png', 61: '12-Knight-of-Swords.png',
+    62: '13-Queen-of-Swords.png', 63: '14-King-of-Swords.png',
+    // Pentacles
+    64: '01-ace-of-pentacles.png', 65: '02-two-of-pentacles.png', 66: '03-three-of-pentacles.png',
+    67: '04-four-of-pentacles.png', 68: '05-five-of-pentacles.png', 69: '06-six-of-pentacles.png',
+    70: '07-seven-of-pentacles.png', 71: '08-eight-of-pentacles.png', 72: '09-nine-of-pentacles.png',
+    73: '10-ten-of-pentacles.png', 74: '11-Page-of-Pentacles.png', 75: '12-Knight-of-Pentacles.png',
+    76: '13-Queen-of-Pentacles.png', 77: '14-King-of-Pentacles.png'
+  };
+  
+  const fileName = minorCardMap[cardNum];
+  if (fileName) {
+    return `/assets/tarot-cards/minor/${fileName}`;
+  }
+  
+  // 카드 정보를 로그로 확인
+  console.log('Unknown card:', card);
+  
+  // 폴백
   return '/assets/tarot-cards/major/00-the-Fool.png';
 };
 

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Google Play Badge</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .badge-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 12px 24px;
+            background: black;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .custom-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            background: black;
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .play-icon {
+            width: 24px;
+            height: 24px;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            display: block;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Google Play Store Badge Generator</h1>
+    
+    <div class="badge-container">
+        <h2>옵션 1: 공식 링크</h2>
+        <p>Google Play 공식 배지 다운로드:</p>
+        <a href="https://play.google.com/intl/en_us/badges/" target="_blank" class="badge">
+            공식 배지 다운로드 페이지
+        </a>
+    </div>
+
+    <div class="badge-container">
+        <h2>옵션 2: 커스텀 배지 생성</h2>
+        <canvas id="badgeCanvas" width="200" height="60"></canvas>
+        <button onclick="generateBadge()">배지 생성</button>
+        <button onclick="downloadBadge()">다운로드</button>
+    </div>
+
+    <div class="badge-container">
+        <h2>옵션 3: SVG 배지</h2>
+        <svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+            <rect width="200" height="60" rx="8" fill="#000000"/>
+            <g transform="translate(20, 20)">
+                <!-- Play Store Icon -->
+                <path d="M2 3.5L12 10L2 16.5V3.5Z" fill="#48ff48" stroke="none"/>
+                <path d="M12 10L17 7L22 10L17 13L12 10Z" fill="#ffD400" stroke="none"/>
+                <path d="M2 16.5L12 10L17 13L2 20V16.5Z" fill="#00d4ff" stroke="none"/>
+                <path d="M2 3.5L12 10L17 7L2 0V3.5Z" fill="#ff4848" stroke="none"/>
+            </g>
+            <text x="55" y="25" fill="white" font-family="Arial" font-size="11">다음에서 다운로드</text>
+            <text x="55" y="42" fill="white" font-family="Arial" font-size="16" font-weight="bold">Google Play</text>
+        </svg>
+        <br>
+        <button onclick="downloadSVG()">SVG 다운로드</button>
+    </div>
+
+    <script>
+        function generateBadge() {
+            const canvas = document.getElementById('badgeCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 배경
+            ctx.fillStyle = '#000000';
+            ctx.roundRect(0, 0, 200, 60, 8);
+            ctx.fill();
+            
+            // Play 아이콘 (간단한 삼각형)
+            ctx.fillStyle = '#48ff48';
+            ctx.beginPath();
+            ctx.moveTo(20, 20);
+            ctx.lineTo(35, 30);
+            ctx.lineTo(20, 40);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 텍스트
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '11px Arial';
+            ctx.fillText('다음에서 다운로드', 55, 25);
+            
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('Google Play', 55, 42);
+        }
+        
+        function downloadBadge() {
+            const canvas = document.getElementById('badgeCanvas');
+            const link = document.createElement('a');
+            link.download = 'google-play-badge.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        function downloadSVG() {
+            const svgData = document.querySelector('svg').outerHTML;
+            const blob = new Blob([svgData], {type: 'image/svg+xml'});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = 'google-play-badge.svg';
+            link.href = url;
+            link.click();
+        }
+        
+        // Canvas roundRect polyfill
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                this.beginPath();
+                this.moveTo(x + r, y);
+                this.arcTo(x + w, y, x + w, y + h, r);
+                this.arcTo(x + w, y + h, x, y + h, r);
+                this.arcTo(x, y + h, x, y, r);
+                this.arcTo(x, y, x + w, y, r);
+                this.closePath();
+                return this;
+            }
+        }
+        
+        // 초기 생성
+        generateBadge();
+    </script>
+</body>
+</html>
