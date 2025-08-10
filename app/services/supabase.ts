@@ -193,6 +193,7 @@ export const authService = {
       // 디버깅을 위한 추가 로그
       console.log('🔍 Supabase URL:', supabase.supabaseUrl);
       console.log('🔍 Supabase Key 시작:', supabase.supabaseKey?.substring(0, 20) + '...');
+      console.log('🔍 인증 요청 시작 시간:', new Date().toISOString());
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,

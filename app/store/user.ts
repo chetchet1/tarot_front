@@ -491,29 +491,40 @@ export const useUserStore = defineStore('user', () => {
     try {
       isLoading.value = true;
       
-      // 로그인 시도 (타임아웃 없이 직접 실행)
-      const data = await authService.signIn(email, password);
+      // 로그인 시도 with 타임아웃 (30초로 증가)
+      const loginPromise = authService.signIn(email, password);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Login timeout')), 30000)
+      );
+      
+      const data = await Promise.race([loginPromise, timeoutPromise]) as any;
       const user = data?.user;
       
       if (user) {
         console.log('로그인 성공, 프로필 확인 중...');
         
-        // 프로필 존재 확인 및 생성 (에러 무시)
+        // 프로필 존재 확인 및 생성 (타임아웃 설정)
         try {
-          await ensureProfileExists(user.id, user.email);
+          const profilePromise = ensureProfileExists(user.id, user.email);
+          const profileTimeout = new Promise((resolve) => 
+            setTimeout(() => resolve(false), 3000)
+          );
+          await Promise.race([profilePromise, profileTimeout]);
         } catch (profileError) {
           console.warn('프로필 확인 실패:', profileError);
-          // 프로필 실패해도 로그인은 계속 진행
         }
         
-        // 프리미엄 상태 확인 (에러 무시)
+        // 프리미엄 상태 확인 (타임아웃 설정)
         let isPremiumUser = false;
         try {
-          isPremiumUser = await checkPremiumStatus(user.id);
+          const premiumPromise = checkPremiumStatus(user.id);
+          const premiumTimeout = new Promise((resolve) => 
+            setTimeout(() => resolve(false), 3000)
+          );
+          isPremiumUser = await Promise.race([premiumPromise, premiumTimeout]) as boolean;
           console.log('로그인 시 프리미엄 상태:', isPremiumUser);
         } catch (premiumError) {
           console.warn('프리미엄 상태 확인 실패:', premiumError);
-          // 실패해도 기본값 false 사용
         }
         
         currentUser.value = {
@@ -550,7 +561,9 @@ export const useUserStore = defineStore('user', () => {
       console.error('로그인 실패:', error);
       throw error;
     } finally {
+      // finally 블록은 항상 실행되도록 보장
       isLoading.value = false;
+      console.log('로그인 로딩 상태 해제');
     }
   };
 

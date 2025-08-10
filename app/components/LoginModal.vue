@@ -288,19 +288,21 @@ export default {
       errorMessage.value = '';
       successMessage.value = '';
 
-      // 전체 타임아웃 설정 (10초)
+      // 전체 타임아웃 설정 (20초로 증가)
       const timeoutId = setTimeout(() => {
         if (isLoading.value) {
           console.log('인증 타임아웃');
           isLoading.value = false;
           errorMessage.value = '요청 시간이 초과되었습니다. 다시 시도해주세요.';
         }
-      }, 10000);
+      }, 20000);
 
       try {
         if (isLoginMode.value) {
-          // 로그인
+          // 로그인 시작 메시지 표시
           console.log('로그인 시도:', formData.value.email);
+          successMessage.value = '로그인 중입니다...';
+          
           await userStore.login(formData.value.email, formData.value.password);
           
           // 타임아웃 클리어
@@ -342,7 +344,14 @@ export default {
         console.error('인증 오류:', error);
         clearTimeout(timeoutId);
         isLoading.value = false;
-        errorMessage.value = getErrorMessage(error.message || error);
+        successMessage.value = ''; // 성공 메시지 클리어
+        
+        // 타임아웃 에러 특별 처리
+        if (error.message === 'Login timeout') {
+          errorMessage.value = '로그인 시간이 초과되었습니다. 네트워크 상태를 확인하고 다시 시도해주세요.';
+        } else {
+          errorMessage.value = getErrorMessage(error.message || error);
+        }
       }
     };
 
@@ -456,12 +465,22 @@ export default {
     const getErrorMessage = (error) => {
       const errorMessages = {
         'Invalid login credentials': '이메일 또는 비밀번호가 올바르지 않습니다',
+        '이메일 또는 비밀번호가 올바르지 않습니다.': '이메일 또는 비밀번호가 올바르지 않습니다',
+        '이메일 인증이 완료되지 않았습니다. 이메일을 확인해주세요.': '이메일 인증이 필요합니다',
         'User already registered': '이미 가입된 이메일입니다',
         'Password should be at least 6 characters': '비밀번호는 최소 6자 이상이어야 합니다',
-        'Invalid email': '올바른 이메일 형식이 아닙니다'
+        'Invalid email': '올바른 이메일 형식이 아닙니다',
+        '일시적인 서버 문제가 발생했습니다. 잠시 후 다시 시도해주세요.': '서버 오류가 발생했습니다'
       };
       
-      return errorMessages[error] || '오류가 발생했습니다. 다시 시도해주세요.';
+      // 부분 문자열 매칭
+      for (const [key, value] of Object.entries(errorMessages)) {
+        if (error?.includes(key)) {
+          return value;
+        }
+      }
+      
+      return '오류가 발생했습니다. 다시 시도해주세요.';
     };
 
     // 오버레이 클릭 처리

@@ -42,7 +42,7 @@ class MockAdMobService implements AdMobService {
     console.log(`🌐 [Web] 전면 광고 표시 (모킹됨) - ${this.adShowCount}번째 호출`);
     console.log(`🌐 [Web] 현재 시간: ${new Date().toISOString()}`);
     
-    // 매번 새로운 광고 시뮤레이션
+    // 매번 새로운 광고 시뮬레이션
     const overlay = document.createElement('div');
     overlay.style.cssText = `
       position: fixed;
@@ -61,11 +61,11 @@ class MockAdMobService implements AdMobService {
     `;
     overlay.innerHTML = `
       <div style="text-align: center;">
-        <h2 style="margin-bottom: 20px;">광고 시뮤레이션 #${this.adShowCount}</h2>
+        <h2 style="margin-bottom: 20px;">광고 시뮬레이션 #${this.adShowCount}</h2>
         <p>실제 앱에서는 여기에 광고가 표시됩니다</p>
         <p style="font-size: 18px; margin-top: 20px;">3초 후 자동으로 닫힙니다...</p>
         <div style="margin-top: 20px; font-size: 48px;">📺</div>
-        <button onclick="this.parentElement.parentElement.remove()" style="
+        <button style="
           margin-top: 30px;
           padding: 10px 20px;
           font-size: 16px;
@@ -80,21 +80,29 @@ class MockAdMobService implements AdMobService {
     document.body.appendChild(overlay);
     
     return new Promise(resolve => {
+      let resolved = false;
+      
       // 3초 후 자동으로 닫힘
-      setTimeout(() => {
-        if (overlay.parentElement) {
+      const timer = setTimeout(() => {
+        if (!resolved && overlay.parentElement) {
+          resolved = true;
           overlay.remove();
+          console.log(`🌐 [Web] 광고 시뮬레이션 #${this.adShowCount} 종료`);
+          resolve(true);
         }
-        console.log(`🌐 [Web] 광고 시뮤레이션 #${this.adShowCount} 종료`);
-        resolve(true);
       }, 3000);
       
       // 버튼 클릭으로도 닫을 수 있음
       const button = overlay.querySelector('button');
       if (button) {
         button.addEventListener('click', () => {
-          console.log(`🌐 [Web] 사용자가 광고 #${this.adShowCount}를 건너뛰었습니다`);
-          resolve(true);
+          if (!resolved) {
+            resolved = true;
+            clearTimeout(timer);
+            overlay.remove();
+            console.log(`🌐 [Web] 사용자가 광고 #${this.adShowCount}를 건너뛰었습니다`);
+            resolve(true);
+          }
         });
       }
     });
@@ -124,6 +132,8 @@ class MockAdMobService implements AdMobService {
     
     let timeRemaining = 15;
     let completed = false;
+    let intervalId: number | null = null;
+    let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
     
     const updateOverlay = () => {
       overlay.innerHTML = `
@@ -138,7 +148,7 @@ class MockAdMobService implements AdMobService {
           </div>
           ${timeRemaining > 0 ? 
             `<p style="margin-top: 30px; font-size: 14px; opacity: 0.7;">스킵 불가능 (${timeRemaining}초)</p>` : 
-            `<button onclick="this.parentElement.parentElement.remove()" style="
+            `<button style="
               margin-top: 30px;
               padding: 12px 24px;
               font-size: 16px;
@@ -157,12 +167,22 @@ class MockAdMobService implements AdMobService {
     document.body.appendChild(overlay);
     
     return new Promise(resolve => {
-      const timer = setInterval(() => {
+      // ESC 키나 백 버튼 방지
+      keydownHandler = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && timeRemaining > 0) {
+          e.preventDefault();
+          console.log('🌐 [Web] 광고 중 ESC 키 차단됨');
+        }
+      };
+      
+      document.addEventListener('keydown', keydownHandler);
+      
+      intervalId = setInterval(() => {
         timeRemaining--;
         updateOverlay();
         
         if (timeRemaining <= 0) {
-          clearInterval(timer);
+          if (intervalId) clearInterval(intervalId);
           completed = true;
           
           // 보상 받기 버튼 클릭 대기
@@ -170,30 +190,40 @@ class MockAdMobService implements AdMobService {
           if (button) {
             button.addEventListener('click', () => {
               console.log('🌐 [Web] 사용자가 보상을 받았습니다');
+              if (keydownHandler) {
+                document.removeEventListener('keydown', keydownHandler);
+              }
+              overlay.remove();
               resolve(true);
             });
           }
         }
-      }, 1000);
+      }, 1000) as unknown as number;
       
-      // ESC 키나 백 버튼 방지
-      const preventClose = (e: KeyboardEvent) => {
-        if (e.key === 'Escape' && timeRemaining > 0) {
-          e.preventDefault();
-          console.log('🌐 [Web] 광고 중 ESC 키 차단됨');
-        }
-      };
-      
-      document.addEventListener('keydown', preventClose);
-      
-      // 광고 종료 시 이벤트 리스너 제거
-      overlay.addEventListener('DOMNodeRemoved', () => {
-        document.removeEventListener('keydown', preventClose);
-        if (!completed) {
-          console.log('🌐 [Web] 광고가 중단되었습니다');
-          resolve(false);
+      // MutationObserver를 사용하여 DOM 제거 감지
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
+            for (const node of mutation.removedNodes) {
+              if (node === overlay) {
+                if (keydownHandler) {
+                  document.removeEventListener('keydown', keydownHandler);
+                }
+                if (intervalId) clearInterval(intervalId);
+                observer.disconnect();
+                if (!completed) {
+                  console.log('🌐 [Web] 광고가 중단되었습니다');
+                  resolve(false);
+                }
+                return;
+              }
+            }
+          }
         }
       });
+      
+      // body의 자식 노드 변경 감지
+      observer.observe(document.body, { childList: true });
     });
   }
 

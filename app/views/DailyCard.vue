@@ -210,6 +210,7 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
 import { supabase } from '../services/supabase';
+import { SUPABASE_CONFIG } from '../config/env';
 import { showAlert, showConfirm } from '../utils/alerts';
 import { CARD_BACK_BASE64 } from '../assets/card-back';
 // import TarotLoadingScreen from '../components/loading/TarotLoadingScreen.vue';
@@ -274,7 +275,8 @@ const getFortuneLabel = (key: string) => {
 // 오늘의 카드 불러오기
 const loadTodayCard = async () => {
   console.log('loadTodayCard 시작');
-  isLoading.value = true;
+  console.log('Supabase URL:', SUPABASE_CONFIG.url);
+  console.log('User:', userStore.currentUser);
   
   // 상태 완전 초기화 - 매번 새로 시작
   isCardRevealed.value = false;
@@ -292,6 +294,7 @@ const loadTodayCard = async () => {
   }
   
   try {
+    isLoading.value = true;
     const today = new Date().toISOString().split('T')[0];
     
     // 로그인 확인 (익명 사용자 차단) - 테스트 계정 예외 처리
@@ -383,6 +386,7 @@ const loadTodayCard = async () => {
     }
     
     // 일반 계정만 daily_cards 조회
+    console.log('데이터베이스 조회 시작...');
     const { data: readingData, error: readingError } = await supabase
       .from('daily_cards')
       .select('*')
@@ -392,17 +396,30 @@ const loadTodayCard = async () => {
 
     if (readingError) {
       console.error('daily_cards 조회 에러:', readingError);
+      console.error('에러 상세:', {
+        code: readingError.code,
+        message: readingError.message,
+        details: readingError.details,
+        hint: readingError.hint
+      });
+      
       // 테이블이 없는 경우
       if (readingError.code === '42P01') {
         await showAlert({
           title: '설정 필요',
           message: '오늘의 카드 기능을 사용하려면 관리자에게 문의하세요.'
         });
+        isLoading.value = false;
         return;
       }
+      
+      // 기타 오류는 무시하고 계속 진행 (새로 카드 뽑기 가능)
+      console.log('daily_cards 조회 실패했지만 계속 진행');
     }
+    
+    console.log('readingData:', readingData);
 
-    // 카드 정보를 Join으로 한번에 가져오기
+    // 카드 정보를 별도로 가져오기 (Foreign Key Join이 안 될 경우)
     if (readingData?.card_id) {
       const { data: cardData, error: cardError } = await supabase
         .from('tarot_cards')
@@ -439,7 +456,13 @@ const loadTodayCard = async () => {
     }
   } catch (error) {
     console.error('오늘의 카드 로드 실패:', error);
+    // 에러 발생 시 기본값 설정
+    todayCard.value = null;
+    isCardRevealed.value = false;
+    selectedCard.value = null;
   } finally {
+    // 반드시 로딩 상태 해제
+    console.log('로딩 상태 해제');
     isLoading.value = false;
   }
 };
@@ -453,11 +476,54 @@ const drawCard = async () => {
     todayCard: todayCard.value
   });
   
-  // 테스트 계정이 아닌 경우에만 이미 뽑은 카드 체크
+  // 이미 오늘 카드를 뽑았는지 체크
   const isTestAcc = isTestAccount(userStore.currentUser?.email);
   
+  // 테스트 계정이 아니고 오늘 이미 카드를 뽑은 경우
+  if (!isTestAcc && todayCard.value) {
+    console.log('오늘 이미 카드를 뽑음');
+    
+    // 이미 뽑은 카드 표시
+    selectedCard.value = todayCard.value.card;
+    
+    // 해석이 있으면 표시
+    if (todayCard.value.interpretation_data) {
+      interpretation.value = todayCard.value.interpretation_data;
+      isCardRevealed.value = true;
+    } else if (selectedCard.value) {
+      // 해석이 없으면 생성
+      isInterpretationLoading.value = true;
+      interpretationProgress.value = 10;
+      
+      let progressInterval: number | null = null;
+      progressInterval = setInterval(() => {
+        if (interpretationProgress.value < 90) {
+          interpretationProgress.value += Math.random() * 15 + 5;
+        }
+      }, 500) as unknown as number;
+      
+      try {
+        await generateInterpretation(selectedCard.value);
+        if (progressInterval) clearInterval(progressInterval);
+        interpretationProgress.value = 100;
+        setTimeout(() => {
+          isInterpretationLoading.value = false;
+          isCardRevealed.value = true;
+        }, 500);
+      } catch (error) {
+        console.error('해석 생성 실패:', error);
+        if (progressInterval) clearInterval(progressInterval);
+        isInterpretationLoading.value = false;
+        isCardRevealed.value = true;
+        interpretation.value = generateDefaultInterpretation(selectedCard.value);
+      }
+    }
+    return;
+  }
+  
+  // 테스트 계정이 아니고 이미 카드가 공개된 경우
   if (!isTestAcc && isCardRevealed.value && selectedCard.value) {
-    console.log('이미 카드가 공개됨 (일반 사용자)');
+    console.log('이미 카드가 공개됨');
     return;
   }
   
@@ -557,9 +623,115 @@ const drawCard = async () => {
       throw new Error('사용자 ID를 찾을 수 없습니다');
     }
     
-    // 테스트 계정도 일반 insert 사용 (이미 삭제했으므로)
-    if (true) {
-      // 모든 계정 insert 사용
+    // 중복 체크 및 저장 처리
+    if (!isTestAcc) {
+      // 이미 오늘 카드를 뽑았는지 먼저 확인
+      const { data: existingCard, error: checkError } = await supabase
+        .from('daily_cards')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('date', today)
+        .maybeSingle();
+      
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('오늘의 카드 확인 오류:', checkError);
+      }
+      
+      if (existingCard) {
+        console.log('오늘 이미 카드를 뽑았음 - 업데이트는 하지 않음');
+        // 이미 카드가 있으면 저장하지 않고 그 카드 사용
+        todayCard.value = existingCard;
+        
+        // 카드 정보가 없으면 별도 조회
+        if (!existingCard.card && existingCard.card_id) {
+          const { data: cardData, error: cardError } = await supabase
+            .from('tarot_cards')
+            .select('*')
+            .eq('id', existingCard.card_id)
+            .single();
+          
+          if (!cardError && cardData) {
+            todayCard.value.card = cardData;
+            selectedCard.value = cardData; // 현재 선택된 카드도 업데이트
+          }
+        } else {
+          selectedCard.value = existingCard.card || card; // 기존 카드 또는 새로 뽑은 카드 사용
+        }
+      } else {
+        // 새로운 카드 저장
+        const { data: savedReading, error: saveError } = await supabase
+          .from('daily_cards')
+          .insert({
+            user_id: userId,
+            card_id: card.id,
+            date: today,
+            orientation: 'upright'
+          })
+          .select('*')
+          .single();
+        
+        if (saveError) {
+          console.error('카드 저장 오류:', saveError);
+          // 중복 키 오류인 경우 무시하고 진행
+          if (saveError.code === '23505') {
+            console.log('중복 키 오류 - 이미 오늘 카드가 존재함');
+            // 기존 카드 다시 조회
+            const { data: existingData } = await supabase
+              .from('daily_cards')
+              .select('*')
+              .eq('user_id', userId)
+              .eq('date', today)
+              .maybeSingle();
+            
+            if (existingData) {
+              todayCard.value = existingData;
+              todayCard.value.card = card;
+            } else {
+              // 조회도 실패하면 메모리에서만 사용
+              todayCard.value = {
+                id: null,
+                user_id: userId,
+                card_id: card.id,
+                date: today,
+                orientation: 'upright',
+                card: card,
+                created_at: new Date().toISOString()
+              } as any;
+            }
+          } else {
+            // 다른 오류인 경우 메모리에서만 사용
+            todayCard.value = {
+              id: null,
+              user_id: userId,
+              card_id: card.id,
+              date: today,
+              orientation: 'upright',
+              card: card,
+              created_at: new Date().toISOString()
+            } as any;
+          }
+        } else {
+          console.log('카드 저장 성공:', savedReading);
+          savedReading.card = card;
+          todayCard.value = savedReading;
+        }
+      }
+    } else {
+      // 테스트 계정은 기존 데이터 삭제 후 새로 저장
+      console.log('테스트 계정: 기존 데이터 삭제 시도');
+      const { error: deleteError } = await supabase
+        .from('daily_cards')
+        .delete()
+        .eq('user_id', userId)
+        .eq('date', today);
+      
+      if (deleteError) {
+        console.log('기존 데이터 삭제 실패 (무시):', deleteError);
+      } else {
+        console.log('테스트 계정 기존 데이터 삭제 완료');
+      }
+      
+      // 테스트 계정용 새로운 카드 저장
       const { data: savedReading, error: saveError } = await supabase
         .from('daily_cards')
         .insert({
@@ -568,25 +740,25 @@ const drawCard = async () => {
           date: today,
           orientation: 'upright'
         })
-        .select()
-        .maybeSingle(); // single() 대신 maybeSingle() 사용 (에러 방지)
+        .select('*')
+        .single();
       
-      console.log('카드 저장 결과:', savedReading, saveError);
       if (saveError) {
-        // 이미 존재하는 경우 (UNIQUE 제약 위반)
-        if (saveError.code === '23505') {
-          console.log('오늘 이미 카드를 뽑았습니다');
-          // 테스트 계정은 무시하고 진행
-          if (!isTestAcc) {
-            throw saveError;
-          }
-        } else {
-          console.error('카드 저장 실패:', saveError);
-          // 테스트 계정은 저장 실패해도 계속 진행
-          if (!isTestAcc) {
-            throw saveError;
-          }
-        }
+        console.error('테스트 계정 카드 저장 오류:', saveError);
+        // 저장 실패해도 메모리에서 사용
+        todayCard.value = {
+          id: null,
+          user_id: userId,
+          card_id: card.id,
+          date: today,
+          orientation: 'upright',
+          card: card,
+          created_at: new Date().toISOString()
+        } as any;
+      } else {
+        console.log('테스트 계정 카드 저장 성공:', savedReading);
+        savedReading.card = card;
+        todayCard.value = savedReading;
       }
     }
 
@@ -666,51 +838,85 @@ const showAdvertisement = async () => {
     
     if (adWatched) {
       // 광고 시청 완료 시 AI 해석 로딩 화면 표시
+      console.log('광고 시청 완료, AI 해석 시작');
+      console.log('현재 selectedCard:', selectedCard.value);
+      
+      // 카드 확인
+      if (!selectedCard.value) {
+        console.error('선택된 카드가 없음 - 중단');
+        showAd.value = false;
+        isCardRevealed.value = false;
+        await showAlert({
+          title: '오류',
+          message: '카드 정보를 찾을 수 없습니다. 다시 시도해주세요.'
+        });
+        return;
+      }
+      
       isInterpretationLoading.value = true;
-      interpretationProgress.value = 0;
+      interpretationProgress.value = 10; // 초기값 설정
+      
+      // DOM 업데이트 보장
+      await nextTick();
       
       // 프로그레스 애니메이션 시작
       let progressInterval: number | null = null;
       progressInterval = setInterval(() => {
         if (interpretationProgress.value < 90) {
           interpretationProgress.value += Math.random() * 15 + 5;
+          console.log('Progress:', interpretationProgress.value);
         }
       }, 500) as unknown as number;
       
       // AI 해석 생성
       try {
-        if (!selectedCard.value) {
-          console.error('선택된 카드가 없음');
-          throw new Error('카드 정보가 없습니다');
-        }
-        
+        console.log('generateInterpretation 호출 전');
         await generateInterpretation(selectedCard.value);
+        console.log('generateInterpretation 완료');
+        console.log('interpretation.value:', interpretation.value);
         
         // AI 해석 완료 후 카드 공개
         if (progressInterval) {
           clearInterval(progressInterval);
+          progressInterval = null;
         }
         interpretationProgress.value = 100;
         
+        // 로딩 화면을 잠시 유지 후 종료
         setTimeout(() => {
           isInterpretationLoading.value = false;
+          interpretationProgress.value = 0;
           isCardRevealed.value = true;
-          console.log('광고 후 카드 공개 완료');
-        }, 500);
+          console.log('광고 후 카드 및 해석 공개 완료');
+          console.log('최종 상태:', {
+            isCardRevealed: isCardRevealed.value,
+            showInterpretation: showInterpretation.value,
+            interpretation: interpretation.value ? '있음' : '없음'
+          });
+        }, 800);
       } catch (error) {
         console.error('해석 생성 실패:', error);
         if (progressInterval) {
           clearInterval(progressInterval);
+          progressInterval = null;
         }
-        isInterpretationLoading.value = false;
-        interpretationProgress.value = 0;
         
-        // 해석 생성 실패해도 카드는 공개
-        isCardRevealed.value = true;
-        // 기본 해석 사용
+        // 에러 발생 시에도 기본 해석 사용
         if (selectedCard.value) {
+          console.log('기본 해석 생성');
           interpretation.value = generateDefaultInterpretation(selectedCard.value);
         }
+        
+        // 로딩 화면 종료 및 카드 공개
+        isInterpretationLoading.value = false;
+        interpretationProgress.value = 0;
+        isCardRevealed.value = true;
+        
+        console.log('에러 발생 후 최종 상태:', {
+          isCardRevealed: isCardRevealed.value,
+          showInterpretation: showInterpretation.value,
+          interpretation: interpretation.value ? '있음' : '없음'
+        });
       }
     } else {
       // 광고 시청 실패 또는 중단
@@ -851,11 +1057,19 @@ const generateInterpretation = async (card: TarotCard) => {
     if (data && data.interpretation) {
       interpretation.value = data.interpretation;
       console.log('AI 해석 생성 완료');
+      console.log('해석 데이터 구조:', {
+        fortuneIndex: interpretation.value.fortuneIndex ? '있음' : '없음',
+        timeAdvice: interpretation.value.timeAdvice ? '있음' : '없음',
+        luckyItems: interpretation.value.luckyItems ? '있음' : '없음',
+        relationshipAdvice: interpretation.value.relationshipAdvice ? '있음' : '없음',
+        dailyQuote: interpretation.value.dailyQuote ? '있음' : '없음',
+        detailedFortune: interpretation.value.detailedFortune ? '있음' : '없음'
+      });
       
       // 테스트 계정은 캐싱하지 않음
       const isTestAccount = userStore.currentUser?.email === 'test@example.com';
       
-      if (!isTestAccount) {
+      if (!isTestAccount && todayCard.value?.id) {
         // 일반 계정만 interpretation_data 컬럼에 DB 캐싱 시도
         try {
           const today = new Date().toISOString().split('T')[0];
@@ -869,12 +1083,16 @@ const generateInterpretation = async (card: TarotCard) => {
             console.log('interpretation_data 컬럼 없거나 업데이트 실패:', updateError);
           } else {
             console.log('해석 데이터 캐싱 성공');
+            // todayCard에도 업데이트
+            if (todayCard.value) {
+              todayCard.value.interpretation_data = data.interpretation;
+            }
           }
         } catch (cacheError) {
           console.log('DB 캐싱 스킵 (컬럼 없음)');
         }
       } else {
-        console.log('테스트 계정: 해석 데이터 캐싱 스킵');
+        console.log('테스트 계정 또는 todayCard 없음: 해석 데이터 캐싱 스킵');
       }
     } else if (data && data.error) {
       // Edge Function이 에러를 반환했지만 기본 해석도 포함한 경우
@@ -925,6 +1143,19 @@ const getCardImageUrl = (card: TarotCard | undefined | null) => {
   
   // 코트 카드 판별 (DB에 court 필드가 없는 경우 이름으로 판별)
   let courtType: string | undefined = card.court;
+  
+  // number가 11-14인 경우 코트 카드로 판별
+  if (!courtType && card.arcana === 'minor' && card.number && card.number >= 11 && card.number <= 14) {
+    const courtByNumber: Record<number, string> = {
+      11: 'page',
+      12: 'knight',
+      13: 'queen',
+      14: 'king'
+    };
+    courtType = courtByNumber[card.number];
+  }
+  
+  // 그래도 없으면 이름에서 추출
   if (!courtType && card.arcana === 'minor' && card.name) {
     // 이름에서 코트 타입 추출
     const courtNames = ['Page', 'Knight', 'Queen', 'King'];
@@ -945,7 +1176,9 @@ const getCardImageUrl = (card: TarotCard | undefined | null) => {
     suit: card.suit,
     court: card.court,
     detectedCourt: courtType,
-    image_url: card.image_url
+    image_url: card.image_url,
+    isCourtCard: courtType ? true : false,
+    isNumberCard: card.number && card.number >= 1 && card.number <= 10
   });
   
   // DB의 image_url은 무시하고 직접 경로 생성
@@ -1016,8 +1249,8 @@ const getCardImageUrl = (card: TarotCard | undefined | null) => {
     
     return imagePath;
   } 
-  // 마이너 아르카나 - 숫자 카드 (Ace ~ Ten)
-  else if (card.arcana === 'minor' && card.number && card.number <= 10) {
+  // 마이너 아르카나 - 숫자 카드 (Ace ~ Ten, number가 1-10인 경우)
+  else if (card.arcana === 'minor' && card.number && card.number >= 1 && card.number <= 10) {
     // 숫자를 2자리로 패딩
     const cardNumber = card.number.toString().padStart(2, '0');
     

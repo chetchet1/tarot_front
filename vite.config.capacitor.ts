@@ -5,19 +5,33 @@ import { resolve } from 'path';
 export default defineConfig({
   plugins: [
     vue(),
+    {
+      name: 'error-handler',
+      configureServer(server) {
+        server.middlewares.use((err, req, res, next) => {
+          if (err && req.url?.includes('.vue')) {
+            console.error('=== Vue file request error ===');
+            console.error('URL:', req.url);
+            console.error('Error:', err);
+            console.error('Stack:', err.stack);
+            console.error('============================');
+            // 에러를 그대로 전달하여 정상적인 처리 경로로
+            next(err);
+            return;
+          }
+          next(err);
+        });
+      }
+    }
   ],
   
   // 빌드 설정
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    // 모듈 포맷 설정
+    // 에셋 복사 설정
     rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html'),
-      },
       output: {
-        // 에셋 파일명 설정
         assetFileNames: (assetInfo) => {
           // 이미지 파일들은 원래 경로 유지
           if (assetInfo.name && /\.(png|jpe?g|gif|svg)$/i.test(assetInfo.name)) {
@@ -25,24 +39,10 @@ export default defineConfig({
           }
           return 'assets/[name]-[hash][extname]';
         },
-        // 청크 파일명 설정
-        chunkFileNames: 'js/[name]-[hash].js',
-        // 엔트리 파일명 설정
-        entryFileNames: 'js/[name]-[hash].js',
       },
     },
     // 정적 에셋 복사
     copyPublicDir: true,
-    // 소스맵 생성 (프로덕션에서는 false)
-    sourcemap: false,
-    // 최소화 설정
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
   },
   
   // 개발 서버 설정
@@ -50,14 +50,24 @@ export default defineConfig({
     port: 8082,
     host: 'localhost',
     strictPort: true,
+    // HMR 설정 - 완전히 비활성화
+    hmr: false,
+    // CORS 설정
     cors: true,
+    // 정적 파일 제공
     fs: {
       strict: false,
       allow: ['..'],
     },
+    // 웹소켓 연결 시간 초과 방지
+    watch: {
+      usePolling: false,
+      interval: 100,
+    },
+    // 프록시는 사용하지 않음 (Supabase 클라이언트가 직접 API 호출)
   },
   
-  // 최적화 설정
+  // 최적화 설정 추가
   optimizeDeps: {
     include: ['vue', 'vue-router', 'pinia', '@capacitor/core'],
     exclude: ['@/services/ai/customInterpretationService'],
@@ -71,18 +81,20 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, 'app'),
       '~': resolve(__dirname, 'app'),
+      // assets 경로를 직접 매핑
+      '/assets': resolve(__dirname, 'assets'),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.vue', '.json']
   },
   
-  // 정적 파일 디렉토리 설정
+  // 정적 파일 디렉토리 설정 (기본 public)
   publicDir: 'public',
   
   // 에셋으로 처리할 파일 확장자
   assetsInclude: ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.gif', '**/*.svg'],
   
-  // 웹 배포를 위한 base 설정 (Vercel은 절대 경로 사용)
-  base: '/',
+  // Capacitor를 위한 base 설정 (상대 경로)
+  base: './',
   
   // 환경 변수 설정
   define: {
