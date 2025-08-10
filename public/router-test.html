@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue Router 테스트</title>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        .test-section h2 {
+            color: #FFD700;
+            margin-bottom: 20px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: linear-gradient(135deg, #A855F7 0%, #8B5CF6 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(168, 85, 247, 0.4);
+        }
+        .log-area {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #A855F7;
+            padding-left: 10px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid #22c55e;
+        }
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+        }
+        .status.info {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔮 Vue Router 공유 페이지 테스트</h1>
+        
+        <div class="test-section">
+            <h2>📊 현재 상태</h2>
+            <div id="status-container"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🧪 네비게이션 테스트</h2>
+            <div class="btn-group">
+                <button onclick="navigateTo('/')">홈으로</button>
+                <button onclick="navigateTo('/app')">앱으로</button>
+                <button onclick="navigateTo('/s/test-123')">공유 페이지 (테스트)</button>
+                <button onclick="navigateTo('/s/bfd0c8e8-09c1-4c79-8ae1-3eb093f858d7')">공유 페이지 (실제 ID)</button>
+                <button onclick="createNewSharedLink()">새 공유 링크 생성</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔍 Vue 앱 진단</h2>
+            <div class="btn-group">
+                <button onclick="checkVueApp()">Vue 앱 확인</button>
+                <button onclick="checkRouter()">라우터 확인</button>
+                <button onclick="checkCurrentRoute()">현재 라우트 확인</button>
+                <button onclick="checkSharedComponent()">공유 컴포넌트 확인</button>
+                <button onclick="clearLogs()">로그 지우기</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📜 로그</h2>
+            <div id="log-area" class="log-area"></div>
+        </div>
+    </div>
+    
+    <script>
+        const logArea = document.getElementById('log-area');
+        const statusContainer = document.getElementById('status-container');
+        
+        function addLog(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const timestamp = new Date().toLocaleTimeString('ko-KR');
+            entry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            logArea.appendChild(entry);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+        
+        function updateStatus() {
+            const statusItems = [];
+            
+            // URL 정보
+            statusItems.push({
+                label: 'URL',
+                value: window.location.href,
+                type: 'info'
+            });
+            
+            // Vue 앱 상태
+            const vueApp = document.querySelector('#app')?.__vue_app__;
+            statusItems.push({
+                label: 'Vue 앱',
+                value: vueApp ? '✅ 로드됨' : '❌ 없음',
+                type: vueApp ? 'success' : 'error'
+            });
+            
+            // Vue Router 상태
+            const hasRouter = vueApp && vueApp.config.globalProperties.$router;
+            statusItems.push({
+                label: 'Vue Router',
+                value: hasRouter ? '✅ 활성' : '❌ 비활성',
+                type: hasRouter ? 'success' : 'error'
+            });
+            
+            // 현재 라우트
+            if (hasRouter) {
+                const currentRoute = vueApp.config.globalProperties.$route;
+                statusItems.push({
+                    label: '현재 라우트',
+                    value: currentRoute ? currentRoute.path : '알 수 없음',
+                    type: 'info'
+                });
+            }
+            
+            // 공유 컴포넌트 로드 상태
+            const sharedLoaded = window.__SHARED_READING_LOADED__;
+            statusItems.push({
+                label: '공유 컴포넌트',
+                value: sharedLoaded ? '✅ 로드됨' : '❌ 로드 안됨',
+                type: sharedLoaded ? 'success' : 'error'
+            });
+            
+            statusContainer.innerHTML = statusItems.map(item => 
+                `<div class="status ${item.type}">
+                    <strong>${item.label}:</strong> ${item.value}
+                </div>`
+            ).join('');
+        }
+        
+        function navigateTo(path) {
+            addLog(`🚀 ${path}로 이동 시도...`);
+            
+            // Vue Router가 있으면 사용
+            const vueApp = document.querySelector('#app')?.__vue_app__;
+            if (vueApp && vueApp.config.globalProperties.$router) {
+                const router = vueApp.config.globalProperties.$router;
+                router.push(path)
+                    .then(() => {
+                        addLog(`✅ ${path}로 이동 성공`);
+                        setTimeout(updateStatus, 100);
+                    })
+                    .catch(err => {
+                        addLog(`❌ 라우터 이동 실패: ${err.message}`, 'error');
+                    });
+            } else {
+                // 일반 페이지 이동
+                window.location.href = path;
+            }
+        }
+        
+        function checkVueApp() {
+            const appElement = document.querySelector('#app');
+            const vueApp = appElement?.__vue_app__;
+            
+            if (!appElement) {
+                addLog('❌ #app 엘리먼트를 찾을 수 없습니다', 'error');
+                return;
+            }
+            
+            if (!vueApp) {
+                addLog('❌ Vue 앱이 마운트되지 않았습니다', 'error');
+                addLog('💡 팁: 개발 서버가 실행 중인지 확인하세요');
+                return;
+            }
+            
+            addLog('✅ Vue 앱 발견!');
+            addLog(`앱 버전: ${vueApp.version}`);
+            
+            // 전역 속성 확인
+            const globalProps = vueApp.config.globalProperties;
+            const propKeys = Object.keys(globalProps);
+            addLog(`전역 속성: ${propKeys.join(', ')}`);
+        }
+        
+        function checkRouter() {
+            const vueApp = document.querySelector('#app')?.__vue_app__;
+            
+            if (!vueApp) {
+                addLog('❌ Vue 앱이 없습니다', 'error');
+                return;
+            }
+            
+            const router = vueApp.config.globalProperties.$router;
+            
+            if (!router) {
+                addLog('❌ Vue Router가 없습니다', 'error');
+                return;
+            }
+            
+            addLog('✅ Vue Router 발견!');
+            
+            // 라우트 목록
+            const routes = router.getRoutes();
+            addLog(`등록된 라우트 수: ${routes.length}`);
+            
+            // 공유 관련 라우트 찾기
+            const shareRoutes = routes.filter(r => r.path.includes('/s/'));
+            if (shareRoutes.length > 0) {
+                addLog('📋 공유 관련 라우트:');
+                shareRoutes.forEach(route => {
+                    addLog(`  - ${route.path} (${route.name})`);
+                });
+            } else {
+                addLog('⚠️ 공유 관련 라우트가 없습니다', 'warning');
+            }
+        }
+        
+        function checkCurrentRoute() {
+            const vueApp = document.querySelector('#app')?.__vue_app__;
+            
+            if (!vueApp) {
+                addLog('❌ Vue 앱이 없습니다', 'error');
+                return;
+            }
+            
+            const route = vueApp.config.globalProperties.$route;
+            
+            if (!route) {
+                addLog('❌ 현재 라우트 정보가 없습니다', 'error');
+                return;
+            }
+            
+            addLog('📍 현재 라우트 정보:');
+            addLog(`  경로: ${route.path}`);
+            addLog(`  이름: ${route.name || '없음'}`);
+            addLog(`  파라미터: ${JSON.stringify(route.params)}`);
+            addLog(`  쿼리: ${JSON.stringify(route.query)}`);
+            addLog(`  메타: ${JSON.stringify(route.meta)}`);
+        }
+        
+        function checkSharedComponent() {
+            addLog('🔍 공유 컴포넌트 확인 중...');
+            
+            // 전역 변수 확인
+            if (window.__SHARED_READING_LOADED__) {
+                addLog('✅ SharedReading 컴포넌트가 로드되었습니다');
+                if (window.__SHARED_READING_ID__) {
+                    addLog(`  공유 ID: ${window.__SHARED_READING_ID__}`);
+                }
+            } else {
+                addLog('❌ SharedReading 컴포넌트가 로드되지 않았습니다');
+            }
+            
+            // Vue 컴포넌트 트리 확인
+            const vueApp = document.querySelector('#app')?.__vue_app__;
+            if (vueApp) {
+                // 현재 컴포넌트 확인
+                const root = vueApp._instance;
+                if (root) {
+                    addLog('🌳 컴포넌트 트리 확인 중...');
+                    // Vue 3에서는 컴포넌트 트리 탐색이 복잡함
+                    addLog('  (Vue DevTools를 사용하여 더 자세히 확인 가능)');
+                }
+            }
+        }
+        
+        async function createNewSharedLink() {
+            addLog('🔄 새 공유 링크 생성 시도...');
+            
+            try {
+                // Supabase 직접 호출 (테스트용)
+                const testData = {
+                    id: 'test-' + Date.now(),
+                    spread_type: 'three_card',
+                    cards: [
+                        { cardNumber: 0, nameKr: '바보', orientation: 'upright' },
+                        { cardNumber: 1, nameKr: '마법사', orientation: 'reversed' },
+                        { cardNumber: 2, nameKr: '여사제', orientation: 'upright' }
+                    ],
+                    basic_interpretation: '테스트 해석입니다.',
+                    custom_question: '테스트 질문',
+                    expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                    is_active: true
+                };
+                
+                addLog(`✅ 테스트 공유 ID 생성: ${testData.id}`);
+                addLog(`📋 /s/${testData.id} 로 이동해보세요`);
+                
+                // 자동으로 이동
+                setTimeout(() => {
+                    navigateTo(`/s/${testData.id}`);
+                }, 1000);
+                
+            } catch (error) {
+                addLog(`❌ 공유 링크 생성 실패: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearLogs() {
+            logArea.innerHTML = '';
+            addLog('📜 로그가 지워졌습니다');
+        }
+        
+        // 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatus();
+            addLog('🚀 테스트 페이지 로드됨');
+            
+            // 1초 후 Vue 앱 확인
+            setTimeout(() => {
+                checkVueApp();
+                updateStatus();
+            }, 1000);
+            
+            // 상태 자동 업데이트
+            setInterval(updateStatus, 5000);
+        });
+        
+        // 라우트 변경 감지
+        window.addEventListener('popstate', () => {
+            addLog('📍 브라우저 히스토리 변경됨');
+            updateStatus();
+        });
+    </script>
+</body>
+</html>

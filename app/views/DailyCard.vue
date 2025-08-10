@@ -37,16 +37,15 @@
       </div>
 
       <!-- 카드 표시 영역 -->
-      <div v-else-if="!hasDrawnToday" class="card-area">
-        <!-- 카드 뒷면 (클릭 가능) - AI 해석 중에도 표시 -->
+      <div v-else-if="!hasDrawnToday && !showAd && !isInterpretationLoading" class="card-area">
+        <!-- 카드 뒷면 (클릭 가능) -->
         <div 
           v-if="!isCardRevealed" 
           class="card-back"
           @click="drawCard"
-          :class="{ 'disabled': isInterpretationLoading }"
         >
           <div class="card-pattern"></div>
-          <p class="card-instruction" v-if="!isInterpretationLoading">카드를 클릭하여 오늘의 메시지를 확인하세요</p>
+          <p class="card-instruction">카드를 클릭하여 오늘의 메시지를 확인하세요</p>
         </div>
 
         <!-- 카드 앞면 -->
@@ -62,8 +61,8 @@
         </div>
       </div>
 
-      <!-- 이미 뽑은 경우 -->
-      <div v-else class="card-area">
+      <!-- 이미 뽑은 경우 (광고/로딩 중이 아닐 때만 표시) -->
+      <div v-else-if="hasDrawnToday && !showAd && !isInterpretationLoading" class="card-area">
         <div class="card-front">
           <img 
             :src="getCardImageUrl(todayCard?.card)" 
@@ -76,11 +75,10 @@
         </div>
       </div>
 
-      <!-- 광고 영역 (무료 사용자 & 카드 공개 후) -->
-      <div v-if="showAd" class="ad-container">
+      <!-- 광고 영역 (개발 환경에서만 표시) -->
+      <div v-if="showAd && false" class="ad-container">
         <div class="ad-overlay">
           <div class="ad-content">
-            <p class="ad-notice">광고를 시청하면 오늘의 상세 해석을 확인할 수 있습니다</p>
             <div class="ad-timer">{{ adTimeRemaining }}초 남음</div>
             <div class="ad-placeholder">
               [광고 영역 - {{ adTimeRemaining }}초]
@@ -421,6 +419,7 @@ const loadTodayCard = async () => {
 
     // 카드 정보를 별도로 가져오기 (Foreign Key Join이 안 될 경우)
     if (readingData?.card_id) {
+      console.log('카드 ID로 조회 시작:', readingData.card_id);
       const { data: cardData, error: cardError } = await supabase
         .from('tarot_cards')
         .select('*')
@@ -430,6 +429,13 @@ const loadTodayCard = async () => {
       if (cardError) {
         console.error('카드 조회 에러:', cardError);
       } else {
+        console.log('카드 조회 성공:', {
+          cardId: cardData.id,
+          cardName: cardData.name,
+          cardNameKr: cardData.name_kr,
+          savedCardId: readingData.card_id,
+          isMatch: cardData.id === readingData.card_id
+        });
         readingData.card = cardData;
       }
     }
@@ -562,25 +568,29 @@ const drawCard = async () => {
   console.log('  selectedCard:', selectedCard.value);
   console.log('  isInterpretationLoading:', isInterpretationLoading.value);
   
-  // 즉시 AI 해석 로딩 화면 표시
-  isInterpretationLoading.value = true;
-  interpretationProgress.value = 10; // 초기값을 10으로 설정해서 바로 보이도록
-  
-  console.log('isInterpretationLoading 설정됨:', isInterpretationLoading.value);
-  console.log('interpretationProgress:', interpretationProgress.value);
-  console.log('TarotLoadingScreen 컴포넌트가 로드되었는지 확인하세요.');
-  
-  // nextTick을 사용해서 DOM 업데이트 보장
-  await nextTick();
-  
-  // 프로그레스 애니메이션 시작
+  // 프리미엄 사용자에게만 AI 해석 로딩 화면 표시
+  // 무료 사용자는 바로 광고로 이동
   let progressInterval: number | null = null;
-  progressInterval = setInterval(() => {
-    if (interpretationProgress.value < 90) {
-      interpretationProgress.value += Math.random() * 15 + 5;
-      console.log('progress updated:', interpretationProgress.value);
-    }
-  }, 500) as unknown as number;
+  
+  // isTestAcc는 이미 위에서 선언됨
+  if (userStore.isPremium && !isTestAcc) {
+    // 프리미엄 사용자만 로딩 화면 표시
+    isInterpretationLoading.value = true;
+    interpretationProgress.value = 10;
+    
+    console.log('isInterpretationLoading 설정됨:', isInterpretationLoading.value);
+    console.log('interpretationProgress:', interpretationProgress.value);
+    
+    await nextTick();
+    
+    // 프로그레스 애니메이션 시작
+    progressInterval = setInterval(() => {
+      if (interpretationProgress.value < 90) {
+        interpretationProgress.value += Math.random() * 15 + 5;
+        console.log('progress updated:', interpretationProgress.value);
+      }
+    }, 500) as unknown as number;
+  }
   
   try {
     // isLoading을 false로 유지 (전체 페이지 로딩이 아닌 AI 해석 로딩만 표시)
@@ -607,13 +617,22 @@ const drawCard = async () => {
     
     const card = cards[0];
 
-    console.log('선택된 카드:', card);
-    selectedCard.value = card;
-    // 카드는 바로 뒤집지 않고 AI 해석이 완료되면 표시
+    console.log('선택된 카드 상세:', {
+      id: card.id,
+      name: card.name,
+      name_kr: card.name_kr,
+      arcana: card.arcana,
+      suit: card.suit,
+      number: card.number,
+      randomIndex: randomIndex
+    });
+    // 카드를 아직 selectedCard에 할당하지 않음 (광고 후에 할당)
+    // selectedCard.value = card;
+    // 카드는 바로 뒤집지 않고 광고와 AI 해석이 완료되면 표시
 
     // DB에 저장
     const today = new Date().toISOString().split('T')[0];
-    const isTestAcc = isTestAccount(userStore.currentUser?.email);
+    // isTestAcc는 이미 위에서 선언됨
     
     // 테스트 계정도 실제 user_id 사용
     const userId = userStore.currentUser?.id;
@@ -659,6 +678,13 @@ const drawCard = async () => {
         }
       } else {
         // 새로운 카드 저장
+        console.log('카드 저장 시도:', {
+          user_id: userId,
+          card_id: card.id,
+          cardName: card.name,
+          date: today
+        });
+        
         const { data: savedReading, error: saveError } = await supabase
           .from('daily_cards')
           .insert({
@@ -770,19 +796,20 @@ const drawCard = async () => {
     // 무료 사용자는 광고 표시 (테스트 계정도 무료로 처리)
     if (!userStore.isPremium || isTestAcc) {
       console.log('무료 사용자 또는 테스트 계정 - 광고 표시 준비');
-      // 광고 표시 전에 로딩 화면 잠시 숨김
+      // 광고 표시 전에 모든 UI 숨김
       if (progressInterval) {
         clearInterval(progressInterval);
       }
       isInterpretationLoading.value = false;
       interpretationProgress.value = 0;
+      isCardRevealed.value = false;
       
-      // 비동기로 광고 호출
-      setTimeout(() => {
-        showAdvertisement();
-      }, 100);
+      // 즉시 광고 호출 (딜레이 없이) - 카드 정보 전달
+      await showAdvertisement(card);
     } else {
       console.log('프리미엄 사용자 - AI 해석 직접 생성');
+      // 프리미엄 사용자는 바로 카드 설정
+      selectedCard.value = card;
       await generateInterpretation(card);
       // AI 해석 완료 후 프로그레스 완료 및 카드 공개
       if (progressInterval) {
@@ -812,13 +839,20 @@ const drawCard = async () => {
 };
 
 // 광고 표시 (리워드 광고 사용)
-const showAdvertisement = async () => {
+const showAdvertisement = async (card: TarotCard) => {
   console.log('광고 표시 시작');
+  console.log('전달받은 카드:', card);
   console.log('현재 상태:', {
     selectedCard: selectedCard.value,
     isCardRevealed: isCardRevealed.value,
     isInterpretationLoading: isInterpretationLoading.value
   });
+  
+  // 카드가 아직 공개되지 않도록 확실히 함
+  isCardRevealed.value = false;
+  isInterpretationLoading.value = false;
+  interpretationProgress.value = 0;
+  // selectedCard를 아직 설정하지 않음 (광고 후에 설정)
   
   try {
     // AdMob 리워드 광고 호출
@@ -839,7 +873,10 @@ const showAdvertisement = async () => {
     if (adWatched) {
       // 광고 시청 완료 시 AI 해석 로딩 화면 표시
       console.log('광고 시청 완료, AI 해석 시작');
-      console.log('현재 selectedCard:', selectedCard.value);
+      
+      // 이제 카드를 selectedCard에 설정
+      selectedCard.value = card;
+      console.log('카드 설정 완료:', selectedCard.value);
       
       // 카드 확인
       if (!selectedCard.value) {
@@ -935,11 +972,12 @@ const showAdvertisement = async () => {
       });
       
       if (retry) {
-        await showAdvertisement(); // 재귀 호출
+        await showAdvertisement(card); // 재귀 호출 - 카드 전달
       } else {
         // 광고 없이 기본 해석만 표시
+        selectedCard.value = card; // 카드 설정
         isCardRevealed.value = true;
-        interpretation.value = generateDefaultInterpretation(selectedCard.value!);
+        interpretation.value = generateDefaultInterpretation(card);
       }
     }
   } catch (error) {
@@ -947,6 +985,9 @@ const showAdvertisement = async () => {
     showAd.value = false;
     
     // 광고 실패 시에도 AI 해석 진행 (무료 패스)
+    // 카드 설정
+    selectedCard.value = card;
+    
     if (!selectedCard.value) {
       console.error('선택된 카드가 없어 진행 불가');
       isCardRevealed.value = false;
@@ -1144,7 +1185,7 @@ const getCardImageUrl = (card: TarotCard | undefined | null) => {
   // 코트 카드 판별 (DB에 court 필드가 없는 경우 이름으로 판별)
   let courtType: string | undefined = card.court;
   
-  // number가 11-14인 경우 코트 카드로 판별
+  // number가 11-14인 경우 코트 카드로 판별 (DB에 코트 카드가 11-14로 저장됨)
   if (!courtType && card.arcana === 'minor' && card.number && card.number >= 11 && card.number <= 14) {
     const courtByNumber: Record<number, string> = {
       11: 'page',
@@ -1153,6 +1194,11 @@ const getCardImageUrl = (card: TarotCard | undefined | null) => {
       14: 'king'
     };
     courtType = courtByNumber[card.number];
+    console.log('코트 카드 감지 (number 기반):', {
+      number: card.number,
+      courtType: courtType,
+      name: card.name
+    });
   }
   
   // 그래도 없으면 이름에서 추출
@@ -1162,12 +1208,16 @@ const getCardImageUrl = (card: TarotCard | undefined | null) => {
     for (const court of courtNames) {
       if (card.name.includes(court)) {
         courtType = court.toLowerCase();
+        console.log('코트 카드 감지 (이름 기반):', {
+          name: card.name,
+          courtType: courtType
+        });
         break;
       }
     }
   }
   
-  console.log('카드 정보:', {
+  console.log('카드 정보 상세:', {
     id: card.id,
     name: card.name,
     name_kr: card.name_kr,
@@ -1180,6 +1230,22 @@ const getCardImageUrl = (card: TarotCard | undefined | null) => {
     isCourtCard: courtType ? true : false,
     isNumberCard: card.number && card.number >= 1 && card.number <= 10
   });
+  
+  // 디버깅: 특정 카드 체크
+  if (card.name === 'King of Cups') {
+    console.warn('⚠️ King of Cups 감지!', {
+      id: card.id,
+      expectedId: 35,
+      isCorrect: card.id === 35
+    });
+  }
+  if (card.name === 'Queen of Pentacles') {
+    console.warn('⚠️ Queen of Pentacles 감지!', {
+      id: card.id,
+      expectedId: 76,
+      isCorrect: card.id === 76
+    });
+  }
   
   // DB의 image_url은 무시하고 직접 경로 생성
   // (DB에 잘못된 경로가 저장되어 있을 수 있음)
@@ -1277,7 +1343,11 @@ const getCardImageUrl = (card: TarotCard | undefined | null) => {
   // 마이너 아르카나 - 코트 카드 (Page, Knight, Queen, King)
   else if (card.arcana === 'minor' && courtType) {
     // 코트 카드 번호 계산
-    // Wands: 41-44, Cups: 45-48, Swords: 49-52, Pentacles: 53-56
+    // 실제 파일명 기준:
+    // Wands: 41-44 (Page, Knight, Queen, King)
+    // Cups: 45-48 (Page, Knight, Queen, King)
+    // Swords: 49-52 (Page, Knight, Queen, King)
+    // Pentacles: 53-56 (Page, Knight, Queen, King)
     const suitOrder = ['wands', 'cups', 'swords', 'pentacles'];
     const courtOrder = ['page', 'knight', 'queen', 'king'];
     
@@ -1286,10 +1356,13 @@ const getCardImageUrl = (card: TarotCard | undefined | null) => {
     const courtLower = courtType.toLowerCase();
     
     console.log('코트 카드 정보:', {
+      id: card.id,
+      name: card.name,
       suit: card.suit,
       suitLower,
       court: courtType,
-      courtLower
+      courtLower,
+      number: card.number
     });
     
     const suitIndex = suitOrder.indexOf(suitLower);
@@ -1307,14 +1380,15 @@ const getCardImageUrl = (card: TarotCard | undefined | null) => {
     const baseNumbers = [41, 45, 49, 53];
     const cardNumber = baseNumbers[suitIndex] + courtIndex;
     
-    // 코트 카드 이름 포맷팅 (예: Page-of-Wands)
+    // 코트 카드 이름 포맷팅 - 실제 파일명과 동일하게 (대문자 시작)
     const courtName = courtType.charAt(0).toUpperCase() + courtType.slice(1).toLowerCase();
-    const suitName = card.suit?.charAt(0).toUpperCase() + card.suit?.slice(1).toLowerCase();
+    const suitName = suitLower.charAt(0).toUpperCase() + suitLower.slice(1).toLowerCase();
     const cardName = `${courtName}-of-${suitName}`;
     
     imagePath = `/assets/tarot-cards/minor/${cardNumber}-${cardName}.png`;
     console.log(`코트 카드 경로 생성:`, {
       card: card.name,
+      cardId: card.id,
       suit: suitLower,
       court: courtLower,
       suitIndex,
@@ -1324,6 +1398,15 @@ const getCardImageUrl = (card: TarotCard | undefined | null) => {
       cardName,
       finalPath: imagePath
     });
+    
+    // 특정 카드 경로 검증
+    if (card.name === 'King of Cups' && cardNumber !== 48) {
+      console.error('❌ King of Cups 경로 오류! 예상: 48-King-of-Cups.png, 실제:', imagePath);
+    }
+    if (card.name === 'Queen of Pentacles' && cardNumber !== 55) {
+      console.error('❌ Queen of Pentacles 경로 오류! 예상: 55-Queen-of-Pentacles.png, 실제:', imagePath);
+    }
+    
     return imagePath;
   }
   // 기본값 (예상치 못한 경우)
@@ -1358,6 +1441,10 @@ const shareCard = async () => {
       });
       return;
     }
+
+    console.log('📤 [DailyCard] 공유 시작');
+    console.log('📤 [DailyCard] interpretation 타입:', typeof interpretation.value);
+    console.log('📤 [DailyCard] interpretation 키:', interpretation.value ? Object.keys(interpretation.value) : 'null');
 
     // 공유 링크 생성
     const shareUrl = await shareService.createDailyCardShareLink({

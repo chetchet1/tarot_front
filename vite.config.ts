@@ -55,6 +55,15 @@ export default defineConfig({
       strict: false,
       allow: ['..'],
     },
+    // SPA fallback 설정 추가
+    middlewareMode: false,
+    hmr: true,
+  },
+  
+  // 프리뷰 서버 설정 (빌드된 앱을 테스트할 때)
+  preview: {
+    port: 8082,
+    host: 'localhost',
   },
   
   // 최적화 설정

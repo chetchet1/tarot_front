@@ -11,11 +11,8 @@ import Premium from '../views/Premium.vue';
 import History from '../views/History.vue';
 import TarotDictionary from '../views/TarotDictionary.vue';
 import AuthCallback from '../views/AuthCallback.vue';
-// SharedReading import 제거 - 사용하지 않음
-// import SharedReading from '../views/SharedReading.vue';
-// import SharedReadingTest from '../views/SharedReadingTest.vue';
+// 공유 페이지 컴포넌트 import
 import SharedReading from '../views/SharedReading.vue';
-import SharedReadingSimple from '../views/SharedReadingSimple.vue';
 
 const routes = [
   {
@@ -56,21 +53,13 @@ const routes = [
   {
     path: '/s/:id',
     name: 'SharedReading',
-    component: SharedReading, // 실제 공유 페이지 컴포넌트로 변경
+    component: SharedReading,
     meta: { 
       requiresAuth: false,  // 로그인 불필요
       isPublic: true        // 공개 페이지
     }
   },
-  {
-    path: '/s/test/:id',
-    name: 'SharedReadingTest',
-    component: SharedReadingSimple, // 테스트용 컴포넌트
-    meta: { 
-      requiresAuth: false,
-      isPublic: true
-    }
-  },
+
   {
     path: '/history',
     name: 'History',

@@ -1,32 +1,22 @@
 <template>
   <div id="app">
-    <!-- 공유 페이지 -->
-    <SharedReadingView v-if="isSharedPage" />
-    <!-- 일반 라우터 뷰 -->
-    <router-view v-else />
+    <!-- Vue Router를 통한 정상 라우팅 -->
+    <router-view />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { Capacitor } from '@capacitor/core';
 import { useUserStore } from './store/user';
 import { oauthService } from './services/oauth';
-import SharedReadingView from './views/SharedReadingView.vue';
 import './styles/main.scss';
 
 const route = useRoute();
 const userStore = useUserStore();
 
-// 초기 경로 확인
-const initialPath = window.location.pathname;
-const isSharedPage = ref(initialPath.startsWith('/s/'));
-const currentPath = ref(initialPath);
-
 console.log('🚀 App.vue initialized:', {
-  initialPath,
-  isSharedPage: isSharedPage.value,
   href: window.location.href,
   isNative: Capacitor.isNativePlatform()
 });
@@ -39,8 +29,8 @@ onMounted(async () => {
     params: route.params
   });
   
-  // 공유 페이지는 사용자 초기화 건너뛰기
-  if (isSharedPage.value) {
+  // 공유 페이지는 사용자 초기화 건너뛰기 (라우트 기반으로 확인)
+  if (route.path.startsWith('/s/')) {
     console.log('🔗 Shared page detected - skipping user initialization');
     return;
   }

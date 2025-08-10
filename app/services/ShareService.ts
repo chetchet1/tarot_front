@@ -183,23 +183,68 @@ export class ShareService {
       console.log('  - card:', dailyCard.card);
       console.log('  - interpretation 타입:', typeof dailyCard.interpretation);
       
-      // AI 해석 데이터 처리
-      let aiInterpretationData = null;
+      // AI 해석 데이터는 사용하지 않음 (basic_interpretation으로 통합)
+      // 오늘의 카드는 항상 포맷팅된 텍스트로만 공유
+      
+      // 1. 공유 데이터 준비
+      // basic_interpretation에 포맷팅된 텍스트 저장
+      let formattedInterpretation = '';
       if (dailyCard.interpretation) {
-        // 이미 문자열인 경우 그대로 사용
-        if (typeof dailyCard.interpretation === 'string') {
-          aiInterpretationData = dailyCard.interpretation;
-        } 
-        // 객체인 경우 JSON 문자열로 변환
-        else if (typeof dailyCard.interpretation === 'object') {
-          aiInterpretationData = JSON.stringify(dailyCard.interpretation);
+        const interp = dailyCard.interpretation;
+        
+        // 메인 메시지
+        if (interp.detailedFortune?.mainMessage) {
+          formattedInterpretation += interp.detailedFortune.mainMessage + '\n\n';
+        }
+        
+        // 운세 지수
+        if (interp.fortuneIndex) {
+          formattedInterpretation += '📊 오늘의 운세\n\n';
+          const labels: Record<string, string> = {
+            overall: '전체운',
+            love: '애정운', 
+            money: '금전운',
+            health: '건강운',
+            work: '학업/업무운'
+          };
+          for (const [key, value] of Object.entries(interp.fortuneIndex)) {
+            const stars = '⭐'.repeat(value as number) + '☆'.repeat(5 - (value as number));
+            formattedInterpretation += `${labels[key] || key}: ${stars}\n`;
+          }
+          formattedInterpretation += '\n';
+        }
+        
+        // 행운 아이템
+        if (interp.luckyItems) {
+          formattedInterpretation += '🍀 행운 아이템\n\n';
+          formattedInterpretation += `색상: ${interp.luckyItems.color}\n`;
+          formattedInterpretation += `숫자: ${interp.luckyItems.number}\n`;
+          formattedInterpretation += `방향: ${interp.luckyItems.direction}\n`;
+          formattedInterpretation += `활동: ${interp.luckyItems.activity}\n\n`;
+        }
+        
+        // 오늘의 격언
+        if (interp.dailyQuote) {
+          formattedInterpretation += `💬 오늘의 격언\n\n"${interp.dailyQuote}"\n\n`;
+        }
+        
+        // 상세 조언
+        if (interp.detailedFortune) {
+          if (interp.detailedFortune.keyPoint) {
+            formattedInterpretation += `💫 핵심 포인트\n\n${interp.detailedFortune.keyPoint}\n\n`;
+          }
+          if (interp.detailedFortune.caution) {
+            formattedInterpretation += `⚡ 주의할 점\n\n${interp.detailedFortune.caution}\n\n`;
+          }
+          if (interp.detailedFortune.luckyMoment) {
+            formattedInterpretation += `🌟 행운의 순간\n\n${interp.detailedFortune.luckyMoment}\n\n`;
+          }
+          if (interp.detailedFortune.advice) {
+            formattedInterpretation += `💡 조언\n\n${interp.detailedFortune.advice}`;
+          }
         }
       }
       
-      console.log('  - AI 해석 데이터 타입:', typeof aiInterpretationData);
-      console.log('  - AI 해석 데이터 길이:', aiInterpretationData?.length);
-      
-      // 1. 공유 데이터 준비
       const shareData = {
         spread_type: 'daily_card',
         cards: [{
@@ -210,8 +255,8 @@ export class ShareService {
           position: 0
         }],
         custom_question: `${new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}의 오늘의 카드`,
-        basic_interpretation: dailyCard.interpretation?.detailedFortune?.mainMessage || null,
-        ai_interpretation: aiInterpretationData,
+        basic_interpretation: formattedInterpretation || dailyCard.interpretation?.detailedFortune?.mainMessage || null,
+        ai_interpretation: null, // AI 해석은 저장하지 않음 (basic_interpretation으로 대체)
         shared_by: (await supabase.auth.getUser()).data?.user?.id || null
       };
       
