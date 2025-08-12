@@ -18,8 +18,216 @@
       <section class="cards-layout-section">
         <h2>카드 배열</h2>
         
+        <!-- 세븐 스타 레이아웃 -->
+        <div v-if="reading.spreadId === 'seven_star'" class="seven-star-layout">
+          <div class="cards-container">
+            <!-- Position 1: 핵심 (중앙) -->
+            <div class="card-position star-position-1">
+              <div class="card-mini" :class="reading.cards[0].orientation">
+                <img :src="getCardImageUrl(reading.cards[0])" 
+                     :alt="reading.cards[0].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[0].orientation === 'reversed' }" />
+                <span class="position-label">1</span>
+              </div>
+            </div>
+            
+            <!-- Position 2: 도움 (위) -->
+            <div class="card-position star-position-2">
+              <div class="card-mini" :class="reading.cards[1].orientation">
+                <img :src="getCardImageUrl(reading.cards[1])" 
+                     :alt="reading.cards[1].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[1].orientation === 'reversed' }" />
+                <span class="position-label">2</span>
+              </div>
+            </div>
+            
+            <!-- Position 3: 내면 (오른쪽 위) -->
+            <div class="card-position star-position-3">
+              <div class="card-mini" :class="reading.cards[2].orientation">
+                <img :src="getCardImageUrl(reading.cards[2])" 
+                     :alt="reading.cards[2].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[2].orientation === 'reversed' }" />
+                <span class="position-label">3</span>
+              </div>
+            </div>
+            
+            <!-- Position 4: 예상 (오른쪽) -->
+            <div class="card-position star-position-4">
+              <div class="card-mini" :class="reading.cards[3].orientation">
+                <img :src="getCardImageUrl(reading.cards[3])" 
+                     :alt="reading.cards[3].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[3].orientation === 'reversed' }" />
+                <span class="position-label">4</span>
+              </div>
+            </div>
+            
+            <!-- Position 5: 결과 (오른쪽 아래) -->
+            <div class="card-position star-position-5">
+              <div class="card-mini" :class="reading.cards[4].orientation">
+                <img :src="getCardImageUrl(reading.cards[4])" 
+                     :alt="reading.cards[4].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[4].orientation === 'reversed' }" />
+                <span class="position-label">5</span>
+              </div>
+            </div>
+            
+            <!-- Position 6: 외부 (왼쪽 아래) -->
+            <div class="card-position star-position-6">
+              <div class="card-mini" :class="reading.cards[5].orientation">
+                <img :src="getCardImageUrl(reading.cards[5])" 
+                     :alt="reading.cards[5].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[5].orientation === 'reversed' }" />
+                <span class="position-label">6</span>
+              </div>
+            </div>
+            
+            <!-- Position 7: 운명 (왼쪽) -->
+            <div class="card-position star-position-7">
+              <div class="card-mini" :class="reading.cards[6].orientation">
+                <img :src="getCardImageUrl(reading.cards[6])" 
+                     :alt="reading.cards[6].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[6].orientation === 'reversed' }" />
+                <span class="position-label">7</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 컵 오브 릴레이션십 레이아웃 -->
+        <div v-else-if="reading.spreadId === 'cup_of_relationship'" class="cup-relationship-layout">
+          <div class="cards-container">
+            <!-- Position 1: 나 (왼쪽 아래) -->
+            <div class="card-position cup-position-1">
+              <div class="card-mini" :class="reading.cards[0].orientation">
+                <img :src="getCardImageUrl(reading.cards[0])" 
+                     :alt="reading.cards[0].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[0].orientation === 'reversed' }" />
+                <span class="position-label">1</span>
+              </div>
+            </div>
+            
+            <!-- Position 2: 상대 (오른쪽 아래) -->
+            <div class="card-position cup-position-2">
+              <div class="card-mini" :class="reading.cards[1].orientation">
+                <img :src="getCardImageUrl(reading.cards[1])" 
+                     :alt="reading.cards[1].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[1].orientation === 'reversed' }" />
+                <span class="position-label">2</span>
+              </div>
+            </div>
+            
+            <!-- Position 3: 관계 기본 (하단 중앙) -->
+            <div class="card-position cup-position-3">
+              <div class="card-mini" :class="reading.cards[2].orientation">
+                <img :src="getCardImageUrl(reading.cards[2])" 
+                     :alt="reading.cards[2].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[2].orientation === 'reversed' }" />
+                <span class="position-label">3</span>
+              </div>
+            </div>
+            
+            <!-- Position 4: 관계 과거 (왼쪽 중간) -->
+            <div class="card-position cup-position-4">
+              <div class="card-mini" :class="reading.cards[3].orientation">
+                <img :src="getCardImageUrl(reading.cards[3])" 
+                     :alt="reading.cards[3].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[3].orientation === 'reversed' }" />
+                <span class="position-label">4</span>
+              </div>
+            </div>
+            
+            <!-- Position 5: 현재 느낌 (중앙) -->
+            <div class="card-position cup-position-5">
+              <div class="card-mini" :class="reading.cards[4].orientation">
+                <img :src="getCardImageUrl(reading.cards[4])" 
+                     :alt="reading.cards[4].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[4].orientation === 'reversed' }" />
+                <span class="position-label">5</span>
+              </div>
+            </div>
+            
+            <!-- Position 6: 현재 외부 상황 (오른쪽 중간) -->
+            <div class="card-position cup-position-6">
+              <div class="card-mini" :class="reading.cards[5].orientation">
+                <img :src="getCardImageUrl(reading.cards[5])" 
+                     :alt="reading.cards[5].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[5].orientation === 'reversed' }" />
+                <span class="position-label">6</span>
+              </div>
+            </div>
+            
+            <!-- Position 7: 현재 나는 어떻게 생각? (왼쪽) -->
+            <div class="card-position cup-position-7">
+              <div class="card-mini" :class="reading.cards[6].orientation">
+                <img :src="getCardImageUrl(reading.cards[6])" 
+                     :alt="reading.cards[6].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[6].orientation === 'reversed' }" />
+                <span class="position-label">7</span>
+              </div>
+            </div>
+            
+            <!-- Position 8: 현재 상대는 어떻게 생각? (오른쪽) -->
+            <div class="card-position cup-position-8">
+              <div class="card-mini" :class="reading.cards[7].orientation">
+                <img :src="getCardImageUrl(reading.cards[7])" 
+                     :alt="reading.cards[7].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[7].orientation === 'reversed' }" />
+                <span class="position-label">8</span>
+              </div>
+            </div>
+            
+            <!-- Position 9: 미래 나는 어떻게 생각? (왼쪽 상단) -->
+            <div class="card-position cup-position-9">
+              <div class="card-mini" :class="reading.cards[8].orientation">
+                <img :src="getCardImageUrl(reading.cards[8])" 
+                     :alt="reading.cards[8].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[8].orientation === 'reversed' }" />
+                <span class="position-label">9</span>
+              </div>
+            </div>
+            
+            <!-- Position 10: 미래 상대는 어떻게 생각? (오른쪽 상단) -->
+            <div class="card-position cup-position-10">
+              <div class="card-mini" :class="reading.cards[9].orientation">
+                <img :src="getCardImageUrl(reading.cards[9])" 
+                     :alt="reading.cards[9].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[9].orientation === 'reversed' }" />
+                <span class="position-label">10</span>
+              </div>
+            </div>
+            
+            <!-- Position 11: 결과 (상단 중앙) -->
+            <div class="card-position cup-position-11">
+              <div class="card-mini" :class="reading.cards[10].orientation">
+                <img :src="getCardImageUrl(reading.cards[10])" 
+                     :alt="reading.cards[10].nameKr" 
+                     @error="onImageError" 
+                     :class="{ reversed: reading.cards[10].orientation === 'reversed' }" />
+                <span class="position-label">11</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <!-- 켈틱 크로스 레이아웃 -->
-        <div v-if="reading.spreadId === 'celtic_cross'" class="celtic-cross-layout">
+        <div v-else-if="reading.spreadId === 'celtic_cross'" class="celtic-cross-layout">
           <div class="cards-container">
             <!-- Position 1: 현재내면 (중앙) -->
             <div class="card-position position-1">
@@ -206,8 +414,8 @@
         </div>
       </section>
 
-      <!-- AI 해석 (켈틱 크로스) -->
-      <section v-if="reading.spreadId === 'celtic_cross' && (reading.aiInterpretation || isLoadingInterpretation)" class="ai-interpretation-section">
+      <!-- AI 해석 (프리미엄 배열법) -->
+      <section v-if="(reading.spreadId === 'celtic_cross' || reading.spreadId === 'seven_star' || reading.spreadId === 'cup_of_relationship') && (reading.aiInterpretation || isLoadingInterpretation)" class="ai-interpretation-section">
         <h2>해석 전문</h2>
         
         <!-- 로딩 상태 -->
@@ -350,6 +558,16 @@ const getPositionName = (spreadId: string, index: number): string => {
       '현재 내면', '현재 외부', '근본', '과거',
       '드러나는 모습', '미래', '내가 보는 나',
       '남이 보는 나', '예상하는 결과', '실제 결과'
+    ],
+    'seven_star': [
+      '핵심', '도움', '내면', '예상', '결과', '외부', '운명'
+    ],
+    'cup_of_relationship': [
+      '나', '상대', '관계 기본', '관계 과거',
+      '현재 느낌', '현재 외부 상황',
+      '현재 나는 어떻게 생각?', '현재 상대는 어떻게 생각?',
+      '미래 나는 어떻게 생각?', '미래 상대는 어떻게 생각?',
+      '결과'
     ]
   };
   return positions[spreadId]?.[index] || `카드 ${index + 1}`;
@@ -407,7 +625,9 @@ const generateShareMessage = (reading: any, shareUrl: string): string => {
   const spreadNames: Record<string, string> = {
     'one_card': '원 카드',
     'three_card_timeline': '시간의 흐름 (3장)',
-    'celtic_cross': '켈틱 크로스 (10장)'
+    'celtic_cross': '켈틱 크로스 (10장)',
+    'seven_star': '세븐 스타 (7장)',
+    'cup_of_relationship': '컵 오브 릴레이션십 (11장)'
   };
   message += `📋 배열법: ${spreadNames[reading.spreadId] || reading.spreadId}\n\n`;
   
@@ -683,12 +903,12 @@ const showAIInterpretationWithAd = async () => {
 const regenerateAIInterpretation = async () => {
   if (!reading.value) return;
   
-  // 켈틱 크로스는 무료 사용자도 AI 해석 가능
+  // 프리미엄 배열법은 무료 사용자도 AI 해석 가능
   // 커스텀 질문은 프리미엄만 가능
-  const isCelticCross = reading.value.spreadId === 'celtic_cross';
+  const isPremiumSpread = ['celtic_cross', 'seven_star', 'cup_of_relationship'].includes(reading.value.spreadId);
   const hasCustomQuestion = !!customQuestion.value;
   
-  if (!isCelticCross && (!hasCustomQuestion || !userStore.isPremium)) {
+  if (!isPremiumSpread && (!hasCustomQuestion || !userStore.isPremium)) {
     return;
   }
   
@@ -739,12 +959,14 @@ onMounted(async () => {
     return;
   }
   
-  // 켈틱 크로스는 무료 사용자도 하루 1회 사용 가능하므로 AI 해석 제공
+  // 프리미엄 배열법은 무료 사용자도 하루 1회 사용 가능하므로 AI 해석 제공
   // 커스텀 질문은 프리미엄만 가능
   if (reading.value && !reading.value.aiInterpretation) {
-    if (reading.value.spreadId === 'celtic_cross') {
-      // 켈틱 크로스는 무조건 AI 해석 생성
-      console.log('🎴 [ReadingResult] 켈틱 크로스 - AI 해석 생성');
+    const isPremiumSpread = ['celtic_cross', 'seven_star', 'cup_of_relationship'].includes(reading.value.spreadId);
+    
+    if (isPremiumSpread) {
+      // 프리미엄 배열법은 무조건 AI 해석 생성
+      console.log('🎴 [ReadingResult] 프리미엄 배열법 - AI 해석 생성:', reading.value.spreadId);
       await regenerateAIInterpretation();
     } else if (customQuestion.value && userStore.isPremium) {
       // 커스텀 질문은 프리미엄만
@@ -919,6 +1141,174 @@ onMounted(async () => {
 .card-orientation.reversed {
   background: rgba(239, 68, 68, 0.2);
   color: #EF4444;
+}
+
+/* 세븐 스타 레이아웃 스타일 */
+.seven-star-layout {
+  position: relative;
+  min-height: 500px;
+  padding: 10px;
+}
+
+.seven-star-layout .cards-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  height: 500px;
+  margin: 0 auto;
+}
+
+/* 세븐 스타 카드 위치 */
+.seven-star-layout .card-position {
+  position: absolute;
+  width: 80px;
+  height: 120px;
+  transition: all 0.3s ease;
+}
+
+.seven-star-layout .card-position:hover {
+  transform: scale(1.05);
+  z-index: 100;
+}
+
+/* 세븐 스타 각 위치별 좌표 */
+.seven-star-layout .star-position-1 { /* 핵심 - 중앙 */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+.seven-star-layout .star-position-2 { /* 도움 - 위 */
+  top: 10%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.seven-star-layout .star-position-3 { /* 내면 - 오른쪽 위 */
+  top: 20%;
+  left: 75%;
+  transform: translate(-50%, -50%);
+}
+
+.seven-star-layout .star-position-4 { /* 예상 - 오른쪽 */
+  top: 50%;
+  left: 85%;
+  transform: translate(-50%, -50%);
+}
+
+.seven-star-layout .star-position-5 { /* 결과 - 오른쪽 아래 */
+  top: 80%;
+  left: 75%;
+  transform: translate(-50%, -50%);
+}
+
+.seven-star-layout .star-position-6 { /* 외부 - 왼쪽 아래 */
+  top: 80%;
+  left: 25%;
+  transform: translate(-50%, -50%);
+}
+
+.seven-star-layout .star-position-7 { /* 운명 - 왼쪽 */
+  top: 50%;
+  left: 15%;
+  transform: translate(-50%, -50%);
+}
+
+/* 컵 오브 릴레이션십 레이아웃 스타일 */
+.cup-relationship-layout {
+  position: relative;
+  min-height: 600px;
+  padding: 10px;
+}
+
+.cup-relationship-layout .cards-container {
+  position: relative;
+  width: 100%;
+  max-width: 700px;
+  height: 600px;
+  margin: 0 auto;
+}
+
+/* 컵 오브 릴레이션십 카드 위치 */
+.cup-relationship-layout .card-position {
+  position: absolute;
+  width: 80px;
+  height: 120px;
+  transition: all 0.3s ease;
+}
+
+.cup-relationship-layout .card-position:hover {
+  transform: scale(1.05);
+  z-index: 100;
+}
+
+/* 컵 오브 릴레이션십 각 위치별 좌표 */
+.cup-relationship-layout .cup-position-1 { /* 나 - 왼쪽 아래 */
+  top: 85%;
+  left: 25%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-2 { /* 상대 - 오른쪽 아래 */
+  top: 85%;
+  left: 75%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-3 { /* 관계 기본 - 하단 중앙 */
+  top: 80%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-4 { /* 관계 과거 - 왼쪽 중간 */
+  top: 65%;
+  left: 35%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-5 { /* 현재 느낌 - 중앙 */
+  top: 55%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+.cup-relationship-layout .cup-position-6 { /* 현재 외부 상황 - 오른쪽 중간 */
+  top: 65%;
+  left: 65%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-7 { /* 현재 나는 어떻게 생각? - 왼쪽 */
+  top: 45%;
+  left: 25%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-8 { /* 현재 상대는 어떻게 생각? - 오른쪽 */
+  top: 45%;
+  left: 75%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-9 { /* 미래 나는 어떻게 생각? - 왼쪽 상단 */
+  top: 25%;
+  left: 35%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-10 { /* 미래 상대는 어떻게 생각? - 오른쪽 상단 */
+  top: 25%;
+  left: 65%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-11 { /* 결과 - 상단 중앙 */
+  top: 10%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 /* 켈틱 크로스 레이아웃 스타일 */
@@ -1588,6 +1978,30 @@ onMounted(async () => {
 @media (max-width: 768px) {
   .cards-grid {
     grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  }
+  
+  /* 세븐 스타 모바일 스타일 */
+  .seven-star-layout {
+    min-height: 400px;
+    padding: 5px;
+  }
+  
+  .seven-star-layout .cards-container {
+    height: 400px;
+    transform: scale(0.7);
+    transform-origin: top center;
+  }
+  
+  /* 컵 오브 릴레이션십 모바일 스타일 */
+  .cup-relationship-layout {
+    min-height: 450px;
+    padding: 5px;
+  }
+  
+  .cup-relationship-layout .cards-container {
+    height: 450px;
+    transform: scale(0.65);
+    transform-origin: top center;
   }
   
   /* 켈틱 크로스 모바일 스타일 */

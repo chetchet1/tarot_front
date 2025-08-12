@@ -119,8 +119,7 @@
             class="spread-card card"
             :class="{ 
               selected: selectedSpread === spread.id,
-              premium: spread.isPremium && !userStore.isPremium,
-              updating: spread.id === 'seven_star' || spread.id === 'cup_of_relationship'
+              premium: spread.isPremium && !userStore.isPremium
             }"
             @click="selectSpread(spread)"
           >
@@ -144,9 +143,7 @@
             <div v-else-if="spread.isPremium && !userStore.isPremium && userStore.currentUser?.email === 'test@example.com'" class="test-badge">
               <span>테스트 계정</span>
             </div>
-            <div v-else-if="spread.id === 'seven_star' || spread.id === 'cup_of_relationship'" class="updating-overlay">
-              <p>🔄 업데이트 중</p>
-            </div>
+
           </div>
         </div>
       </section>
@@ -385,11 +382,7 @@ const canStartReading = computed(() => {
     return false;
   }
   
-  // 세븐스타와 릴레이션십 배열법은 업데이트 중
-  if (selectedSpread.value === 'seven_star' || selectedSpread.value === 'cup_of_relationship') {
-    console.log('[CanStartReading] 업데이트 중인 배열법');
-    return false;
-  }
+
   
   // 커스텀 질문인 경우 켈틱 크로스만 확인
   if (selectedTopic.value === 'custom') {
@@ -467,14 +460,6 @@ const handleQuestionCancel = () => {
 };
 
 const selectSpread = async (spread: Spread) => {
-  // 세븐스타와 릴레이션쉽 배열법 확인
-  if (spread.id === 'seven_star' || spread.id === 'cup_of_relationship') {
-    await showAlert({
-      title: '업데이트 중',
-      message: `${spread.name} 배열법은 현재 업데이트 중입니다!\n\n빠른 시일 내에 서비스를 재개할 예정입니다.`
-    });
-    return;
-  }
   
   if (spread.isPremium && !userStore.isPremium) {
     // 테스트 계정 확인
@@ -625,16 +610,7 @@ const startReading = async () => {
     return;
   }
   
-  // 세븐스타와 릴레이션쉽 배열법 확인
-  if (selectedSpread.value === 'seven_star' || selectedSpread.value === 'cup_of_relationship') {
-    const spreadName = getSpreadName(selectedSpread.value);
-    await showAlert({
-      title: '업데이트 중',
-      message: `${spreadName} 배열법은 현재 업데이트 중입니다!\n\n빠른 시일 내에 서비스를 재개할 예정입니다.`
-    });
-    isStarting.value = false;
-    return;
-  }
+  // 세븐스타와 릴레이션쉽 배열법은 이제 사용 가능합니다
   
   const selectedTopicData = topics.value.find(t => t.id === selectedTopic.value);
   let selectedSpreadData;

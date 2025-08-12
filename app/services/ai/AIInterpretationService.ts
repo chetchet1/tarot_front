@@ -360,6 +360,67 @@ ${message.ending}`;
     }
   }
   
+  // 구조화된 프롬프트를 사용하여 AI 해석 생성
+  async generateInterpretationWithPrompt(
+    structuredPrompt: string,
+    cards: any[],
+    topic: string,
+    spreadType: string
+  ): Promise<{ text: string; interpretationId?: string }> {
+    try {
+      // 캐시 확인
+      const cacheKey = this.generateCacheKey({
+        allCards: cards,
+        topic,
+        spreadType,
+        interpretationType: 'overall'
+      });
+      
+      const cached = this.getFromCache(cacheKey);
+      if (cached) {
+        return { text: cached };
+      }
+      
+      // Supabase Edge Function 호출 (구조화된 프롬프트 포함)
+      console.log('🚀 [generateInterpretationWithPrompt] Edge Function 호출 시작:', {
+        cardsCount: cards.length,
+        topic,
+        spreadType,
+        isPremium: this.isPremium,
+        promptLength: structuredPrompt.length
+      });
+      
+      const { data, error } = await supabase.functions.invoke('generate-interpretation', {
+        body: {
+          cards,
+          topic,
+          spreadType,
+          structuredPrompt, // 구조화된 프롬프트 추가
+          userId: (await supabase.auth.getUser()).data.user?.id,
+          isPremium: this.isPremium
+        }
+      });
+      
+      console.log('🚀 [generateInterpretationWithPrompt] Edge Function 결과:', { data, error });
+      
+      if (error) throw error;
+      
+      const interpretation = data.interpretation;
+      this.setCache(cacheKey, interpretation);
+      
+      return {
+        text: interpretation,
+        interpretationId: data.interpretationId
+      };
+    } catch (error) {
+      console.error('AI 해석 생성 실패:', error);
+      // 폴백: 템플릿 해석 반환
+      return {
+        text: this.getTemplateOverallInterpretation(cards, topic, spreadType)
+      };
+    }
+  }
+  
   // AI 해석 생성 메서드 (켈틱 크로스 전용)
   async generateInterpretation(
     cards: any[],

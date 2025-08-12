@@ -245,7 +245,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, defineAsyncComponent, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, onBeforeUnmount, defineAsyncComponent, nextTick, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
@@ -388,10 +388,39 @@ const resetState = () => {
   improvedInterpretation.value = null;
   isGeneratingInterpretation.value = false;
   interpretationProgress.value = 0;
+  // isProcessingResult를 확실하게 false로 설정
   isProcessingResult.value = false;
+  // nextTick을 사용해 DOM 업데이트 후 재확인
+  nextTick(() => {
+    isProcessingResult.value = false;
+    console.log('🔄 [resetState] nextTick 후 isProcessingResult:', isProcessingResult.value);
+  });
   console.log('🔄 [resetState] 초기화 후 isProcessingResult:', isProcessingResult.value);
   console.log('🔄 [resetState] 상태 초기화 완료');
 };
+
+// 컴포넌트 파괴 전 플래그 리셋
+onBeforeUnmount(() => {
+  console.log('🔚 [onBeforeUnmount] 컴포넌트 파괴 전 - 플래그 리셋');
+  isProcessingResult.value = false;
+  isGeneratingInterpretation.value = false;
+});
+
+// 컴포넌트 파괴 시 플래그 리셋
+onUnmounted(() => {
+  console.log('🔚 [onUnmounted] 컴포넌트 파괴 - 플래그 리셋');
+  isProcessingResult.value = false;
+  isGeneratingInterpretation.value = false;
+});
+
+// 라우터 경로 변경 감지
+watch(() => router.currentRoute.value.path, (newPath, oldPath) => {
+  if (oldPath && oldPath.includes('card-drawing') && !newPath.includes('card-drawing')) {
+    console.log('🔄 [watch] 카드 드로잉 페이지에서 떠남 - 플래그 리셋');
+    isProcessingResult.value = false;
+    isGeneratingInterpretation.value = false;
+  }
+});
 
 onMounted(async () => {
   console.log('🎴 [CardDrawing] onMounted 시작');
@@ -481,6 +510,7 @@ const goBack = () => {
 // 드로우 방법 선택
 const selectDrawMethod = (method: 'random' | 'manual') => {
   console.log('🎲 [selectDrawMethod] 방법 선택:', method);
+  console.log('🎲 [selectDrawMethod] 선택 전 isProcessingResult:', isProcessingResult.value);
   
   // 새로운 점괘 시작 시 상태 초기화
   resetState();
@@ -491,6 +521,8 @@ const selectDrawMethod = (method: 'random' | 'manual') => {
     // 직접 선택 모드를 위한 초기화
     manualSelectedCards.value = [];
   }
+  
+  console.log('🎲 [selectDrawMethod] 선택 후 isProcessingResult:', isProcessingResult.value);
 };
 
 // 덱 섞기
@@ -837,10 +869,14 @@ const handleInterpretationClick = async () => {
   // goToResult 함수 호출 - 디버그 정보 전달
   try {
     console.log('🔘 [handleInterpretationClick] goToResult 호출 시작');
+    console.log('🔘 [handleInterpretationClick] isProcessingResult 상태:', isProcessingResult.value);
     await goToResult();
     console.log('🔘 [handleInterpretationClick] goToResult 호출 완료');
   } catch (error) {
     console.error('🔘 [handleInterpretationClick] goToResult 에러:', error);
+    // 에러 발생 시 플래그 리셋
+    isProcessingResult.value = false;
+    console.log('🔘 [handleInterpretationClick] 에러 후 isProcessingResult 리셋:', isProcessingResult.value);
     await showAlert({
       title: '오류',
       message: '해석 처리 중 오류가 발생했습니다.'
@@ -1168,65 +1204,19 @@ const goToResult = async () => {
         // AI 해석 생성 실패 시 무시
       }
     }
-    // 프리미엄 사용자 또는 테스트 계정인 경우 켈틱 크로스 AI 해석 생성 (커스텀 질문이 없는 경우)
-    else if ((userStore.isPremium || isTestAccount) && isCelticCross.value && reading && !customQuestion) {
-      try {
-        // 프로그레스 업데이트
-        interpretationProgress.value = 30;
-        
-        // AI 해석 서비스 인스턴스 생성 (테스트 계정도 프리미엄으로 처리)
-        const aiService = new AIInterpretationService(userStore.isPremium || isTestAccount);
-        
-        // AI 해석 생성을 위한 카드 데이터 준비
-        const cardsForAI = reading.cards.map((card: any, index: number) => ({
-          id: card.id,
-          name: card.name || card.nameEn || '',
-          name_kr: card.nameKr || card.name_kr || card.name || '',
-          nameKr: card.nameKr || card.name_kr || card.name || '',
-          arcana: card.arcana || 'unknown',
-          suit: card.suit || null,
-          number: card.number || null,
-          orientation: card.orientation || 'upright',
-          position: {
-            position: index + 1,
-            name: card.position?.name || [
-              '현재내면',
-              '현재외부', 
-              '근본',
-              '과거',
-              '드러나는 모습',
-              '미래',
-              '내가보는나',
-              '남이보는나',
-              '예상하는 결과',
-              '실제 결과'
-            ][index] || `위치 ${index + 1}`
-          }
-        }));
-        
-        // AI 해석 생성
-        console.log('🎯 [goToResult] AI 해석 생성 - topic:', tarotStore.selectedTopic?.id);
-        const result = await aiService.generateInterpretation(
-          cardsForAI,
-          tarotStore.selectedTopic?.id || 'general', // 선택된 주제 사용 (기본값은 general)
-          'celtic_cross'
-        );
-        
-        // 프로그레스 업데이트
-        interpretationProgress.value = 70;
-        
-        if (result && result.text) {
-          
-          // AI 해석을 reading에 추가
-          reading.aiInterpretation = result.text;
-          reading.aiInterpretationId = result.interpretationId || null;
-        }
-        
-        // reading을 store에 업데이트
-        tarotStore.updateReading(reading);
-      } catch (aiError) {
-        // AI 해석 생성 실패 시 무시
-      }
+    // 프리미엄 사용자 또는 테스트 계정인 경우 특별 배열법 AI 해석 생성 (커스텀 질문이 없는 경우)
+    else if ((userStore.isPremium || isTestAccount) && (isCelticCross.value || isSevenStar.value || isCupOfRelationship.value) && reading && !customQuestion) {
+      console.log('🤖 [특별 배열법] AI 해석 생성 시작');
+      console.log('🤖 spreadId:', spreadId);
+      console.log('🤖 isPremium:', userStore.isPremium);
+      console.log('🤖 isTestAccount:', isTestAccount);
+      
+      // 프리미엄 배열법은 AI 해석을 리딩 생성 시점에 미리 요청하지 않음
+      // ReadingResult.vue에서 해석보기 버튼을 클릭할 때 생성함
+      console.log('🤖 AI 해석은 ReadingResult 화면에서 생성됩니다.');
+      
+      // reading을 store에 업데이트만 하고 AI 해석은 나중에 생성
+      tarotStore.updateReading(reading);
     }
     
     console.log('✅ 점괘 생성 성공:', reading.id);
@@ -1241,8 +1231,16 @@ const goToResult = async () => {
     // 로딩 화면 숨기기
     isGeneratingInterpretation.value = false;
     
+    // 플래그 명확하게 리셋 (페이지 전환 전)
+    isProcessingResult.value = false;
+    console.log('🎯 [goToResult] 페이지 전환 전 isProcessingResult 리셋:', isProcessingResult.value);
+    
     // 점괴 결과 화면으로 이동
     console.log('🎯 [goToResult] 결과 화면으로 이동 시도:', `/reading-result?readingId=${reading.id}`);
+    
+    // nextTick을 사용해 DOM 업데이트 후 라우팅
+    await nextTick();
+    
     router.push(`/reading-result?readingId=${reading.id}`);
     console.log('🎯 [goToResult] router.push 호출 완료');
   } catch (error) {
@@ -1257,8 +1255,12 @@ const goToResult = async () => {
       message: `점괘 생성에 실패했습니다: ${error.message || '알 수 없는 오류'}`
     });
   } finally {
-    // 처리 완료 플래그 리셋
+    // 처리 완료 플래그 리셋 - nextTick을 사용해 확실하게 리셋
+    console.log('🎯 [goToResult] finally 블록 - isProcessingResult 리셋 시작');
     isProcessingResult.value = false;
+    await nextTick();
+    isProcessingResult.value = false; // 이중 리셋으로 확실하게
+    console.log('🎯 [goToResult] finally 블록 - isProcessingResult 리셋 완료:', isProcessingResult.value);
   }
 };
 
@@ -1325,6 +1327,52 @@ const onImageError = (event: Event) => {
   } else {
     console.warn('이미지의 부모 엘리먼트가 없음');
   }
+};
+
+// 스프레드별 위치 이름 가져오기
+const getPositionNameForSpread = (spreadId: string, index: number): string => {
+  const positions = {
+    'celtic_cross': [
+      '현재내면',
+      '현재외부', 
+      '근본',
+      '과거',
+      '드러나는 모습',
+      '미래',
+      '내가보는나',
+      '남이보는나',
+      '예상하는 결과',
+      '실제 결과'
+    ],
+    'seven_star': [
+      '근원',
+      '과거의 영향',
+      '현재 상황',
+      '의식적 소망',
+      '무의식적 필요',
+      '숨겨진 영향',
+      '최종 결과'
+    ],
+    'cup_of_relationship': [
+      '나의 마음',
+      '상대의 마음',
+      '과거의 인연',
+      '현재의 관계',
+      '미래의 가능성',
+      '관계의 장애물',
+      '우주의 조언'
+    ],
+    'three_card_timeline': [
+      '과거',
+      '현재',
+      '미래'
+    ],
+    'one_card': [
+      '핵심 메시지'
+    ]
+  };
+  
+  return positions[spreadId]?.[index] || `위치 ${index + 1}`;
 };
 
 // 유료 배열 하루 1회 제한 안내

@@ -1,0 +1,258 @@
+/**
+ * 세븐 스타 배열법 전용 강화된 인터프리터
+ */
+
+import { 
+  TarotCard, 
+  findSynergyPatterns, 
+  extractTopicKeywords,
+  analyzeCardRelationships,
+  validateInterpretationCoherence,
+  postProcessAIResponse
+} from './interpretationUtils';
+
+export class EnhancedSevenStarInterpreter {
+  private readonly positions = [
+    { position: 1, name: '핵심', description: '현재 상황의 중심이 되는 에너지' },
+    { position: 2, name: '도움', description: '당신을 돕는 긍정적인 힘' },
+    { position: 3, name: '내면', description: '내면의 감정과 무의식적 영향' },
+    { position: 4, name: '예상', description: '예상되는 도전이나 기회' },
+    { position: 5, name: '결과', description: '현재 경로를 따를 때의 가능한 결과' },
+    { position: 6, name: '외부', description: '외부 환경과 타인의 영향' },
+    { position: 7, name: '운명', description: '운명적 메시지와 숨겨진 가능성' }
+  ];
+  
+  /**
+   * AI를 위한 구조화된 프롬프트 생성
+   */
+  generateStructuredPromptForAI(
+    cards: TarotCard[], 
+    topic: string,
+    customQuestion?: string
+  ): string {
+    const patterns = findSynergyPatterns(cards);
+    const keywords = extractTopicKeywords(topic);
+    const relationships = analyzeCardRelationships(cards);
+    
+    let prompt = `당신은 경험 많은 타로 마스터입니다. 세븐 스타 배열법으로 ${topic}에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
+    
+    if (customQuestion) {
+      prompt += `【질문자의 구체적 질문】\n${customQuestion}\n\n`;
+    }
+    
+    prompt += `【카드 배열】\n`;
+    cards.forEach((card, index) => {
+      const pos = this.positions[index];
+      prompt += `${pos.position}. ${pos.name} (${pos.description}): ${card.nameKr || card.name_kr} - ${card.orientation === 'upright' ? '정방향' : '역방향'}\n`;
+    });
+    prompt += '\n';
+    
+    // 패턴 분석
+    if (patterns.length > 0) {
+      prompt += `【발견된 패턴】\n`;
+      patterns.forEach(pattern => {
+        prompt += `• ${pattern}\n`;
+      });
+      prompt += '\n';
+    }
+    
+    // 카드 관계 분석
+    prompt += `【카드 간 관계】\n`;
+    if (relationships.complementary.length > 0) {
+      prompt += `• 보완 관계: ${relationships.complementary.map(([i, j]) => 
+        `${cards[i].position.name}-${cards[j].position.name}`).join(', ')}\n`;
+    }
+    if (relationships.supporting.length > 0) {
+      prompt += `• 지원 관계: ${relationships.supporting.map(([i, j]) => 
+        `${cards[i].position.name}-${cards[j].position.name}`).join(', ')}\n`;
+    }
+    if (relationships.conflicting.length > 0) {
+      prompt += `• 갈등 관계: ${relationships.conflicting.map(([i, j]) => 
+        `${cards[i].position.name}-${cards[j].position.name}`).join(', ')}\n`;
+    }
+    prompt += '\n';
+    
+    // 해석 가이드라인
+    prompt += `【해석 가이드라인】
+1. 각 위치의 카드가 전체 이야기에서 어떤 역할을 하는지 설명
+2. 핵심(1번) 카드를 중심으로 다른 카드들과의 연결성 분석
+3. 도움(2번)과 외부(6번)의 상호작용 설명
+4. 내면(3번)과 예상(4번)이 결과(5번)에 미치는 영향 분석
+5. 운명(7번) 카드가 제시하는 더 큰 그림과 메시지
+6. ${keywords.join(', ')}와 관련된 구체적 조언 제공
+
+【응답 형식】
+1. 전체적인 에너지와 상황 개요 (2-3문장)
+2. 핵심 메시지와 중요 포인트 (3-4문장)
+3. 각 위치별 상세 해석 (각 2-3문장)
+4. 카드들 간의 시너지와 메시지 (2-3문장)
+5. 실천적 조언과 제안 (3-4문장)
+6. 마무리 메시지 (1-2문장)
+
+자연스럽고 공감적인 톤으로 작성하되, 구체적이고 실용적인 조언을 포함해주세요.`;
+    
+    return prompt;
+  }
+  
+  /**
+   * 기본 해석 생성 (폴백용)
+   */
+  generateBasicInterpretation(
+    cards: TarotCard[], 
+    topic: string
+  ): string {
+    const patterns = findSynergyPatterns(cards);
+    const keywords = extractTopicKeywords(topic);
+    
+    let interpretation = `🌟 세븐 스타가 전하는 ${topic} 메시지 🌟\n\n`;
+    
+    // 전체 개요
+    interpretation += `당신의 ${topic}에 대한 7장의 카드가 별자리처럼 펼쳐졌습니다.\n`;
+    
+    // 핵심 카드 해석
+    const coreCard = cards[0];
+    interpretation += `\n◆ 핵심 에너지: ${coreCard.nameKr || coreCard.name_kr}\n`;
+    interpretation += `현재 상황의 중심에는 ${coreCard.nameKr || coreCard.name_kr}의 `;
+    interpretation += coreCard.orientation === 'upright' ? '정방향 ' : '역방향 ';
+    interpretation += `에너지가 자리하고 있습니다.\n`;
+    
+    // 도움과 방해 요소
+    const helpCard = cards[1];
+    const externalCard = cards[5];
+    interpretation += `\n◆ 영향력\n`;
+    interpretation += `• 도움: ${helpCard.nameKr || helpCard.name_kr} - 당신을 지원하는 힘\n`;
+    interpretation += `• 외부: ${externalCard.nameKr || externalCard.name_kr} - 주변 환경의 영향\n`;
+    
+    // 내면과 예상
+    const innerCard = cards[2];
+    const expectCard = cards[3];
+    interpretation += `\n◆ 내적 과정\n`;
+    interpretation += `• 내면: ${innerCard.nameKr || innerCard.name_kr} - 마음 속 깊은 곳의 메시지\n`;
+    interpretation += `• 예상: ${expectCard.nameKr || expectCard.name_kr} - 다가올 도전과 기회\n`;
+    
+    // 결과와 운명
+    const resultCard = cards[4];
+    const destinyCard = cards[6];
+    interpretation += `\n◆ 미래의 가능성\n`;
+    interpretation += `• 결과: ${resultCard.nameKr || resultCard.name_kr} - 현재 경로의 도착점\n`;
+    interpretation += `• 운명: ${destinyCard.nameKr || destinyCard.name_kr} - 우주가 전하는 특별한 메시지\n`;
+    
+    // 패턴 언급
+    if (patterns.length > 0) {
+      interpretation += `\n◆ 특별한 패턴\n`;
+      patterns.forEach(pattern => {
+        interpretation += `• ${pattern}\n`;
+      });
+    }
+    
+    // 조언
+    interpretation += `\n◆ 조언\n`;
+    interpretation += `${keywords[0]}와 ${keywords[1]}에 초점을 맞추어 나아가세요. `;
+    interpretation += `특히 ${coreCard.nameKr || coreCard.name_kr}가 제시하는 방향을 신뢰하며, `;
+    interpretation += `${helpCard.nameKr || helpCard.name_kr}의 긍정적 에너지를 활용하시기 바랍니다.\n`;
+    
+    // 마무리
+    interpretation += `\n✨ 별들이 당신의 길을 밝게 비추기를 바랍니다. ✨`;
+    
+    return interpretation;
+  }
+  
+  /**
+   * AI 응답 검증 및 보정
+   */
+  validateAIResponse(response: string): string {
+    // 기본 검증
+    if (!response || response.length < 200) {
+      console.warn('AI 응답이 너무 짧습니다. 기본 해석을 반환합니다.');
+      return this.generateBasicInterpretation([], 'general');
+    }
+    
+    // 일관성 검증
+    if (!validateInterpretationCoherence(response)) {
+      console.warn('AI 응답의 구조가 불완전합니다. 후처리를 적용합니다.');
+      response = this.enhanceResponseStructure(response);
+    }
+    
+    // 후처리
+    return postProcessAIResponse(response);
+  }
+  
+  /**
+   * 응답 구조 강화
+   */
+  private enhanceResponseStructure(response: string): string {
+    const lines = response.split('\n');
+    const enhanced: string[] = [];
+    
+    // 섹션 헤더 추가
+    let hasIntro = false;
+    let hasConclusion = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // 도입부 확인
+      if (i === 0 && !line.startsWith('◆') && !line.startsWith('【')) {
+        enhanced.push('◆ 전체적인 상황\n');
+        hasIntro = true;
+      }
+      
+      enhanced.push(lines[i]);
+      
+      // 마지막 부분 확인
+      if (i === lines.length - 1 && !hasConclusion) {
+        enhanced.push('\n◆ 마무리 메시지');
+        enhanced.push('카드들이 전하는 메시지를 신뢰하며 앞으로 나아가세요.');
+        hasConclusion = true;
+      }
+    }
+    
+    return enhanced.join('\n');
+  }
+  
+  /**
+   * 포지션별 핵심 키워드 추출
+   */
+  extractPositionKeywords(card: TarotCard, positionIndex: number): string[] {
+    const positionKeywords: Record<number, string[]> = {
+      0: ['중심', '핵심', '현재', '주요 에너지'],
+      1: ['지원', '도움', '긍정적 힘', '우호적'],
+      2: ['내면', '감정', '무의식', '숨겨진'],
+      3: ['예상', '도전', '기회', '가능성'],
+      4: ['결과', '도착점', '성과', '미래'],
+      5: ['외부', '환경', '타인', '영향'],
+      6: ['운명', '숨겨진 메시지', '더 큰 그림', '신성한 조언']
+    };
+    
+    return positionKeywords[positionIndex] || ['카드', '메시지'];
+  }
+  
+  /**
+   * 특별한 카드 조합 감지
+   */
+  detectSpecialCombinations(cards: TarotCard[]): string[] {
+    const combinations: string[] = [];
+    
+    // 핵심과 결과가 같은 슈트
+    if (cards[0].suit && cards[0].suit === cards[4].suit) {
+      combinations.push('핵심과 결과가 같은 에너지로 연결되어 있습니다.');
+    }
+    
+    // 도움과 외부가 대립
+    if (cards[1].orientation !== cards[5].orientation) {
+      combinations.push('내부의 도움과 외부 환경이 다른 방향을 가리킵니다.');
+    }
+    
+    // 내면과 예상이 조화
+    if (cards[2].suit === cards[3].suit && cards[2].orientation === cards[3].orientation) {
+      combinations.push('내면의 소리와 예상이 조화를 이루고 있습니다.');
+    }
+    
+    // 운명 카드가 메이저 아르카나
+    if (cards[6].arcana === 'major') {
+      combinations.push('운명의 메시지가 특별히 강력합니다.');
+    }
+    
+    return combinations;
+  }
+}

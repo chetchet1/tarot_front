@@ -1,7 +1,7 @@
 import { supabase } from '@/config/supabase';
-import { BaseEnhancedInterpreter } from './BaseEnhancedInterpreter.js';
+import { BaseEnhancedInterpreter } from '../../services/interpretation/BaseEnhancedInterpreter';
 import { DrawnCard, SpreadPosition } from '../../models/tarot';
-import { generateStructuredPrompt, validateAndRestructureResponse } from '../../utils/interpretationUtils';
+import { generateStructuredPrompt, validateAndRestructureResponse } from '../interpretationUtils';
 
 interface Pattern {
   pattern_name: string;
@@ -740,25 +740,31 @@ export class EnhancedCupOfRelationshipInterpreter extends BaseEnhancedInterprete
   /**
    * 구조화된 AI 해석 프롬프트 생성
    */
-  public generateStructuredPromptForAI(question: string): string {
+  public generateStructuredPromptForAI(
+    cards: DrawnCard[],
+    topic: string,
+    question?: string
+  ): string {
     const positions = [
       '나의 현재 상태',
       '상대방의 현재 상태',
-      '관계의 현재',
-      '나의 감정',
-      '상대방의 감정',
-      '관계의 과제',
-      '관계의 잠재력',
-      '외부 영향',
-      '관계의 미래'
+      '관계의 기본',
+      '관계의 과거',
+      '현재 느낌',
+      '현재 외부 상황',
+      '현재 나는 어떻게 생각?',
+      '현재 상대는 어떻게 생각?',
+      '미래 나는 어떻게 생각?',
+      '미래 상대는 어떻게 생각?',
+      '결과'
     ];
     
-    const cards = this.cards.map(card => ({
-      name_ko: card.nameKr,
+    const cardsForPrompt = cards.map(card => ({
+      name_ko: card.nameKr || card.name_kr || card.name,
       isReversed: card.orientation === 'reversed'
     }));
     
-    return generateStructuredPrompt('cup-of-relationship', cards, positions, question);
+    return generateStructuredPrompt('cup-of-relationship', cardsForPrompt, positions, question);
   }
   
   /**

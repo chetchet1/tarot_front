@@ -2,35 +2,46 @@
   <div class="seven-star-layout">
     <!-- 배경 장식 -->
     <div class="layout-background">
-      <div class="star-constellation">
-        <!-- 7개의 별 연결선 -->
-        <svg class="constellation-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <!-- 별자리 연결선 -->
-          <line x1="50" y1="20" x2="20" y2="35" stroke="rgba(255, 215, 0, 0.3)" stroke-width="0.5"/>
-          <line x1="20" y1="35" x2="20" y2="65" stroke="rgba(255, 215, 0, 0.3)" stroke-width="0.5"/>
-          <line x1="20" y1="65" x2="50" y2="80" stroke="rgba(255, 215, 0, 0.3)" stroke-width="0.5"/>
-          <line x1="50" y1="80" x2="80" y2="65" stroke="rgba(255, 215, 0, 0.3)" stroke-width="0.5"/>
-          <line x1="80" y1="65" x2="80" y2="35" stroke="rgba(255, 215, 0, 0.3)" stroke-width="0.5"/>
-          <line x1="80" y1="35" x2="50" y2="20" stroke="rgba(255, 215, 0, 0.3)" stroke-width="0.5"/>
-          <line x1="50" y1="20" x2="50" y2="50" stroke="rgba(255, 215, 0, 0.3)" stroke-width="0.5"/>
-          <line x1="50" y1="50" x2="50" y2="80" stroke="rgba(255, 215, 0, 0.3)" stroke-width="0.5"/>
-        </svg>
-        
-        <!-- 별들 -->
-        <div class="star" v-for="i in 7" :key="i" :class="`star-${i}`">
-          <span class="star-icon">⭐</span>
-        </div>
+      <!-- 7개의 별 배경 -->
+      <svg class="star-constellation" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="starGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#FFD700;stop-opacity:0.5" />
+            <stop offset="50%" style="stop-color:#FFA500;stop-opacity:0.3" />
+            <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:0.5" />
+          </linearGradient>
+        </defs>
+        <!-- 별자리 연결선 -->
+        <path d="M 200 80 L 120 150 L 120 250 L 200 320 L 280 250 L 280 150 Z" 
+              fill="none" stroke="url(#starGradient)" stroke-width="2" opacity="0.6"/>
+        <!-- 중앙 별 -->
+        <circle cx="200" cy="200" r="5" fill="#FFD700" opacity="0.8">
+          <animate attributeName="r" values="5;8;5" dur="3s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+      
+      <!-- 신비로운 별빛 효과 -->
+      <div class="starlight-effects">
+        <div class="star-glow star-glow-1"></div>
+        <div class="star-glow star-glow-2"></div>
+        <div class="star-glow star-glow-3"></div>
+        <div class="star-glow star-glow-4"></div>
+        <div class="star-glow star-glow-5"></div>
+        <div class="star-glow star-glow-6"></div>
+        <div class="star-glow star-glow-7"></div>
       </div>
       
-      <!-- 반짝이는 별들 배경 -->
-      <div class="sparkles">
-        <div class="sparkle" v-for="i in 20" :key="i" :style="getSparkleStyle(i)">✨</div>
+      <!-- 별똥별 효과 -->
+      <div class="shooting-stars">
+        <div class="shooting-star"></div>
+        <div class="shooting-star" style="animation-delay: 3s;"></div>
+        <div class="shooting-star" style="animation-delay: 5s;"></div>
       </div>
     </div>
 
     <!-- 카드 배치 영역 -->
     <div class="cards-container" ref="cardsContainer">
-      <!-- Position 1: 과거의 영향 (상단) -->
+      <!-- Position 1: 과거의 영향 (상단 중앙) -->
       <div 
         class="card-position position-1"
         :class="{ 'has-card': cards[0], 'revealed': cards[0]?.revealed }"
@@ -41,7 +52,7 @@
           <transition name="card-flip">
             <div v-if="cards[0]" class="card-content">
               <div v-if="!cards[0].revealed" class="card-back">
-                <div class="card-back-design">🌟</div>
+                <div class="card-back-design">⭐</div>
                 <p class="click-hint">클릭하여 공개</p>
               </div>
               <div v-else class="card-front">
@@ -76,7 +87,7 @@
           <transition name="card-flip">
             <div v-if="cards[1]" class="card-content">
               <div v-if="!cards[1].revealed" class="card-back">
-                <div class="card-back-design">🌟</div>
+                <div class="card-back-design">⭐</div>
                 <p class="click-hint">클릭하여 공개</p>
               </div>
               <div v-else class="card-front">
@@ -100,7 +111,7 @@
         </div>
       </div>
 
-      <!-- Position 3: 숨겨진 영향 (왼쪽 위) -->
+      <!-- Position 3: 숨겨진 영향 (좌측 상단) -->
       <div 
         class="card-position position-3"
         :class="{ 'has-card': cards[2], 'revealed': cards[2]?.revealed }"
@@ -111,7 +122,7 @@
           <transition name="card-flip">
             <div v-if="cards[2]" class="card-content">
               <div v-if="!cards[2].revealed" class="card-back">
-                <div class="card-back-design">🌟</div>
+                <div class="card-back-design">⭐</div>
                 <p class="click-hint">클릭하여 공개</p>
               </div>
               <div v-else class="card-front">
@@ -135,7 +146,7 @@
         </div>
       </div>
 
-      <!-- Position 4: 의식적 욕구 (오른쪽 위) -->
+      <!-- Position 4: 의식적 욕구 (우측 상단) -->
       <div 
         class="card-position position-4"
         :class="{ 'has-card': cards[3], 'revealed': cards[3]?.revealed }"
@@ -146,7 +157,7 @@
           <transition name="card-flip">
             <div v-if="cards[3]" class="card-content">
               <div v-if="!cards[3].revealed" class="card-back">
-                <div class="card-back-design">🌟</div>
+                <div class="card-back-design">⭐</div>
                 <p class="click-hint">클릭하여 공개</p>
               </div>
               <div v-else class="card-front">
@@ -170,7 +181,7 @@
         </div>
       </div>
 
-      <!-- Position 5: 무의식적 욕구 (왼쪽 아래) -->
+      <!-- Position 5: 무의식적 욕구 (좌측 하단) -->
       <div 
         class="card-position position-5"
         :class="{ 'has-card': cards[4], 'revealed': cards[4]?.revealed }"
@@ -181,7 +192,7 @@
           <transition name="card-flip">
             <div v-if="cards[4]" class="card-content">
               <div v-if="!cards[4].revealed" class="card-back">
-                <div class="card-back-design">🌟</div>
+                <div class="card-back-design">⭐</div>
                 <p class="click-hint">클릭하여 공개</p>
               </div>
               <div v-else class="card-front">
@@ -205,7 +216,7 @@
         </div>
       </div>
 
-      <!-- Position 6: 조언 (오른쪽 아래) -->
+      <!-- Position 6: 조언 (우측 하단) -->
       <div 
         class="card-position position-6"
         :class="{ 'has-card': cards[5], 'revealed': cards[5]?.revealed }"
@@ -216,7 +227,7 @@
           <transition name="card-flip">
             <div v-if="cards[5]" class="card-content">
               <div v-if="!cards[5].revealed" class="card-back">
-                <div class="card-back-design">🌟</div>
+                <div class="card-back-design">⭐</div>
                 <p class="click-hint">클릭하여 공개</p>
               </div>
               <div v-else class="card-front">
@@ -240,7 +251,7 @@
         </div>
       </div>
 
-      <!-- Position 7: 최종 결과 (하단) -->
+      <!-- Position 7: 최종 결과 (하단 중앙) -->
       <div 
         class="card-position position-7"
         :class="{ 'has-card': cards[6], 'revealed': cards[6]?.revealed }"
@@ -251,7 +262,7 @@
           <transition name="card-flip">
             <div v-if="cards[6]" class="card-content">
               <div v-if="!cards[6].revealed" class="card-back">
-                <div class="card-back-design">🌟</div>
+                <div class="card-back-design">⭐</div>
                 <p class="click-hint">클릭하여 공개</p>
               </div>
               <div v-else class="card-front">
@@ -276,7 +287,7 @@
       </div>
     </div>
 
-    <!-- 버튼 컨테이너 (일괄 뒤집기 + 슬롯) -->
+    <!-- 버튼 컨테이너 -->
     <div class="action-buttons-container" v-if="!isDrawing">
       <button 
         v-if="hasUnrevealedCards"
@@ -285,35 +296,24 @@
       >
         <span class="icon">✨</span> 모든 카드 뒤집기
       </button>
-      <div v-else class="button-placeholder"></div>
       
-      <!-- 부모 컴포넌트에서 전달하는 추가 버튼을 위한 슬롯 -->
       <slot name="action-button"></slot>
     </div>
 
     <!-- 진행 상태 표시 -->
     <div class="progress-indicator" v-if="isDrawing">
-      <p>별들이 당신의 운명을 읽고 있습니다...</p>
+      <p>카드를 배치하고 있습니다...</p>
       <div class="progress-bar">
         <div class="progress-fill" :style="{ width: drawProgress + '%' }"></div>
       </div>
     </div>
   </div>
-  
-  <!-- 포지션 의미 인라인 표시 (프리미엄 사용자용) -->
-  <PositionMeaningInline
-    v-if="userStore.isPremium"
-    :visible="showPositionMeaning"
-    :spread-id="'seven_star'"
-    :position="selectedPosition"
-  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { nativeUtils } from '@/utils/capacitor';
 import { useUserStore } from '@/store/user';
-import PositionMeaningInline from '@/components/PositionMeaningInline.vue';
 
 interface CardData {
   card: any;
@@ -325,37 +325,19 @@ interface Props {
   cards: CardData[];
   isDrawing: boolean;
   drawProgress: number;
+  topic?: string;
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits(['card-click', 'reveal-all']);
+
+const cardsContainer = ref<HTMLElement>();
 const userStore = useUserStore();
 
 // 공개되지 않은 카드가 있는지 확인
 const hasUnrevealedCards = computed(() => {
   return props.cards.some(card => card && !card.revealed);
 });
-
-// 포지션 의미 표시 관련
-const showPositionMeaning = ref(false);
-const selectedPosition = ref(0);
-
-const cardsContainer = ref<HTMLElement>();
-
-// 반짝이는 별 스타일 생성
-const getSparkleStyle = (index: number) => {
-  const x = Math.random() * 100;
-  const y = Math.random() * 100;
-  const delay = Math.random() * 5;
-  const duration = 3 + Math.random() * 4;
-  
-  return {
-    left: `${x}%`,
-    top: `${y}%`,
-    animationDelay: `${delay}s`,
-    animationDuration: `${duration}s`
-  };
-};
 
 // 모든 카드 뒤집기
 const revealAllCards = async () => {
@@ -368,25 +350,21 @@ const handleCardClick = async (index: number) => {
   if (props.cards[index] && !props.cards[index].revealed) {
     await nativeUtils.buttonTapHaptic();
     emit('card-click', index);
-    
-    // 프리미엄 사용자인 경우 카드 공개 후 포지션 의미 표시
-    if (userStore.isPremium) {
-      selectedPosition.value = index + 1;
-      showPositionMeaning.value = true;
-    }
   }
 };
 
-// 카드 이미지 URL 생성 (CelticCrossLayout과 동일)
+// 카드 이미지 URL 생성 (CelticCrossLayout과 동일한 로직)
 const getCardImageUrl = (card: any) => {
   try {
     if (card.imageUrl && !card.imageUrl.includes('undefined')) {
       let finalUrl = card.imageUrl;
+      // 수트 폴더가 포함된 경로를 수정
       finalUrl = finalUrl.replace('/assets/tarot-cards/minor/cups/', '/assets/tarot-cards/minor/');
       finalUrl = finalUrl.replace('/assets/tarot-cards/minor/wands/', '/assets/tarot-cards/minor/');
       finalUrl = finalUrl.replace('/assets/tarot-cards/minor/swords/', '/assets/tarot-cards/minor/');
       finalUrl = finalUrl.replace('/assets/tarot-cards/minor/pentacles/', '/assets/tarot-cards/minor/');
       
+      // 메이저 아르카나 파일명 대소문자 수정
       if (finalUrl.includes('/assets/tarot-cards/major/')) {
         const corrections = {
           '00-the-fool.png': '00-the-Fool.png',
@@ -424,6 +402,7 @@ const getCardImageUrl = (card: any) => {
       return finalUrl;
     }
     
+    // 마이너 아르카나의 경우
     if (card.arcana === 'minor') {
       const cardNumber = String(card.number || 1).padStart(2, '0');
       let cardName;
@@ -431,7 +410,8 @@ const getCardImageUrl = (card: any) => {
       if (card.suit) {
         if (card.number <= 10) {
           const numberNames = {
-            1: 'ace', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
+            1: 'ace',
+            2: 'two', 3: 'three', 4: 'four', 5: 'five',
             6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten'
           };
           cardName = `${numberNames[card.number]}-of-${card.suit}`;
@@ -449,15 +429,30 @@ const getCardImageUrl = (card: any) => {
       return `/assets/tarot-cards/minor/${cardNumber}-${cardName}.png`;
     }
     
+    // 메이저 아르카나의 경우
     if (card.arcana === 'major') {
       const majorCardNames = {
-        0: '00-the-Fool.png', 1: '01-The-Magician.png', 2: '02-The-High-Priestess.png',
-        3: '03-The-Empress.png', 4: '04-The-Emperor.png', 5: '05-The-Hierophant.png',
-        6: '06-The-Lovers.png', 7: '07-The-Chariot.png', 8: '08-Strength.png',
-        9: '09-The-Hermit.png', 10: '10-Wheel-of-Fortune.png', 11: '11-Justice.png',
-        12: '12-The-Hanged-Man.png', 13: '13-Death.png', 14: '14-Temperance.png',
-        15: '15-The-Devil.png', 16: '16-The-Tower.png', 17: '17-The-Star.png',
-        18: '18-The-Moon.png', 19: '19-The-Sun.png', 20: '20-Judgement.png',
+        0: '00-the-Fool.png',
+        1: '01-The-Magician.png',
+        2: '02-The-High-Priestess.png',
+        3: '03-The-Empress.png',
+        4: '04-The-Emperor.png',
+        5: '05-The-Hierophant.png',
+        6: '06-The-Lovers.png',
+        7: '07-The-Chariot.png',
+        8: '08-Strength.png',
+        9: '09-The-Hermit.png',
+        10: '10-Wheel-of-Fortune.png',
+        11: '11-Justice.png',
+        12: '12-The-Hanged-Man.png',
+        13: '13-Death.png',
+        14: '14-Temperance.png',
+        15: '15-The-Devil.png',
+        16: '16-The-Tower.png',
+        17: '17-The-Star.png',
+        18: '18-The-Moon.png',
+        19: '19-The-Sun.png',
+        20: '20-Judgement.png',
         21: '21-The-World.png'
       };
       
@@ -491,8 +486,8 @@ const onImageError = (event: Event) => {
 .seven-star-layout {
   position: relative;
   width: 100%;
-  min-height: 800px;
-  padding: 20px;
+  min-height: 500px;
+  padding: 10px 10px 5px 10px;
 }
 
 /* 배경 장식 */
@@ -504,53 +499,26 @@ const onImageError = (event: Event) => {
   bottom: 0;
   pointer-events: none;
   overflow: hidden;
-  background: radial-gradient(ellipse at center, rgba(25, 25, 112, 0.3) 0%, transparent 70%);
 }
 
+/* 별자리 배경 */
 .star-constellation {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 100%;
-  height: 100%;
-  max-width: 900px;
-  max-height: 800px;
+  width: 500px;
+  height: 500px;
+  animation: twinkle 30s linear infinite;
 }
-
-.constellation-lines {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.star {
-  position: absolute;
-  animation: twinkle 3s ease-in-out infinite;
-}
-
-.star-icon {
-  font-size: 24px;
-  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
-}
-
-.star-1 { top: 20%; left: 50%; transform: translate(-50%, -50%); animation-delay: 0s; }
-.star-2 { top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: 0.5s; }
-.star-3 { top: 35%; left: 20%; transform: translate(-50%, -50%); animation-delay: 1s; }
-.star-4 { top: 35%; left: 80%; transform: translate(-50%, -50%); animation-delay: 1.5s; }
-.star-5 { top: 65%; left: 20%; transform: translate(-50%, -50%); animation-delay: 2s; }
-.star-6 { top: 65%; left: 80%; transform: translate(-50%, -50%); animation-delay: 2.5s; }
-.star-7 { top: 80%; left: 50%; transform: translate(-50%, -50%); animation-delay: 3s; }
 
 @keyframes twinkle {
-  0%, 100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
-  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
 }
 
-/* 반짝이는 별들 */
-.sparkles {
+/* 별빛 효과 */
+.starlight-effects {
   position: absolute;
   top: 0;
   left: 0;
@@ -558,24 +526,66 @@ const onImageError = (event: Event) => {
   height: 100%;
 }
 
-.sparkle {
+.star-glow {
   position: absolute;
-  font-size: 12px;
-  opacity: 0;
-  animation: sparkle 5s linear infinite;
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.6) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: pulse-star 3s ease-in-out infinite;
 }
 
-@keyframes sparkle {
-  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
-  50% { opacity: 1; transform: scale(1) rotate(180deg); }
+.star-glow-1 { top: 15%; left: 50%; transform: translateX(-50%); }
+.star-glow-2 { top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: 0.5s; }
+.star-glow-3 { top: 35%; left: 20%; animation-delay: 1s; }
+.star-glow-4 { top: 35%; right: 20%; animation-delay: 1.5s; }
+.star-glow-5 { top: 65%; left: 20%; animation-delay: 2s; }
+.star-glow-6 { top: 65%; right: 20%; animation-delay: 2.5s; }
+.star-glow-7 { bottom: 15%; left: 50%; transform: translateX(-50%); animation-delay: 3s; }
+
+@keyframes pulse-star {
+  0%, 100% { 
+    opacity: 0.3; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.7; 
+    transform: scale(1.2);
+  }
+}
+
+/* 별똥별 효과 */
+.shooting-star {
+  position: absolute;
+  width: 100px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #FFD700, transparent);
+  animation: shoot 8s linear infinite;
+}
+
+@keyframes shoot {
+  0% {
+    transform: translate(-100px, -100px) rotate(-45deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(500px, 500px) rotate(-45deg);
+    opacity: 0;
+  }
 }
 
 /* 카드 컨테이너 */
 .cards-container {
   position: relative;
   width: 100%;
-  max-width: 900px;
-  height: 800px;
+  max-width: 800px;
+  height: 500px;
   margin: 0 auto;
 }
 
@@ -585,17 +595,19 @@ const onImageError = (event: Event) => {
   width: 120px;
   height: 180px;
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .card-position:hover {
   z-index: 100;
+  transform: scale(1.05);
 }
 
-/* 각 위치별 좌표 */
-.position-1 { /* 과거의 영향 - 상단 */
-  top: 20%;
+/* 별 모양으로 카드 배치 */
+.position-1 { /* 과거의 영향 - 상단 중앙 */
+  top: 5%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
 
 .position-2 { /* 현재 상황 - 중앙 */
@@ -605,34 +617,30 @@ const onImageError = (event: Event) => {
   z-index: 10;
 }
 
-.position-3 { /* 숨겨진 영향 - 왼쪽 위 */
-  top: 35%;
-  left: 20%;
-  transform: translate(-50%, -50%);
+.position-3 { /* 숨겨진 영향 - 좌측 상단 */
+  top: 25%;
+  left: 15%;
 }
 
-.position-4 { /* 의식적 욕구 - 오른쪽 위 */
-  top: 35%;
-  left: 80%;
-  transform: translate(-50%, -50%);
+.position-4 { /* 의식적 욕구 - 우측 상단 */
+  top: 25%;
+  right: 15%;
 }
 
-.position-5 { /* 무의식적 욕구 - 왼쪽 아래 */
+.position-5 { /* 무의식적 욕구 - 좌측 하단 */
   top: 65%;
-  left: 20%;
-  transform: translate(-50%, -50%);
+  left: 15%;
 }
 
-.position-6 { /* 조언 - 오른쪽 아래 */
+.position-6 { /* 조언 - 우측 하단 */
   top: 65%;
-  left: 80%;
-  transform: translate(-50%, -50%);
+  right: 15%;
 }
 
-.position-7 { /* 최종 결과 - 하단 */
-  top: 80%;
+.position-7 { /* 최종 결과 - 하단 중앙 */
+  bottom: 5%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
 
 /* 위치 라벨 */
@@ -675,12 +683,21 @@ const onImageError = (event: Event) => {
 .card-position.has-card .card-slot {
   border-style: solid;
   border-color: rgba(255, 215, 0, 0.5);
-  background: rgba(255, 215, 0, 0.05);
+  background: rgba(255, 215, 0, 0.1);
 }
 
 .card-position:hover .card-slot {
   border-color: rgba(255, 215, 0, 0.8);
   box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+
+/* 중앙 카드 강조 */
+.position-2 .card-slot {
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+.position-2.has-card .card-slot {
+  box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
 }
 
 /* 카드 콘텐츠 */
@@ -696,7 +713,7 @@ const onImageError = (event: Event) => {
 .card-back {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #1E3A8A 0%, #312E81 100%);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -708,13 +725,13 @@ const onImageError = (event: Event) => {
 .card-back-design {
   font-size: 48px;
   margin-bottom: 10px;
-  filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.8));
-  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
+  animation: sparkle 2s ease-in-out infinite;
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+@keyframes sparkle {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.1) rotate(10deg); }
 }
 
 .click-hint {
@@ -801,7 +818,7 @@ const onImageError = (event: Event) => {
 /* 진행 표시기 */
 .progress-indicator {
   position: absolute;
-  bottom: 20px;
+  bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
@@ -813,7 +830,7 @@ const onImageError = (event: Event) => {
 
 .progress-indicator p {
   margin-bottom: 10px;
-  color: rgba(255, 215, 0, 0.9);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 14px;
 }
 
@@ -862,58 +879,12 @@ const onImageError = (event: Event) => {
   opacity: 0;
 }
 
-/* 모바일 반응형 */
-@media (max-width: 768px) {
-  .seven-star-layout {
-    min-height: 600px;
-    padding: 10px;
-  }
-
-  .cards-container {
-    height: 600px;
-    transform: scale(0.7);
-    transform-origin: top center;
-  }
-
-  .card-position {
-    width: 100px;
-    height: 150px;
-  }
-
-  .position-label {
-    font-size: 10px;
-    top: -20px;
-  }
-
-  .card-back-design {
-    font-size: 36px;
-  }
-
-  .card-info h4 {
-    font-size: 11px;
-  }
-
-  .orientation {
-    font-size: 9px;
-  }
-
-  .star-icon {
-    font-size: 18px;
-  }
-}
-
-@media (max-width: 480px) {
-  .cards-container {
-    transform: scale(0.6);
-  }
-}
-
 /* 액션 버튼 컨테이너 */
 .action-buttons-container {
   position: absolute;
   bottom: 20px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, 200%);
   z-index: 100;
   display: flex;
   gap: 20px;
@@ -921,11 +892,6 @@ const onImageError = (event: Event) => {
   justify-content: center;
   width: 100%;
   max-width: 500px;
-}
-
-.button-placeholder {
-  width: 180px;
-  height: 48px;
 }
 
 .btn-action {
@@ -955,7 +921,51 @@ const onImageError = (event: Event) => {
   font-size: 20px;
 }
 
+/* 모바일 반응형 */
 @media (max-width: 768px) {
+  .seven-star-layout {
+    min-height: 400px;
+    padding: 5px;
+  }
+
+  .cards-container {
+    height: 400px;
+    transform: scale(0.75);
+    transform-origin: top center;
+  }
+
+  .star-constellation {
+    width: 350px;
+    height: 350px;
+  }
+
+  .star-glow {
+    width: 60px;
+    height: 60px;
+  }
+
+  .card-position {
+    width: 100px;
+    height: 150px;
+  }
+
+  .position-label {
+    font-size: 10px;
+    top: -20px;
+  }
+
+  .card-back-design {
+    font-size: 36px;
+  }
+
+  .card-info h4 {
+    font-size: 11px;
+  }
+
+  .orientation {
+    font-size: 9px;
+  }
+
   .action-buttons-container {
     bottom: 10px;
     gap: 10px;
@@ -968,10 +978,16 @@ const onImageError = (event: Event) => {
     padding: 10px 16px;
     min-width: 140px;
   }
+}
+
+@media (max-width: 480px) {
+  .cards-container {
+    transform: scale(0.65);
+  }
   
-  .button-placeholder {
-    width: 140px;
-    height: 40px;
+  .star-constellation {
+    width: 300px;
+    height: 300px;
   }
 }
 </style>
