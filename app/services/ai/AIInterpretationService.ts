@@ -69,7 +69,8 @@ export class AIInterpretationService {
       
       if (error) throw error;
       
-      const interpretation = data.interpretation;
+      // 마크다운 헤더(#, ##, ### 등) 모두 제거
+      const interpretation = data.interpretation.replace(/#{1,6}\s*/g, '');
       this.setCache(cacheKey, interpretation);
       
       return interpretation;
@@ -119,7 +120,8 @@ export class AIInterpretationService {
       
       if (error) throw error;
       
-      const interpretation = data.interpretation;
+      // 마크다운 헤더(#, ##, ### 등) 모두 제거
+      const interpretation = data.interpretation.replace(/#{1,6}\s*/g, '');
       this.setCache(cacheKey, interpretation);
       
       return interpretation;
@@ -242,7 +244,8 @@ export class AIInterpretationService {
       
       if (error) throw error;
       
-      return data.interpretation;
+      // 마크다운 헤더(#, ##, ### 등) 모두 제거
+      return data.interpretation.replace(/#{1,6}\s*/g, '');
     } catch (error) {
       console.error('AI 켈틱 크로스 해석 실패:', error);
       // 폴백: 템플릿 해석 반환
@@ -405,7 +408,8 @@ ${message.ending}`;
       
       if (error) throw error;
       
-      const interpretation = data.interpretation;
+      // 마크다운 헤더(#, ##, ### 등) 모두 제거
+      const interpretation = data.interpretation.replace(/#{1,6}\s*/g, '');
       this.setCache(cacheKey, interpretation);
       
       return {
@@ -471,7 +475,8 @@ ${message.ending}`;
       
       if (error) throw error;
       
-      const interpretation = data.interpretation;
+      // 마크다운 헤더(#, ##, ### 등) 모두 제거
+      const interpretation = data.interpretation.replace(/#{1,6}\s*/g, '');
       this.setCache(cacheKey, interpretation);
       
       return {
