@@ -243,29 +243,29 @@ export class SevenStarInterpreter {
   private analyzeChallenges(): string[] {
     const challenges: string[] = [];
     
-    // 역방향 카드 분석
+    // 역방향 카드 분석 - 도전이 아닌 성장 포인트로 재해석
     const reversedCards = this.cards.filter(card => card.orientation === 'reversed');
     
     if (reversedCards.length >= 4) {
-      challenges.push('많은 역방향 카드가 나타나 전반적인 어려움이 예상됩니다');
+      challenges.push('변화와 성장의 기회가 많이 나타나고 있습니다. 이는 새로운 관점이 필요한 시기임을 의미합니다');
     }
     
-    // 특정 위치의 역방향 카드 분석
+    // 특정 위치의 역방향 카드를 성장 기회로 해석
     if (this.cards[1]?.orientation === 'reversed') { // 현재
-      challenges.push(`현재 상황(${this.cards[1].nameKr})에서 직접적인 도전에 직면해 있습니다`);
+      challenges.push(`현재 상황(${this.cards[1].nameKr})에서 새로운 접근법을 시도할 기회가 있습니다`);
     }
     
     if (this.cards[3]?.orientation === 'reversed') { // 내면
-      challenges.push(`내적 갈등(${this.cards[3].nameKr})을 해결해야 합니다`);
+      challenges.push(`내면의 성장(${this.cards[3].nameKr})을 통해 더 나은 자신을 발견할 수 있습니다`);
     }
     
     if (this.cards[4]?.orientation === 'reversed') { // 외부
-      challenges.push(`외부 환경(${this.cards[4].nameKr})이 우호적이지 않습니다`);
+      challenges.push(`외부 환경(${this.cards[4].nameKr})의 변화가 새로운 기회를 만들어낼 것입니다`);
     }
     
-    // 과거-미래 연결 분석
+    // 과거-미래 연결을 성장의 연속선으로 해석
     if (this.cards[0]?.orientation === 'reversed' && this.cards[2]?.orientation === 'reversed') {
-      challenges.push('과거의 문제가 미래까지 이어질 가능성이 있습니다');
+      challenges.push('과거의 경험이 미래의 지혜로 전환되는 중요한 변환기에 있습니다');
     }
     
     return challenges;
@@ -488,9 +488,9 @@ export class SevenStarInterpreter {
     text += `• 현재: ${interpretation.influences.present}\n`;
     text += `• 미래: ${interpretation.influences.future}\n\n`;
     
-    // 도전과 기회
+    // 성장 포인트 (기존 도전을 긍정적으로 재해석)
     if (interpretation.challenges.length > 0) {
-      text += '⚠️ **직면한 도전**\n';
+      text += '🌱 **성장과 변화의 기회**\n';
       interpretation.challenges.forEach(challenge => {
         text += `• ${challenge}\n`;
       });
@@ -528,6 +528,79 @@ export class SevenStarInterpreter {
     return text;
   }
 
+  /**
+   * AI 서비스에 전달할 구조화된 프롬프트 생성
+   */
+  public generateStructuredPromptForAI(cards: any[], topic: string, customQuestion?: string): string {
+    let prompt = '당신은 20년 경력의 전문 타로 리더입니다. 세븐 스타 배열법으로 카드를 해석해주세요.\n\n';
+    
+    // 주제별 특별 지시사항
+    if (topic === 'love' || topic === '연애') {
+      prompt += '⚠️ 중요: 이 질문은 **연애운**에 관한 것입니다. 모든 해석을 연애, 사랑, 관계의 관점에서 해주세요.\n';
+      prompt += '- 질문자가 현재 솔로일 가능성도 고려하여 해석하세요\n';
+      prompt += '- 새로운 만남, 짝사랑, 연인과의 관계, 이별과 재회 등 다양한 연애 상황을 염두에 두세요\n';
+      prompt += '- 카드가 부정적이면 솔직하게 어려움을 언급하되, 극복 방법도 제시하세요\n\n';
+    } else if (topic === 'career' || topic === '직업') {
+      prompt += '⚠️ 중요: 이 질문은 **직업운/사업운**에 관한 것입니다. 모든 해석을 일, 커리어, 성공의 관점에서 해주세요.\n\n';
+    } else if (topic === 'money' || topic === '재물') {
+      prompt += '⚠️ 중요: 이 질문은 **금전운**에 관한 것입니다. 모든 해석을 재정, 수입, 투자의 관점에서 해주세요.\n\n';
+    } else if (topic === 'health' || topic === '건강') {
+      prompt += '⚠️ 중요: 이 질문은 **건강운**에 관한 것입니다. 모든 해석을 신체적/정신적 건강의 관점에서 해주세요.\n\n';
+    }
+    
+    if (customQuestion) {
+      prompt += `질문자의 구체적 질문: ${customQuestion}\n\n`;
+    }
+    
+    prompt += '카드 배치:\n';
+    cards.forEach((card, index) => {
+      const positionName = this.getPositionName(index);
+      prompt += `${positionName}: ${card.nameKr || card.name_kr || card.name} (${card.orientation === 'reversed' ? '역방향' : '정방향'})\n`;
+    });
+    
+    // 해석 지침
+    prompt += '\n해석 지침:\n';
+    prompt += '1. **객관적이고 균형잡힌 해석**을 제공하세요. 카드가 부정적이면 부정적으로, 긍정적이면 긍정적으로 해석하세요.\n';
+    prompt += '2. 무조건적인 희망보다는 **현실적이고 실용적인 조언**을 제공하세요.\n';
+    prompt += '3. 역방향 카드가 많다면 현재 어려움이 있음을 인정하고, 구체적인 극복 방법을 제시하세요.\n';
+    prompt += '4. 모든 해석은 반드시 **선택한 주제(연애/직업/금전/건강)와 직접 연관**되어야 합니다.\n\n';
+    
+    prompt += '다음 형식으로 해석해주세요:\n';
+    prompt += '🌟 **핵심 통찰**\n';
+    prompt += '⏰ **시간의 흐름** (과거, 현재, 미래)\n';
+    prompt += '🌱 **성장과 변화의 기회**\n';
+    prompt += '✨ **기회와 가능성**\n';
+    prompt += '🔍 **숨겨진 요소**\n';
+    prompt += '⭐ **별의 에너지 패턴**\n';
+    prompt += '🎯 **예상되는 결과**\n';
+    prompt += '💡 **조언과 지침**\n';
+    
+    return prompt;
+  }
+  
+  /**
+   * AI 응답 검증 및 포맷팅
+   */
+  public validateAIResponse(response: string): string {
+    // 기본적인 포맷팅 및 검증
+    if (!response || response.length < 100) {
+      return this.formatInterpretationAsText(this.getInterpretation());
+    }
+    
+    // 필요한 섹션이 포함되어 있는지 확인
+    const requiredSections = ['핵심', '시간', '기회', '결과', '조언'];
+    const hasAllSections = requiredSections.every(section => 
+      response.toLowerCase().includes(section)
+    );
+    
+    if (!hasAllSections) {
+      // 필수 섹션이 누락된 경우 기본 해석 사용
+      return this.formatInterpretationAsText(this.getInterpretation());
+    }
+    
+    return response;
+  }
+  
   private analyzeElementBalance(): { imbalance: boolean; message: string; advice?: string } {
     const elements: { [key: string]: number } = {
       fire: 0,

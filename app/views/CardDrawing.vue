@@ -252,6 +252,8 @@ import { useTarotStore } from '../store/tarot';
 import { nativeUtils } from '../utils/capacitor';
 import { getAdManager } from '../services/adManagerSingleton';
 import { ImprovedCelticCrossInterpreter } from '../utils/ImprovedCelticCrossInterpreter';
+import { SevenStarInterpreter } from '../utils/interpreters/SevenStarInterpreter';
+import { CupOfRelationshipInterpreter } from '../utils/interpreters/CupOfRelationshipInterpreter';
 import { customInterpretationService } from '../services/ai/customInterpretationService';
 import { AIInterpretationService } from '../services/ai/AIInterpretationService';
 import { showAlert, showConfirm } from '../utils/alerts';
@@ -1211,12 +1213,84 @@ const goToResult = async () => {
       console.log('🤖 isPremium:', userStore.isPremium);
       console.log('🤖 isTestAccount:', isTestAccount);
       
-      // 프리미엄 배열법은 AI 해석을 리딩 생성 시점에 미리 요청하지 않음
-      // ReadingResult.vue에서 해석보기 버튼을 클릭할 때 생성함
-      console.log('🤖 AI 해석은 ReadingResult 화면에서 생성됩니다.');
-      
-      // reading을 store에 업데이트만 하고 AI 해석은 나중에 생성
-      tarotStore.updateReading(reading);
+      try {
+        // 프로그레스 업데이트
+        interpretationProgress.value = 30;
+        
+        let interpretation = null;
+        
+        // 스프레드별 인터프리터 사용
+        if (isCelticCross.value) {
+          console.log('🤖 켈틱 크로스 해석 생성');
+          const interpreter = new ImprovedCelticCrossInterpreter();
+          const cardsData = reading.cards.map((card: any, index: number) => ({
+            position: index,
+            card: card,
+            orientation: card.orientation,
+            positionName: interpreter.getPositionName(index)
+          }));
+          interpretation = await interpreter.generateInterpretation(cardsData);
+          
+        } else if (isSevenStar.value) {
+          console.log('🤖 세븐 스타 해석 생성');
+          const interpreter = new SevenStarInterpreter();
+          interpreter.setCards(reading.cards);
+          const result = await interpreter.generateInterpretation(userStore.user?.id);
+          console.log('🤖 세븐 스타 해석 결과:', result);
+          interpretation = result;
+          
+        } else if (isCupOfRelationship.value) {
+          console.log('🤖 컵 오브 릴레이션십 해석 생성');
+          const interpreter = new CupOfRelationshipInterpreter();
+          interpreter.setCards(reading.cards);
+          const result = await interpreter.generateInterpretation(userStore.user?.id);
+          console.log('🤖 컵 오브 릴레이션십 해석 결과:', result);
+          interpretation = result;
+        }
+        
+        // 프로그레스 업데이트
+        interpretationProgress.value = 70;
+        
+        if (interpretation) {
+          console.log('🤖 AI 해석 생성 성공:', interpretation);
+          // AI 해석을 reading에 추가
+          let aiInterpretationText = '';
+          
+          // 인터프리터가 반환한 객체 구조에 따라 처리
+          if (typeof interpretation === 'object') {
+            if (interpretation.success && interpretation.interpretation) {
+              // SevenStarInterpreter와 CupOfRelationshipInterpreter의 경우
+              aiInterpretationText = interpretation.interpretation;
+            } else if (interpretation.overallInterpretation || interpretation.summary) {
+              // 다른 인터프리터의 경우
+              aiInterpretationText = interpretation.overallInterpretation || 
+                                    interpretation.summary || 
+                                    '해석을 생성할 수 없습니다.';
+            } else {
+              // 예상치 못한 구조인 경우 전체 객체를 JSON으로 변환
+              console.warn('🤖 예상치 못한 interpretation 구조:', interpretation);
+              aiInterpretationText = JSON.stringify(interpretation);
+            }
+          } else if (typeof interpretation === 'string') {
+            // 문자열로 직접 반환된 경우
+            aiInterpretationText = interpretation;
+          } else {
+            aiInterpretationText = '해석을 생성할 수 없습니다.';
+          }
+          
+          reading.aiInterpretation = aiInterpretationText;
+          console.log('🤖 최종 AI 해석 텍스트:', aiInterpretationText);
+          
+          // reading을 store에 업데이트
+          console.log('🤖 Store 업데이트 전 reading:', reading.id, 'AI 해석:', reading.aiInterpretation);
+          tarotStore.updateReading(reading);
+          console.log('🤖 Store 업데이트 후 currentReading:', tarotStore.currentReading?.aiInterpretation);
+        }
+      } catch (aiError) {
+        console.error('🤖 AI 해석 생성 실패:', aiError);
+        // AI 해석 생성 실패 시에도 계속 진행
+        tarotStore.updateReading(reading);
+      }
     }
     
     console.log('✅ 점괘 생성 성공:', reading.id);

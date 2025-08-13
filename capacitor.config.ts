@@ -5,9 +5,12 @@ const config: CapacitorConfig = {
   appName: '타로의 정원',
   webDir: 'dist',
   server: {
-    androidScheme: 'http',
-    hostname: 'localhost',
-    cleartext: true
+    androidScheme: 'https',
+    cleartext: true,
+    allowNavigation: [
+      'https://yxywzsmggvxxujuplyly.supabase.co',
+      'https://*.supabase.co'
+    ]
   },
   plugins: {
     SplashScreen: {

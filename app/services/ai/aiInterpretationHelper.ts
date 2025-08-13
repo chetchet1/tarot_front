@@ -1,7 +1,7 @@
 import { AIInterpretationService } from './AIInterpretationService';
 import { customInterpretationService } from './customInterpretationService';
-import { EnhancedSevenStarInterpreter } from '../../utils/interpreters/EnhancedSevenStarInterpreter';
-import { EnhancedCupOfRelationshipInterpreter } from '../../utils/interpreters/EnhancedCupOfRelationshipInterpreter';
+import { SevenStarInterpreter } from '../../utils/interpreters/SevenStarInterpreter';
+import { CupOfRelationshipInterpreter } from '../../utils/interpreters/CupOfRelationshipInterpreter';
 
 export interface InterpretationRequest {
   reading: any;
@@ -34,7 +34,7 @@ export const generateAIInterpretation = async (request: InterpretationRequest) =
   
   // 세븐 스타와 컵 오브 릴레이션십은 Enhanced Interpreter 사용
   if (reading.spreadId === 'seven_star') {
-    const interpreter = new EnhancedSevenStarInterpreter();
+    const interpreter = new SevenStarInterpreter();
     
     // 카드 데이터 준비
     const cardsForAI = reading.cards.map((card: any, index: number) => {
@@ -93,7 +93,7 @@ export const generateAIInterpretation = async (request: InterpretationRequest) =
   }
   
   if (reading.spreadId === 'cup_of_relationship') {
-    const interpreter = new EnhancedCupOfRelationshipInterpreter();
+    const interpreter = new CupOfRelationshipInterpreter();
     
     // 카드 데이터 준비
     const cardsForAI = reading.cards.map((card: any, index: number) => {

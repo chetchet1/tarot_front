@@ -18,8 +18,8 @@ import { PersonalizedInterpretation, LifePathCalculator, ZodiacCalculator } from
 import { AIInterpretationEnhancer, ProbabilityInterpreter } from '../services/interpretation/aiEnhancer';
 import { DeepInterpretationService } from '../services/premium/deepInterpretation';
 import { EnhancedCelticCrossInterpreter } from '../services/interpretation/EnhancedCelticCrossInterpreter.js';
-import { EnhancedSevenStarInterpreter } from '../services/interpretation/EnhancedSevenStarInterpreter.js';
-import { EnhancedCupOfRelationshipInterpreter } from '../services/interpretation/EnhancedCupOfRelationshipInterpreter.js';
+import { SevenStarInterpreter } from '../services/interpretation/SevenStarInterpreter';
+import { CupOfRelationshipInterpreter } from '../services/interpretation/CupOfRelationshipInterpreter';
 
 interface DailyCard {
   date: string;
@@ -497,56 +497,79 @@ export const useTarotStore = defineStore('tarot', () => {
             keywords: celticInterpretation.keywords || []
           }
         };
-      } else if (spreadId === 'seven_star' && userStore.isPremium) {
-        // 프리미엄 사용자는 향상된 세븐 스타 해석기 사용
-        const sevenStarInterpreter = new EnhancedSevenStarInterpreter(topic, cardsWithPositions);
-        const sevenStarInterpretation = await sevenStarInterpreter.generateInterpretation();
+      } else if (spreadId === 'seven_star') {
+        // 세븐 스타 해석기 사용
+        const sevenStarInterpreter = new SevenStarInterpreter(cardsWithPositions, topic, question);
+        sevenStarInterpreter.setCards(cardsWithPositions);
+        const sevenStarResult = await sevenStarInterpreter.generateInterpretation(userStore.currentUser?.id);
         
-        interpretation = {
-          cards: cardsWithPositions.map((card, index) => {
-            const positionMeaning = sevenStarInterpretation.positionMeanings?.find(pm => pm.position === index + 1);
-            return {
+        if (sevenStarResult.success && typeof sevenStarResult.interpretation === 'object') {
+          const sevenStarInterpretation = sevenStarResult.interpretation;
+          interpretation = {
+            cards: cardsWithPositions.map((card, index) => ({
               ...card,
               interpretation: {
-                basic: positionMeaning?.meaning || `${card.position.name}에서 ${card.nameKr}`,
-                advice: sevenStarInterpretation.actionSuggestions?.find(as => as.position === index + 1)?.action || ''
+                basic: sevenStarInterpreter.getPositionName(index),
+                advice: sevenStarInterpretation.advice || ''
               }
-            };
-          }),
-          overallMessage: sevenStarInterpretation.overallMessage,
-          enhancedInterpretation: sevenStarInterpretation,
-          premiumInsights: {
-            combinationPatterns: sevenStarInterpretation.combinationPatterns,
-            synergies: sevenStarInterpretation.synergies,
-            actionSuggestions: sevenStarInterpretation.actionSuggestions,
-            positionMeanings: sevenStarInterpretation.positionMeanings
-          }
-        };
-      } else if (spreadId === 'cup_of_relationship' && userStore.isPremium) {
-        // 프리미엄 사용자는 향상된 컵 오브 릴레이션십 해석기 사용
-        const cupInterpreter = new EnhancedCupOfRelationshipInterpreter(topic, cardsWithPositions);
-        const cupInterpretation = await cupInterpreter.generateInterpretation();
-        
-        interpretation = {
-          cards: cardsWithPositions.map((card, index) => {
-            const positionMeaning = cupInterpretation.positionMeanings?.find(pm => pm.position === index + 1);
-            return {
+            })),
+            overallMessage: sevenStarInterpretation.summary || sevenStarInterpretation.aiInterpretation,
+            enhancedInterpretation: sevenStarInterpretation,
+            premiumInsights: userStore.isPremium ? {
+              aiInterpretation: sevenStarInterpretation.aiInterpretation,
+              luckyElements: sevenStarInterpretation.luckyElements
+            } : undefined
+          };
+        } else {
+          // 폴백 해석 사용
+          interpretation = {
+            cards: cardsWithPositions.map((card, index) => ({
               ...card,
               interpretation: {
-                basic: positionMeaning?.meaning || `${card.position.name}에서 ${card.nameKr}`,
-                advice: cupInterpretation.actionSuggestions?.find(as => as.position === index + 1)?.action || ''
+                basic: sevenStarInterpreter.getPositionName(index),
+                advice: ''
               }
-            };
-          }),
-          overallMessage: cupInterpretation.overallMessage,
-          enhancedInterpretation: cupInterpretation,
-          premiumInsights: {
-            combinationPatterns: cupInterpretation.combinationPatterns,
-            synergies: cupInterpretation.synergies,
-            actionSuggestions: cupInterpretation.actionSuggestions,
-            positionMeanings: cupInterpretation.positionMeanings
-          }
-        };
+            })),
+            overallMessage: typeof sevenStarResult.interpretation === 'string' ? sevenStarResult.interpretation : '세븐 스타가 전하는 메시지'
+          };
+        }
+      } else if (spreadId === 'cup_of_relationship') {
+        // 컵 오브 릴레이션십 해석기 사용
+        const cupInterpreter = new CupOfRelationshipInterpreter(cardsWithPositions, topic, question);
+        cupInterpreter.setCards(cardsWithPositions);
+        const cupResult = await cupInterpreter.generateInterpretation(userStore.currentUser?.id);
+        
+        if (cupResult.success && typeof cupResult.interpretation === 'object') {
+          const cupInterpretation = cupResult.interpretation;
+          interpretation = {
+            cards: cardsWithPositions.map((card, index) => ({
+              ...card,
+              interpretation: {
+                basic: cupInterpreter.getPositionName(index),
+                advice: cupInterpretation.advice || ''
+              }
+            })),
+            overallMessage: cupInterpretation.summary || cupInterpretation.aiInterpretation,
+            enhancedInterpretation: cupInterpretation,
+            premiumInsights: userStore.isPremium ? {
+              aiInterpretation: cupInterpretation.aiInterpretation,
+              relationshipScore: cupInterpretation.relationshipScore,
+              keyInsights: cupInterpretation.keyInsights
+            } : undefined
+          };
+        } else {
+          // 폴백 해석 사용
+          interpretation = {
+            cards: cardsWithPositions.map((card, index) => ({
+              ...card,
+              interpretation: {
+                basic: cupInterpreter.getPositionName(index),
+                advice: ''
+              }
+            })),
+            overallMessage: typeof cupResult.interpretation === 'string' ? cupResult.interpretation : '컵 오브 릴레이션십이 전하는 메시지'
+          };
+        }
       } else {
         // 기존 해석 생성 로직 개선
         interpretation = generateEnhancedInterpretation(
@@ -1348,12 +1371,24 @@ export const useTarotStore = defineStore('tarot', () => {
   
   // reading 업데이트 함수 추가
   const updateReading = (reading: Reading) => {
+    console.log('[TarotStore] updateReading 호출:', reading.id);
+    console.log('[TarotStore] AI 해석 포함 여부:', !!reading.aiInterpretation);
+    
     const index = readings.value.findIndex(r => r.id === reading.id);
     if (index !== -1) {
       readings.value[index] = reading;
+      console.log('[TarotStore] readings 배열 업데이트 완료');
       saveReadingsToStorage();
     }
-    currentReading.value = reading;
+    
+    // currentReading도 반드시 업데이트
+    if (currentReading.value && currentReading.value.id === reading.id) {
+      currentReading.value = reading;
+      console.log('[TarotStore] currentReading 업데이트 완료');
+    } else if (!currentReading.value) {
+      currentReading.value = reading;
+      console.log('[TarotStore] currentReading 새로 설정');
+    }
   };
 
   return {

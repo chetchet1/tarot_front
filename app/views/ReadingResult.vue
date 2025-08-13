@@ -415,8 +415,8 @@
       </section>
 
       <!-- AI 해석 (프리미엄 배열법) -->
-      <section v-if="(reading.spreadId === 'celtic_cross' || reading.spreadId === 'seven_star' || reading.spreadId === 'cup_of_relationship') && (reading.aiInterpretation || isLoadingInterpretation)" class="ai-interpretation-section">
-        <h2>해석 전문</h2>
+      <section v-if="(reading.spreadId === 'celtic_cross' || reading.spreadId === 'seven_star' || reading.spreadId === 'cup_of_relationship')" class="ai-interpretation-section">
+        <h2>✨ 해석 전문</h2>
         
         <!-- 로딩 상태 -->
         <div v-if="isLoadingInterpretation" class="ai-loading-content">
@@ -425,8 +425,13 @@
         </div>
         
         <!-- 해석 내용 -->
-        <div v-else class="ai-interpretation-content">
+        <div v-else-if="reading.aiInterpretation" class="ai-interpretation-content">
           <p>{{ reading.aiInterpretation }}</p>
+        </div>
+        
+        <!-- 해석 생성 중 에러 -->
+        <div v-else class="ai-interpretation-pending">
+          <p>해석을 준비 중입니다...</p>
         </div>
         
         <!-- 평점 시스템 -->
@@ -516,8 +521,26 @@ const readingId = computed(() => {
 });
 
 const reading = computed(() => {
-  if (!readingId.value) return null;
-  return tarotStore.getReadingById(readingId.value) || tarotStore.getCurrentReading();
+  if (!readingId.value) {
+    // readingId가 없으면 currentReading 사용
+    console.log('[ReadingResult] readingId 없음, currentReading 사용');
+    return tarotStore.currentReading;
+  }
+  
+  // 먼저 store의 readings 배열에서 찾기
+  const readingFromStore = tarotStore.getReadingById(readingId.value);
+  
+  // 찾아지면 사용, 없으면 currentReading 사용
+  const result = readingFromStore || tarotStore.currentReading;
+  
+  console.log('[ReadingResult] reading computed:', {
+    readingId: readingId.value,
+    foundInStore: !!readingFromStore,
+    currentReading: !!tarotStore.currentReading,
+    hasAiInterpretation: !!result?.aiInterpretation
+  });
+  
+  return result;
 });
 
 // 커스텀 질문 가져오기
@@ -745,7 +768,20 @@ const getCardMeaning = (card: DrawnCard, topic: string) => {
 
 // 프리미엄 사용자를 위한 AI 해석 생성
 const generateAIInterpretation = async () => {
-  if (!reading.value || reading.value.aiInterpretation) return;
+  console.log('🅰️ [generateAIInterpretation] 시작');
+  console.log('🅰️ reading.value:', reading.value);
+  console.log('🅰️ spreadId:', reading.value?.spreadId);
+  console.log('🅰️ 기존 aiInterpretation:', !!reading.value?.aiInterpretation);
+  
+  if (!reading.value) {
+    console.log('🅰️ reading.value가 없어서 종료');
+    return;
+  }
+  
+  if (reading.value.aiInterpretation) {
+    console.log('🅰️ 이미 AI 해석이 존재하여 종료');
+    return;
+  }
   
   isLoadingInterpretation.value = true;
   interpretationProgress.value = 0;
@@ -758,29 +794,39 @@ const generateAIInterpretation = async () => {
   }, 500);
   
   try {
+    console.log('🅰️ AI 해석 생성 요청 시작');
+    
+    // 프리미엄 배열법 여부 확인
+    const isPremiumSpread = ['celtic_cross', 'seven_star', 'cup_of_relationship'].includes(reading.value.spreadId);
+    console.log('🅰️ isPremiumSpread:', isPremiumSpread);
+    
     const interpretationResult = await generateAI({
       reading: reading.value,
       customQuestion: tarotStore.getCustomQuestion(),
-      isPremium: true,
+      isPremium: isPremiumSpread || userStore.isPremium, // 프리미엄 배열법은 항상 프리미엄 취급
       getPositionName,
       userId: userStore.user?.id
     });
+    
+    console.log('🅰️ AI 해석 결과:', interpretationResult);
     
     // 프로그레스 완료
     clearInterval(progressInterval);
     interpretationProgress.value = 100;
     
     if (interpretationResult.success && interpretationResult.interpretation) {
+      console.log('🅰️ AI 해석 저장 시작');
       reading.value.aiInterpretation = interpretationResult.interpretation;
       reading.value.aiInterpretationId = interpretationResult.interpretationId || null;
       tarotStore.updateReading(reading.value);
+      console.log('🅰️ AI 해석 저장 완료');
     } else {
       throw new Error('AI 해석 생성 실패');
     }
     
   } catch (error) {
     clearInterval(progressInterval);
-    console.error('AI 해석 생성 오류:', error);
+    console.error('🅰️ AI 해석 생성 오류:', error);
     await showConfirm({
       title: '오류',
       message: 'AI 해석을 생성하는 중 오류가 발생했습니다. 다시 시도해주세요.',
@@ -792,6 +838,7 @@ const generateAIInterpretation = async () => {
     await new Promise(resolve => setTimeout(resolve, 300));
     isLoadingInterpretation.value = false;
     interpretationProgress.value = 0;
+    console.log('🅰️ [generateAIInterpretation] 종료');
   }
 };
 
@@ -952,6 +999,7 @@ onMounted(async () => {
   console.log('🎴 [ReadingResult] onMounted 시작');
   console.log('🎴 readingId:', readingId.value);
   console.log('🎴 reading:', reading.value);
+  console.log('🎴 spreadId:', reading.value?.spreadId);
   console.log('🎴 aiInterpretation 존재?:', !!reading.value?.aiInterpretation);
   
   if (!reading.value && !readingId.value) {
@@ -966,12 +1014,27 @@ onMounted(async () => {
     
     if (isPremiumSpread) {
       // 프리미엄 배열법은 무조건 AI 해석 생성
-      console.log('🎴 [ReadingResult] 프리미엄 배열법 - AI 해석 생성:', reading.value.spreadId);
-      await regenerateAIInterpretation();
+      console.log('🎴 [ReadingResult] 프리미엄 배열법 - AI 해석 자동 생성 시작:', reading.value.spreadId);
+      
+      // 바로 로딩 상태 표시
+      isLoadingInterpretation.value = true;
+      interpretationProgress.value = 0;
+      
+      // 잠시 대기 후 AI 해석 생성 (UI 업데이트를 위해)
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      try {
+        // regenerateAIInterpretation 대신 직접 generateAIInterpretation 호출
+        await generateAIInterpretation();
+        console.log('🎴 [ReadingResult] AI 해석 생성 완료');
+      } catch (error) {
+        console.error('🎴 [ReadingResult] AI 해석 생성 실패:', error);
+        isLoadingInterpretation.value = false;
+      }
     } else if (customQuestion.value && userStore.isPremium) {
       // 커스텀 질문은 프리미엄만
       console.log('🎴 [ReadingResult] 커스텀 질문 - AI 해석 생성');
-      await regenerateAIInterpretation();
+      await generateAIInterpretation();
     } else {
       console.log('🎴 [ReadingResult] AI 해석 생성 건너뛰기', {
         spreadId: reading.value.spreadId,
@@ -980,7 +1043,7 @@ onMounted(async () => {
       });
     }
   } else {
-    console.log('🎴 [ReadingResult] 이미 AI 해석이 있음');
+    console.log('🎴 [ReadingResult] 이미 AI 해석이 있음:', reading.value?.aiInterpretation?.substring(0, 100));
   }
 });
 </script>
@@ -1832,6 +1895,21 @@ onMounted(async () => {
   font-size: 16px;
   margin: 0;
   font-weight: 500;
+}
+
+/* AI 해석 대기 상태 */
+.ai-interpretation-pending {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(168, 85, 247, 0.05);
+  border-radius: 12px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.ai-interpretation-pending p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  margin: 0;
 }
 
 /* AI 해석이 없는 경우 */

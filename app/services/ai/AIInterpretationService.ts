@@ -132,6 +132,58 @@ export class AIInterpretationService {
     }
   }
   
+  /**
+   * 구조화된 프롬프트를 사용한 AI 해석 생성
+   */
+  async generateInterpretationWithPrompt(
+    structuredPrompt: string,
+    cards: any[],
+    topic: string,
+    spreadType: string
+  ): Promise<{ text: string; interpretationId?: string }> {
+    try {
+      console.log('🤖 [generateInterpretationWithPrompt] 시작');
+      console.log('🤖 spreadType:', spreadType);
+      console.log('🤖 cards count:', cards.length);
+      
+      // Supabase Edge Function 호출
+      const { data, error } = await supabase.functions.invoke('generate-interpretation', {
+        body: {
+          prompt: structuredPrompt,
+          allCards: cards,
+          topic,
+          spreadType,
+          userId: (await supabase.auth.getUser()).data.user?.id,
+          isPremium: this.isPremium,
+          interpretationType: 'structured'
+        }
+      });
+      
+      if (error) {
+        console.error('🤖 Edge Function 오류:', error);
+        throw error;
+      }
+      
+      console.log('🤖 Edge Function 응답:', data);
+      
+      // 마크다운 헤더 제거
+      const interpretation = data.interpretation?.replace(/#{1,6}\s*/g, '') || data.text || '';
+      
+      return {
+        text: interpretation,
+        interpretationId: data.interpretationId
+      };
+    } catch (error) {
+      console.error('🤖 AI 해석 생성 실패:', error);
+      
+      // 폴백: 기본 해석 반환
+      return {
+        text: this.getTemplateOverallInterpretation(cards, topic, spreadType),
+        interpretationId: undefined
+      };
+    }
+  }
+  
   // 캐시 키 생성
   private generateCacheKey(params: any): string {
     const parts = [];
@@ -362,68 +414,7 @@ ${message.ending}`;
       throw error;
     }
   }
-  
-  // 구조화된 프롬프트를 사용하여 AI 해석 생성
-  async generateInterpretationWithPrompt(
-    structuredPrompt: string,
-    cards: any[],
-    topic: string,
-    spreadType: string
-  ): Promise<{ text: string; interpretationId?: string }> {
-    try {
-      // 캐시 확인
-      const cacheKey = this.generateCacheKey({
-        allCards: cards,
-        topic,
-        spreadType,
-        interpretationType: 'overall'
-      });
-      
-      const cached = this.getFromCache(cacheKey);
-      if (cached) {
-        return { text: cached };
-      }
-      
-      // Supabase Edge Function 호출 (구조화된 프롬프트 포함)
-      console.log('🚀 [generateInterpretationWithPrompt] Edge Function 호출 시작:', {
-        cardsCount: cards.length,
-        topic,
-        spreadType,
-        isPremium: this.isPremium,
-        promptLength: structuredPrompt.length
-      });
-      
-      const { data, error } = await supabase.functions.invoke('generate-interpretation', {
-        body: {
-          cards,
-          topic,
-          spreadType,
-          structuredPrompt, // 구조화된 프롬프트 추가
-          userId: (await supabase.auth.getUser()).data.user?.id,
-          isPremium: this.isPremium
-        }
-      });
-      
-      console.log('🚀 [generateInterpretationWithPrompt] Edge Function 결과:', { data, error });
-      
-      if (error) throw error;
-      
-      // 마크다운 헤더(#, ##, ### 등) 모두 제거
-      const interpretation = data.interpretation.replace(/#{1,6}\s*/g, '');
-      this.setCache(cacheKey, interpretation);
-      
-      return {
-        text: interpretation,
-        interpretationId: data.interpretationId
-      };
-    } catch (error) {
-      console.error('AI 해석 생성 실패:', error);
-      // 폴백: 템플릿 해석 반환
-      return {
-        text: this.getTemplateOverallInterpretation(cards, topic, spreadType)
-      };
-    }
-  }
+
   
   // AI 해석 생성 메서드 (켈틱 크로스 전용)
   async generateInterpretation(
