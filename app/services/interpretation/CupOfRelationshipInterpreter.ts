@@ -34,6 +34,7 @@ export class CupOfRelationshipInterpreter {
   private cards: CardData[] = [];
   private topic: string = '연애';  // 기본값 연애
   private customQuestion?: string;
+  private relationshipStatus?: string;
   
   // 컵 릴레이션쉽 배열법의 7개 포지션
   private readonly positions = [
@@ -52,6 +53,13 @@ export class CupOfRelationshipInterpreter {
     }
     this.topic = topic;
     this.customQuestion = customQuestion;
+  }
+  
+  /**
+   * 연애 상태 설정
+   */
+  public setRelationshipStatus(status: string): void {
+    this.relationshipStatus = status;
   }
   
   /**
@@ -80,15 +88,20 @@ export class CupOfRelationshipInterpreter {
    */
   public async generateInterpretation(userId?: string): Promise<{ success: boolean; interpretation: CupRelationshipInterpretation | string }> {
     try {
-      // AI 프롬프트 생성
-      const prompt = this.generateAIPrompt();
+      console.log('[CupRelationship] AI 해석 생성 시작');
+      console.log('[CupRelationship] 카드 데이터:', this.cards);
+      console.log('[CupRelationship] 주제:', this.topic);
+      console.log('[CupRelationship] userId:', userId);
       
       // AI 해석 요청
-      const aiResponse = await this.requestAIInterpretation(prompt, userId);
+      const aiResponse = await this.requestAIInterpretation(userId);
       
       if (!aiResponse.success || !aiResponse.interpretation) {
+        console.error('[CupRelationship] AI 해석 요청 실패');
         throw new Error('AI 해석 생성 실패');
       }
+      
+      console.log('[CupRelationship] AI 해석 생성 성공');
       
       // 추가 분석 생성
       const summary = this.generateSummary();
@@ -124,15 +137,26 @@ export class CupOfRelationshipInterpreter {
    * AI용 프롬프트 생성
    */
   private generateAIPrompt(): string {
-    let prompt = `당신은 경험 많은 타로 마스터입니다. 컵 오브 릴레이션쉽 배열법으로 관계에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
+    let prompt = `당신은 경험 많은 타로 마스터입니다. 컵 오브 릴레이션쉽 배열법으로 연애와 관계에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
     
-    // 관계 상태 고려
-    prompt += `【중요 지침】\n`;
-    prompt += `질문자의 관계 상태를 알 수 없으므로, 다음 세 가지 경우를 모두 고려하여 해석해주세요:\n`;
-    prompt += `1. 현재 솔로인 경우: 미래의 연애 가능성, 자기 이해와 준비\n`;
-    prompt += `2. 썸/짝사랑 중인 경우: 관계 발전 가능성, 상대방의 마음\n`;
-    prompt += `3. 연인 관계인 경우: 관계의 깊이, 발전 방향, 조화\n`;
-    prompt += `세 가지 경우를 자연스럽게 통합하여 설명해주세요.\n\n`;
+    // 연애 테마 최우선 강조
+    prompt += `【⚠️ 최우선 지침 - 연애 관계 해석】\n`;
+    prompt += `컵 오브 릴레이션쉽은 연애와 관계 전용 배열법입니다. 모든 해석은 반드시 연애와 사랑에 집중해야 합니다.\n`;
+    prompt += `직업, 돈, 건강 등 다른 주제는 절대 언급하지 마세요. 오직 연애 관계만 다뤄주세요.\n\n`;
+    
+    // 연애 상태 반영
+    if (this.relationshipStatus === 'couple') {
+      prompt += `【질문자 상황】\n`;
+      prompt += `질문자는 현재 연인이 있는 상태입니다. 현재 연인과의 관계를 중심으로 해석해주세요.\n`;
+      prompt += `관계의 발전, 갈등 해결, 더 깊은 사랑으로 나아가는 방법 등을 조언해주세요.\n\n`;
+    } else {
+      prompt += `【질문자 상황】\n`;
+      prompt += `질문자는 현재 마음에 둔 상대가 있거나 썸타는 단계일 가능성이 높습니다.\n`;
+      prompt += `상대의 마음을 얻는 방법, 고백 타이밍, 관계 발전 가능성 등을 중심으로 해석해주세요.\n\n`;
+    }
+    
+    prompt += `컵 오브 릴레이션쉽은 나와 상대의 관계에 집중하는 배열법입니다. 그에 맞는 해석을 준비해주세요.\n`;
+    prompt += `해석 톤: 카드가 긍정적이면 희망적으로, 부정적이면 현실적 조언과 개선 방법 중심으로\n`;
     
     if (this.customQuestion) {
       prompt += `【질문자의 구체적 질문】\n${this.customQuestion}\n\n`;
@@ -155,19 +179,20 @@ export class CupOfRelationshipInterpreter {
       prompt += '\n';
     }
     
-    prompt += `【해석 가이드라인】
-1. 나와 상대방의 마음 상태 비교 분석
-2. 의식과 무의식의 차이점 설명
-3. 관계의 현재 상황과 도전 과제 연결
-4. 미래의 가능성을 희망적으로 제시
-5. 각 관계 상태(솔로/썸/연인)에 맞는 조언
-6. 성장과 발전의 관점에서 해석
-7. 따뜻하고 공감적인 톤 유지
+    prompt += `【연애 관계 해석 가이드라인】
+1. 나와 상대(미래의 상대 포함)의 감정 상태와 호감도 비교
+2. 겉으로 드러난 마음과 숨겨진 진심의 차이
+3. 두 사람 사이의 케미스트리와 운명적 연결
+4. 관계 발전을 방해하는 요소와 극복 방법
+5. 3개월, 6개월 후의 관계 전망
+6. 썸은 고백 타이밍, 연인은 다음 단계 조언
+7. 카드 전체 흐름을 보고 객관적으로 평가 (무조건 긍정적이지 않게)
 
 【응답 형식】
-관계의 역동성을 중심으로 자연스럽게 이야기를 풀어가세요.
-전체 해석은 3-4개 문단으로 구성하고, 각 문단은 2-3문장으로 작성해주세요.
-구체적이고 실용적인 조언을 포함해주세요.`;
+연애 전문 상담가의 따뜻하면서도 현실적인 톤으로 작성하세요.
+구체적 시기와 실천 방법을 반드시 포함하세요.
+전체 해석은 4-5개 문단으로 구성하고, 각 문단은 3-4문장으로 작성해주세요.
+연애와 관계에만 집중하고, 다른 주제는 절대 언급하지 마세요.`;
     
     return prompt;
   }
@@ -175,26 +200,51 @@ export class CupOfRelationshipInterpreter {
   /**
    * AI 해석 요청
    */
-  private async requestAIInterpretation(prompt: string, userId?: string): Promise<{ success: boolean; interpretation?: string }> {
+  private async requestAIInterpretation(userId?: string): Promise<{ success: boolean; interpretation?: string }> {
     try {
-      // Supabase Edge Function 호출
-      const { data, error } = await supabase.functions.invoke('tarot-interpretation', {
+      console.log('[CupRelationship] AI 해석 요청 시작');
+      
+      // 카드 데이터를 Edge Function이 기대하는 형식으로 변환
+      const cardsForAPI = this.cards.map((card, index) => ({
+        ...card,
+        name_kr: card.nameKr,
+        position: {
+          name: this.positions[index].name,
+          description: this.positions[index].description
+        }
+      }));
+      
+      console.log('[CupRelationship] API용 카드 데이터:', cardsForAPI);
+      
+      // 프롬프트 생성 - requestAIInterpretation 내부로 이동
+      const customPrompt = this.generateAIPrompt();
+      
+      // Supabase Edge Function 호출 - generate-interpretation 사용
+      const { data, error } = await supabase.functions.invoke('generate-interpretation', {
         body: {
-          prompt,
+          cards: cardsForAPI,
+          topic: this.topic === '연애' ? 'love' : this.topic,
+          spreadType: 'cup_of_relationship',
           userId,
-          spreadType: 'cup_relationship',
-          topic: this.topic
+          isPremium: true,
+          customQuestion: this.customQuestion,
+          customPrompt: customPrompt  // 커스텀 프롬프트 추가
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('[CupRelationship] Edge Function 오류:', error);
+        throw error;
+      }
+      
+      console.log('[CupRelationship] Edge Function 응답:', data);
       
       return {
         success: true,
         interpretation: data.interpretation
       };
     } catch (error) {
-      console.error('AI 해석 요청 실패:', error);
+      console.error('[CupRelationship] AI 해석 요청 실패:', error);
       return {
         success: false
       };

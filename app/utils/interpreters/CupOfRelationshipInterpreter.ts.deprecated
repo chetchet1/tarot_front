@@ -932,23 +932,15 @@ export class CupOfRelationshipInterpreter {
    * AI 응답 검증 및 포맷팅
    */
   public validateAIResponse(response: string): string {
-    // 기본적인 포맷팅 및 검증
-    if (!response || response.length < 100) {
-      return this.formatInterpretationAsText(this.getInterpretation());
+    // AI 응답이 있으면 그대로 반환 (더미 데이터로 대체하지 않음)
+    if (response && response.length > 50) {
+      console.log('[CupRelationship] AI 응답 검증 통과, 원본 반환');
+      return response;
     }
     
-    // 필요한 섹션이 포함되어 있는지 확인
-    const requiredSections = ['관계', '감정', '강점', '도전', '조언'];
-    const hasAllSections = requiredSections.every(section => 
-      response.toLowerCase().includes(section)
-    );
-    
-    if (!hasAllSections) {
-      // 필수 섹션이 누락된 경우 기본 해석 사용
-      return this.formatInterpretationAsText(this.getInterpretation());
-    }
-    
-    return response;
+    // AI 응답이 너무 짧거나 없을 때만 폴백 사용
+    console.log('[CupRelationship] AI 응답 부족, 폴백 사용');
+    return this.formatInterpretationAsText(this.getInterpretation());
   }
   
   private analyzeHarmonyPattern(emotional: number, mental: number, spiritual: number, overall: number): string {

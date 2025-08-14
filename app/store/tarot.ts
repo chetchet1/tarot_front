@@ -43,6 +43,7 @@ export const useTarotStore = defineStore('tarot', () => {
   const tempDrawnCards = ref<DrawnCard[] | null>(null);
   const customQuestion = ref<string>('');  // 커스텀 질문 저장
   const hasPendingPremiumUsage = ref<boolean>(false);  // 유료 배열 사용 대기 플래그
+  const relationshipStatus = ref<'single' | 'couple' | null>(null);  // 연애 상태 (솔로/커플)
 
   // 로컬 스토리지 관련 함수들
   const saveReadingsToStorage = () => {
@@ -1356,6 +1357,18 @@ export const useTarotStore = defineStore('tarot', () => {
     console.log('[TarotStore] clearPremiumSpreadUsage');
   };
   
+  // 연애 상태 관련 함수
+  const setRelationshipStatus = (status: 'single' | 'couple' | null) => {
+    relationshipStatus.value = status;
+    console.log('[TarotStore] setRelationshipStatus:', status);
+  };
+  
+  const getRelationshipStatus = () => relationshipStatus.value;
+  
+  const clearRelationshipStatus = () => {
+    relationshipStatus.value = null;
+  };
+  
   // 개선된 해석 저장 (켈틱 크로스 등)
   const improvedInterpretation = ref<any>(null);
   
@@ -1429,6 +1442,9 @@ export const useTarotStore = defineStore('tarot', () => {
     updateReading,
     setPremiumSpreadUsage,
     getPremiumSpreadUsage,
-    clearPremiumSpreadUsage
+    clearPremiumSpreadUsage,
+    setRelationshipStatus,
+    getRelationshipStatus,
+    clearRelationshipStatus
   };
 });

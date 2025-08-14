@@ -240,6 +240,13 @@
         :isVisible="isGeneratingInterpretation" 
         :progress="interpretationProgress"
       />
+      
+      <!-- 연애 상태 선택 모달 -->
+      <RelationshipStatusModal
+        :isVisible="showRelationshipModal"
+        @select="handleRelationshipSelect"
+        @cancel="handleRelationshipCancel"
+      />
     </div>
   </div>
 </template>
@@ -252,9 +259,10 @@ import { useTarotStore } from '../store/tarot';
 import { nativeUtils } from '../utils/capacitor';
 import { getAdManager } from '../services/adManagerSingleton';
 import { ImprovedCelticCrossInterpreter } from '../utils/ImprovedCelticCrossInterpreter';
-import { SevenStarInterpreter } from '../utils/interpreters/SevenStarInterpreter';
-import { CupOfRelationshipInterpreter } from '../utils/interpreters/CupOfRelationshipInterpreter';
+// 세븐 스타와 컵 오브 릴레이션십은 더미 인터프리터 대신 AI 해석 사용
 import { customInterpretationService } from '../services/ai/customInterpretationService';
+import { SevenStarInterpreter } from '../services/interpretation/SevenStarInterpreter';
+import { CupOfRelationshipInterpreter } from '../services/interpretation/CupOfRelationshipInterpreter';
 import { AIInterpretationService } from '../services/ai/AIInterpretationService';
 import { showAlert, showConfirm } from '../utils/alerts';
 import { getCardImagePath, handleImageError } from '../utils/cardUtils';
@@ -268,6 +276,7 @@ import CelticCrossLayout from '../components/spreads/CelticCrossLayout.vue';
 import SevenStarLayout from '../components/spreads/SevenStarLayout.vue';
 import CupOfRelationshipLayout from '../components/spreads/CupOfRelationshipLayout.vue';
 import TarotLoadingScreen from '../components/loading/TarotLoadingScreen.vue';
+import RelationshipStatusModal from '../components/modals/RelationshipStatusModal.vue';
 // Alert 컴포넌트는 useAlert를 통해 사용
 
 interface DrawnCardData {
@@ -292,6 +301,11 @@ const shuffledDeck = ref<any[]>([]);
 const improvedInterpretation = ref<any>(null);
 const isGeneratingInterpretation = ref(false);
 const interpretationProgress = ref(0);
+
+// 연애 상태 모달 관련 상태
+const showRelationshipModal = ref(false);
+const pendingRelationshipCallback = ref<(() => void) | null>(null);
+const isRelationshipStatusChecked = ref(false); // 연애 상태 체크 여부
 
 const allCardsRevealed = computed(() => {
   return drawnCards.value.length > 0 && drawnCards.value.every(card => card.revealed);
@@ -390,6 +404,7 @@ const resetState = () => {
   improvedInterpretation.value = null;
   isGeneratingInterpretation.value = false;
   interpretationProgress.value = 0;
+  isRelationshipStatusChecked.value = false; // 연애 상태 체크 초기화
   // isProcessingResult를 확실하게 false로 설정
   isProcessingResult.value = false;
   // nextTick을 사용해 DOM 업데이트 후 재확인
@@ -613,6 +628,37 @@ const removeSelectedCard = async (index: number) => {
 const confirmManualSelection = async () => {
   console.log('🎯 [confirmManualSelection] 시작');
   
+  // 컵 오브 릴레이션십인 경우 특별 알림
+  if (isCupOfRelationship.value) {
+    const confirmed = await showConfirm({
+      title: '컵 오브 릴레이션십',
+      message: '이 배열법은 마음에 둔 상대가 있을 경우 선택하시는게 가장 좋습니다.\n계속 하시겠습니까?'
+    });
+    
+    if (!confirmed) {
+      router.go(-1);
+      return;
+    }
+  }
+  // 연애 주제 + 컵오브릴레이션십이 아닌 경우에만 연애 상태 확인
+  else if (tarotStore.selectedTopic?.id === 'love' && !isRelationshipStatusChecked.value) {
+    console.log('💖 [confirmManualSelection] 연애 주제 - 연애 상태 모달 표시');
+    showRelationshipModal.value = true;
+    pendingRelationshipCallback.value = () => {
+      // 연애 상태 선택 후 계속 진행
+      proceedWithManualSelection();
+    };
+    return;
+  }
+  
+  // 연애 주제가 아니거나 이미 체크한 경우 바로 진행
+  await proceedWithManualSelection();
+};
+
+// 실제 수동 선택 처리
+const proceedWithManualSelection = async () => {
+  console.log('🎯 [proceedWithManualSelection] 시작');
+  
   // 광고 매니저를 통해 점괘 시작 가능 여부 확인 (스프레드 ID 전달)
   const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
   console.log('🎯 [confirmManualSelection] spreadId:', spreadId);
@@ -681,6 +727,36 @@ const startDrawing = async () => {
   
   // 버튼 클릭 햇틱 피드백
   await nativeUtils.buttonTapHaptic();
+  
+  // 컵 오브 릴레이션십인 경우 특별 알림
+  if (isCupOfRelationship.value) {
+    const confirmed = await showConfirm({
+      title: '컵 오브 릴레이션십',
+      message: '이 배열법은 마음에 둔 상대가 있을 경우 선택하시는게 가장 좋습니다.\n계속 하시겠습니까?'
+    });
+    
+    if (!confirmed) {
+      router.go(-1);
+      return;
+    }
+  }
+  // 연애 주제 + 컵오브릴레이션십이 아닌 경우에만 연애 상태 확인
+  else if (tarotStore.selectedTopic?.id === 'love' && !isRelationshipStatusChecked.value) {
+    console.log('💖 [startDrawing] 연애 주제 - 연애 상태 모달 표시');
+    showRelationshipModal.value = true;
+    pendingRelationshipCallback.value = () => {
+      // 연애 상태 선택 후 계속 진행
+      proceedWithDrawing();
+    };
+    return;
+  }
+  
+  // 연애 주제가 아니거나 이미 체크한 경우 바로 진행
+  await proceedWithDrawing();
+};
+
+// 실제 카드 뽑기 진행
+const proceedWithDrawing = async () => {
   
   // 광고 매니저를 통해 점괘 시작 가능 여부 확인 (스프레드 ID 전달)
   const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
@@ -1160,6 +1236,10 @@ const goToResult = async () => {
         // 프로그레스 업데이트
         interpretationProgress.value = 30;
         
+        // 특별 배열법인 경우 인터프리터를 통해 AI 해석 생성
+        const topic = tarotStore.selectedTopic?.id || 'general';
+        const spreadId = tarotStore.selectedSpread?.spreadId || 'three_cards';
+        
         // 커스텀 AI 해석 요청
         const interpretationRequest = {
           readingId: reading.id,
@@ -1177,10 +1257,12 @@ const goToResult = async () => {
             },
             meanings: card.meanings || {}
           })),
-          spreadId: tarotStore.selectedSpread?.spreadId || 'three_cards',
-          topic: tarotStore.selectedTopic?.id || 'general',
+          spreadId: spreadId,
+          topic: topic,
           customQuestion: customQuestion,
-          userId: userStore.user?.id
+          userId: userStore.user?.id,
+          // 연애 상태 추가
+          relationshipStatus: topic === 'love' ? tarotStore.relationshipStatus : undefined
         };
 
         const interpretationResult = await customInterpretationService.generateInterpretation(interpretationRequest);
@@ -1206,7 +1288,7 @@ const goToResult = async () => {
         // AI 해석 생성 실패 시 무시
       }
     }
-    // 프리미엄 사용자 또는 테스트 계정인 경우 특별 배열법 AI 해석 생성 (커스텀 질문이 없는 경우)
+    // 프리미엄 사용자 또는 테스트 계정인 경우 특별 배열법 AI 해석 생성
     else if ((userStore.isPremium || isTestAccount) && (isCelticCross.value || isSevenStar.value || isCupOfRelationship.value) && reading && !customQuestion) {
       console.log('🤖 [특별 배열법] AI 해석 생성 시작');
       console.log('🤖 spreadId:', spreadId);
@@ -1217,9 +1299,7 @@ const goToResult = async () => {
         // 프로그레스 업데이트
         interpretationProgress.value = 30;
         
-        let interpretation = null;
-        
-        // 스프레드별 인터프리터 사용
+        // 켈틱 크로스는 기존 로직 유지 (임프루브드 인터프리터 사용)
         if (isCelticCross.value) {
           console.log('🤖 켈틱 크로스 해석 생성');
           const interpreter = new ImprovedCelticCrossInterpreter();
@@ -1229,63 +1309,119 @@ const goToResult = async () => {
             orientation: card.orientation,
             positionName: interpreter.getPositionName(index)
           }));
-          interpretation = await interpreter.generateInterpretation(cardsData);
+          const interpretation = await interpreter.generateInterpretation(cardsData);
           
-        } else if (isSevenStar.value) {
-          console.log('🤖 세븐 스타 해석 생성');
-          const interpreter = new SevenStarInterpreter();
-          interpreter.setCards(reading.cards);
-          const result = await interpreter.generateInterpretation(userStore.user?.id);
-          console.log('🤖 세븐 스타 해석 결과:', result);
-          interpretation = result;
+          if (interpretation) {
+            let aiInterpretationText = '';
+            if (typeof interpretation === 'object') {
+              aiInterpretationText = interpretation.overallInterpretation || 
+                                    interpretation.summary || 
+                                    '해석을 생성할 수 없습니다.';
+            } else if (typeof interpretation === 'string') {
+              aiInterpretationText = interpretation;
+            }
+            
+            reading.aiInterpretation = aiInterpretationText;
+            console.log('🤖 켈틱 크로스 AI 해석 완료');
+          }
+        }
+        // 세븐 스타와 컵 오브 릴레이션십은 customInterpretationService 사용
+        else if (isSevenStar.value || isCupOfRelationship.value) {
+          console.log('🤖 세븐 스타/컵 오브 릴레이션십 AI 해석 생성');
           
-        } else if (isCupOfRelationship.value) {
-          console.log('🤖 컵 오브 릴레이션십 해석 생성');
-          const interpreter = new CupOfRelationshipInterpreter();
-          interpreter.setCards(reading.cards);
-          const result = await interpreter.generateInterpretation(userStore.user?.id);
-          console.log('🤖 컵 오브 릴레이션십 해석 결과:', result);
-          interpretation = result;
+          const topic = tarotStore.selectedTopic?.id || 'general';
+          
+          // 적절한 인터프리터 생성 및 AI 해석 요청
+          let interpretationResult;
+          
+          if (isSevenStar.value) {
+            const interpreter = new SevenStarInterpreter(
+              reading.cards,
+              topic,
+              '' // 커스텀 질문 없음
+            );
+            interpreter.setCards(reading.cards);
+            // 연애 상태 설정
+            if (topic === 'love' && tarotStore.relationshipStatus) {
+              interpreter.setRelationshipStatus(tarotStore.relationshipStatus);
+            }
+            const result = await interpreter.generateInterpretation(userStore.user?.id);
+            
+            if (result.success && typeof result.interpretation === 'object') {
+              interpretationResult = {
+                success: true,
+                interpretation: result.interpretation.aiInterpretation,
+                interpretationId: null
+              };
+            } else if (result.success && typeof result.interpretation === 'string') {
+              interpretationResult = {
+                success: true,
+                interpretation: result.interpretation,
+                interpretationId: null
+              };
+            } else {
+              interpretationResult = {
+                success: false,
+                error: '해석 생성 실패'
+              };
+            }
+          } else if (isCupOfRelationship.value) {
+            const interpreter = new CupOfRelationshipInterpreter(
+              reading.cards,
+              topic,
+              '' // 커스텀 질문 없음
+            );
+            interpreter.setCards(reading.cards);
+            // 연애 상태 설정 - 컵 오브 릴레이션십은 항상 연애 관련
+            if (tarotStore.relationshipStatus) {
+              interpreter.setRelationshipStatus(tarotStore.relationshipStatus);
+            }
+            const result = await interpreter.generateInterpretation(userStore.user?.id);
+            
+            if (result.success && typeof result.interpretation === 'object') {
+              interpretationResult = {
+                success: true,
+                interpretation: result.interpretation.aiInterpretation,
+                interpretationId: null
+              };
+            } else if (result.success && typeof result.interpretation === 'string') {
+              interpretationResult = {
+                success: true,
+                interpretation: result.interpretation,
+                interpretationId: null
+              };
+            } else {
+              interpretationResult = {
+                success: false,
+                error: '해석 생성 실패'
+              };
+            }
+          }
+          
+          if (interpretationResult.success && interpretationResult.interpretation) {
+            reading.aiInterpretation = interpretationResult.interpretation;
+            reading.aiInterpretationId = interpretationResult.interpretationId || null;
+            
+            // 확률 분석도 추가
+            if (interpretationResult.probabilityAnalysis) {
+              reading.probabilityAnalysis = interpretationResult.probabilityAnalysis;
+            }
+            
+            console.log('🤖 AI 해석 성공');
+          } else {
+            console.error('🤖 AI 해석 실패:', interpretationResult.error);
+            // 실패 시 기본 메시지 설정
+            reading.aiInterpretation = '해석을 생성할 수 없습니다.';
+          }
         }
         
         // 프로그레스 업데이트
         interpretationProgress.value = 70;
         
-        if (interpretation) {
-          console.log('🤖 AI 해석 생성 성공:', interpretation);
-          // AI 해석을 reading에 추가
-          let aiInterpretationText = '';
-          
-          // 인터프리터가 반환한 객체 구조에 따라 처리
-          if (typeof interpretation === 'object') {
-            if (interpretation.success && interpretation.interpretation) {
-              // SevenStarInterpreter와 CupOfRelationshipInterpreter의 경우
-              aiInterpretationText = interpretation.interpretation;
-            } else if (interpretation.overallInterpretation || interpretation.summary) {
-              // 다른 인터프리터의 경우
-              aiInterpretationText = interpretation.overallInterpretation || 
-                                    interpretation.summary || 
-                                    '해석을 생성할 수 없습니다.';
-            } else {
-              // 예상치 못한 구조인 경우 전체 객체를 JSON으로 변환
-              console.warn('🤖 예상치 못한 interpretation 구조:', interpretation);
-              aiInterpretationText = JSON.stringify(interpretation);
-            }
-          } else if (typeof interpretation === 'string') {
-            // 문자열로 직접 반환된 경우
-            aiInterpretationText = interpretation;
-          } else {
-            aiInterpretationText = '해석을 생성할 수 없습니다.';
-          }
-          
-          reading.aiInterpretation = aiInterpretationText;
-          console.log('🤖 최종 AI 해석 텍스트:', aiInterpretationText);
-          
-          // reading을 store에 업데이트
-          console.log('🤖 Store 업데이트 전 reading:', reading.id, 'AI 해석:', reading.aiInterpretation);
-          tarotStore.updateReading(reading);
-          console.log('🤖 Store 업데이트 후 currentReading:', tarotStore.currentReading?.aiInterpretation);
-        }
+        // reading을 store에 업데이트
+        console.log('🤖 Store 업데이트 전 reading:', reading.id, 'AI 해석:', reading.aiInterpretation);
+        tarotStore.updateReading(reading);
+        console.log('🤖 Store 업데이트 후 currentReading:', tarotStore.currentReading?.aiInterpretation);
       } catch (aiError) {
         console.error('🤖 AI 해석 생성 실패:', aiError);
         // AI 해석 생성 실패 시에도 계속 진행
@@ -1447,6 +1583,41 @@ const getPositionNameForSpread = (spreadId: string, index: number): string => {
   };
   
   return positions[spreadId]?.[index] || `위치 ${index + 1}`;
+};
+
+// 연애 상태 선택 핸들러
+const handleRelationshipSelect = async (status: string) => {
+  console.log('💖 [handleRelationshipSelect] 연애 상태 선택:', status);
+  
+  // 타로 스토어에 연애 상태 저장
+  tarotStore.setRelationshipStatus(status);
+  
+  // 연애 상태 체크 완료 표시
+  isRelationshipStatusChecked.value = true;
+  
+  // 모달 닫기
+  showRelationshipModal.value = false;
+  
+  // 편딩 콜백 실행
+  if (pendingRelationshipCallback.value) {
+    const callback = pendingRelationshipCallback.value;
+    pendingRelationshipCallback.value = null;
+    await callback();
+  }
+};
+
+// 연애 상태 선택 취소 핸들러
+const handleRelationshipCancel = () => {
+  console.log('💖 [handleRelationshipCancel] 연애 상태 선택 취소');
+  
+  // 모달 닫기
+  showRelationshipModal.value = false;
+  
+  // 편딩 콜백 초기화
+  pendingRelationshipCallback.value = null;
+  
+  // 이전 화면으로 돌아가기
+  router.go(-1);
 };
 
 // 유료 배열 하루 1회 제한 안내

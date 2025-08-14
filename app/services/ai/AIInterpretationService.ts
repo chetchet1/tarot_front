@@ -149,13 +149,12 @@ export class AIInterpretationService {
       // Supabase Edge Function 호출
       const { data, error } = await supabase.functions.invoke('generate-interpretation', {
         body: {
-          prompt: structuredPrompt,
-          allCards: cards,
+          customPrompt: structuredPrompt,  // customPrompt로 변경
+          cards: cards,  // allCards 대신 cards 사용
           topic,
           spreadType,
           userId: (await supabase.auth.getUser()).data.user?.id,
-          isPremium: this.isPremium,
-          interpretationType: 'structured'
+          isPremium: this.isPremium
         }
       });
       

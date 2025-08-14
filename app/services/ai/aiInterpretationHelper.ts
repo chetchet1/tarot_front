@@ -1,7 +1,7 @@
 import { AIInterpretationService } from './AIInterpretationService';
 import { customInterpretationService } from './customInterpretationService';
-import { SevenStarInterpreter } from '../../utils/interpreters/SevenStarInterpreter';
-import { CupOfRelationshipInterpreter } from '../../utils/interpreters/CupOfRelationshipInterpreter';
+import { SevenStarInterpreter } from '../interpretation/SevenStarInterpreter';
+import { CupOfRelationshipInterpreter } from '../interpretation/CupOfRelationshipInterpreter';
 
 export interface InterpretationRequest {
   reading: any;
@@ -34,54 +34,30 @@ export const generateAIInterpretation = async (request: InterpretationRequest) =
   
   // 세븐 스타와 컵 오브 릴레이션십은 Enhanced Interpreter 사용
   if (reading.spreadId === 'seven_star') {
-    const interpreter = new SevenStarInterpreter();
-    
-    // 카드 데이터 준비
-    const cardsForAI = reading.cards.map((card: any, index: number) => {
-      const sevenStarPositions = [
-        '핵심', '도움', '내면', '예상', '결과', '외부', '운명'
-      ];
-      const positionName = sevenStarPositions[index] || `위치 ${index + 1}`;
-      
-      return {
-        id: card.id,
-        name: card.name || card.nameEn || '',
-        name_kr: card.nameKr || card.name_kr || card.name || '',
-        nameKr: card.nameKr || card.name_kr || card.name || '',
-        arcana: card.arcana || 'unknown',
-        suit: card.suit || null,
-        number: card.number || null,
-        orientation: card.orientation || 'upright',
-        position: {
-          position: index + 1,
-          name: positionName
-        },
-        meanings: card.meanings || {}
-      };
-    });
-    
-    // 구조화된 프롬프트 생성
-    const structuredPrompt = interpreter.generateStructuredPromptForAI(
-      cardsForAI,
+    const interpreter = new SevenStarInterpreter(
+      reading.cards,
       reading.topic || 'general',
       customQuestion
     );
     
-    // AI 서비스 호출 (구조화된 프롬프트 사용)
-    const result = await aiService.generateInterpretationWithPrompt(
-      structuredPrompt,
-      cardsForAI,
-      reading.topic || 'general',
-      reading.spreadId
-    );
+    // 카드 데이터 설정
+    interpreter.setCards(reading.cards);
     
-    // 응답 검증
-    if (result && result.text) {
-      const validatedResponse = interpreter.validateAIResponse(result.text);
+    // AI 해석 생성
+    const result = await interpreter.generateInterpretation(userId);
+    
+    if (result.success) {
+      let interpretationText = '';
+      if (typeof result.interpretation === 'object' && result.interpretation.aiInterpretation) {
+        interpretationText = result.interpretation.aiInterpretation;
+      } else if (typeof result.interpretation === 'string') {
+        interpretationText = result.interpretation;
+      }
+      
       return {
         success: true,
-        interpretation: validatedResponse,
-        interpretationId: result?.interpretationId
+        interpretation: interpretationText,
+        interpretationId: null
       };
     }
     
@@ -93,58 +69,30 @@ export const generateAIInterpretation = async (request: InterpretationRequest) =
   }
   
   if (reading.spreadId === 'cup_of_relationship') {
-    const interpreter = new CupOfRelationshipInterpreter();
-    
-    // 카드 데이터 준비
-    const cardsForAI = reading.cards.map((card: any, index: number) => {
-      const cupPositions = [
-        '나', '상대', '관계 기본', '관계 과거',
-        '현재 느낌', '현재 외부 상황',
-        '현재 나는 어떻게 생각?', '현재 상대는 어떻게 생각?',
-        '미래 나는 어떻게 생각?', '미래 상대는 어떻게 생각?',
-        '결과'
-      ];
-      const positionName = cupPositions[index] || `위치 ${index + 1}`;
-      
-      return {
-        id: card.id,
-        name: card.name || card.nameEn || '',
-        name_kr: card.nameKr || card.name_kr || card.name || '',
-        nameKr: card.nameKr || card.name_kr || card.name || '',
-        arcana: card.arcana || 'unknown',
-        suit: card.suit || null,
-        number: card.number || null,
-        orientation: card.orientation || 'upright',
-        position: {
-          position: index + 1,
-          name: positionName
-        },
-        meanings: card.meanings || {}
-      };
-    });
-    
-    // 구조화된 프롬프트 생성
-    const structuredPrompt = interpreter.generateStructuredPromptForAI(
-      cardsForAI,
-      reading.topic || 'general',
+    const interpreter = new CupOfRelationshipInterpreter(
+      reading.cards,
+      reading.topic || '연애',  // 컵 오브 릴레이션십은 기본적으로 연애 배열법
       customQuestion
     );
     
-    // AI 서비스 호출 (구조화된 프롬프트 사용)
-    const result = await aiService.generateInterpretationWithPrompt(
-      structuredPrompt,
-      cardsForAI,
-      reading.topic || 'general',
-      reading.spreadId
-    );
+    // 카드 데이터 설정
+    interpreter.setCards(reading.cards);
     
-    // 응답 검증
-    if (result && result.text) {
-      const validatedResponse = interpreter.validateAIResponse(result.text);
+    // AI 해석 생성
+    const result = await interpreter.generateInterpretation(userId);
+    
+    if (result.success) {
+      let interpretationText = '';
+      if (typeof result.interpretation === 'object' && result.interpretation.aiInterpretation) {
+        interpretationText = result.interpretation.aiInterpretation;
+      } else if (typeof result.interpretation === 'string') {
+        interpretationText = result.interpretation;
+      }
+      
       return {
         success: true,
-        interpretation: validatedResponse,
-        interpretationId: result?.interpretationId
+        interpretation: interpretationText,
+        interpretationId: null
       };
     }
     
