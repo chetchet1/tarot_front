@@ -58,8 +58,46 @@
         <section class="cards-layout-section">
           <h2>카드 배열</h2>
           
+          <!-- 세븐스타 레이아웃 -->
+          <div v-if="sharedData.spread_type === 'seven_star'" class="seven-star-layout">
+            <div class="star-container">
+              <div 
+                v-for="(card, index) in parsedCards" 
+                :key="index"
+                :class="`star-card position-${index + 1}`"
+              >
+                <div class="card-mini" :class="card.orientation">
+                  <img :src="getCardImageUrl(card)" 
+                       :alt="card.nameKr || card.name" 
+                       @error="onImageError"
+                       :class="{ reversed: card.orientation === 'reversed' }" />
+                  <span class="position-label">{{ index + 1 }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 컵 오브 릴레이션십 레이아웃 -->
+          <div v-else-if="sharedData.spread_type === 'cup_of_relationship'" class="cup-relationship-layout">
+            <div class="cup-container">
+              <div 
+                v-for="(card, index) in parsedCards" 
+                :key="index"
+                :class="`cup-card position-${index + 1}`"
+              >
+                <div class="card-mini" :class="card.orientation">
+                  <img :src="getCardImageUrl(card)" 
+                       :alt="card.nameKr || card.name" 
+                       @error="onImageError"
+                       :class="{ reversed: card.orientation === 'reversed' }" />
+                  <span class="position-label">{{ index + 1 }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <!-- 켈틱 크로스 레이아웃 -->
-          <div v-if="sharedData.spread_type === 'celtic_cross'" class="celtic-cross-layout">
+          <div v-else-if="sharedData.spread_type === 'celtic_cross'" class="celtic-cross-layout">
             <div class="cards-container">
               <div 
                 v-for="(card, index) in parsedCards" 
@@ -548,23 +586,201 @@ onMounted(async () => {
   color: #F59E0B;
 }
 
+/* 세븐스타 레이아웃 */
+.seven-star-layout {
+  position: relative;
+  min-height: 450px;
+  margin: 40px auto;
+  max-width: 600px;
+}
+
+.seven-star-layout .star-container {
+  position: relative;
+  height: 450px;
+  width: 100%;
+}
+
+.seven-star-layout .star-card {
+  position: absolute;
+  width: 70px;
+  height: 100px;
+}
+
+.seven-star-layout .card-mini {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.seven-star-layout .card-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.seven-star-layout .position-label {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* 세븐스타 카드 위치 - 별 모양 */
+.seven-star-layout .position-1 { left: calc(50% - 35px); top: 20px; }  /* 상단 중앙 */
+.seven-star-layout .position-2 { left: calc(30% - 35px); top: 100px; } /* 좌측 상단 */
+.seven-star-layout .position-3 { left: calc(70% - 35px); top: 100px; } /* 우측 상단 */
+.seven-star-layout .position-4 { left: calc(50% - 35px); top: 180px; } /* 중앙 */
+.seven-star-layout .position-5 { left: calc(20% - 35px); top: 260px; } /* 좌측 하단 */
+.seven-star-layout .position-6 { left: calc(80% - 35px); top: 260px; } /* 우측 하단 */
+.seven-star-layout .position-7 { left: calc(50% - 35px); top: 340px; } /* 하단 중앙 */
+
+/* 컵 오브 릴레이션십 레이아웃 */
+.cup-relationship-layout {
+  position: relative;
+  min-height: 800px;
+  margin: 40px auto;
+  max-width: 900px;
+}
+
+.cup-relationship-layout .cup-container {
+  position: relative;
+  height: 800px;
+  width: 100%;
+}
+
+.cup-relationship-layout .cup-card {
+  position: absolute;
+  width: 80px;
+  height: 120px;
+}
+
+.cup-relationship-layout .card-mini {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.cup-relationship-layout .card-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.cup-relationship-layout .position-label {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* 컵 오브 릴레이션십 카드 위치 - 원본과 동일하게 */
+.cup-relationship-layout .position-1 { /* 나 - 왼쪽 아래 */
+  top: 80%;
+  left: 20%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .position-2 { /* 상대 - 오른쪽 아래 */
+  top: 80%;
+  left: 80%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .position-3 { /* 관계 기본 - 하단 중앙 */
+  top: 75%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .position-4 { /* 관계 과거 - 왼쪽 중간 */
+  top: 60%;
+  left: 35%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .position-5 { /* 현재 느 상태 - 중앙 */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+.cup-relationship-layout .position-6 { /* 현재 외부 상황 - 오른쪽 중간 */
+  top: 60%;
+  left: 65%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .position-7 { /* 현재 나는 어떻게 생각? - 왼쪽 중상 */
+  top: 40%;
+  left: 25%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .position-8 { /* 현재 상대는 어떻게 생각? - 오른쪽 중상 */
+  top: 40%;
+  left: 75%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .position-9 { /* 미래 나는 어떻게 생각? - 왼쪽 상단 */
+  top: 20%;
+  left: 35%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .position-10 { /* 미래 상대는 어떻게 생각? - 오른쪽 상단 */
+  top: 20%;
+  left: 65%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .position-11 { /* 결과 - 상단 중앙 */
+  top: 5%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
 /* 켈틱 크로스 레이아웃 */
 .celtic-cross-layout {
   position: relative;
-  min-height: 500px;
-  margin: 20px auto;
-  max-width: 800px;
+  min-height: 600px;
+  margin: 40px auto;
+  max-width: 900px;
 }
 
 .celtic-cross-layout .cards-container {
   position: relative;
-  height: 500px;
+  height: 600px;
+  width: 100%;
 }
 
 .celtic-cross-layout .card-position {
   position: absolute;
-  width: 70px;
-  height: 100px;
+  width: 80px;
+  height: 120px;
 }
 
 .celtic-cross-layout .card-mini {
@@ -577,18 +793,19 @@ onMounted(async () => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .celtic-cross-layout .position-label {
   position: absolute;
   top: 5px;
   right: 5px;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
   color: white;
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -596,17 +813,58 @@ onMounted(async () => {
   font-weight: bold;
 }
 
-/* 켈틱 크로스 위치 */
-.position-1 { left: calc(50% - 70px); top: calc(50% - 50px); }
-.position-2 { left: calc(50% - 35px); top: calc(50% - 50px); transform: rotate(90deg); }
-.position-3 { left: calc(50% - 35px); top: calc(70%); }
-.position-4 { left: calc(25%); top: calc(50% - 50px); }
-.position-5 { left: calc(50% - 35px); top: calc(20%); }
-.position-6 { left: calc(70%); top: calc(50% - 50px); }
-.position-7 { right: 20px; top: calc(75%); }
-.position-8 { right: 20px; top: calc(55%); }
-.position-9 { right: 20px; top: calc(35%); }
-.position-10 { right: 20px; top: calc(15%); }
+/* 켈틱 크로스 카드 위치 - 원본과 동일하게 */
+.celtic-cross-layout .position-1 { 
+  left: calc(40% - 40px); 
+  top: calc(50% - 60px); 
+}
+
+.celtic-cross-layout .position-2 { 
+  left: calc(40% - 40px); 
+  top: calc(50% - 60px); 
+  transform: rotate(90deg); 
+  z-index: 2;
+}
+
+.celtic-cross-layout .position-3 { 
+  left: calc(40% - 40px); 
+  top: calc(50% + 80px); 
+}
+
+.celtic-cross-layout .position-4 { 
+  left: calc(40% - 180px); 
+  top: calc(50% - 60px); 
+}
+
+.celtic-cross-layout .position-5 { 
+  left: calc(40% - 40px); 
+  top: calc(50% - 200px); 
+}
+
+.celtic-cross-layout .position-6 { 
+  left: calc(40% + 100px); 
+  top: calc(50% - 60px); 
+}
+
+.celtic-cross-layout .position-7 { 
+  right: 80px; 
+  bottom: 40px; 
+}
+
+.celtic-cross-layout .position-8 { 
+  right: 80px; 
+  bottom: calc(40px + 140px); 
+}
+
+.celtic-cross-layout .position-9 { 
+  right: 80px; 
+  bottom: calc(40px + 280px); 
+}
+
+.celtic-cross-layout .position-10 { 
+  right: 80px; 
+  bottom: calc(40px + 420px); 
+}
 
 /* 해석 섹션 */
 .basic-interpretation-content,
@@ -763,14 +1021,47 @@ onMounted(async () => {
     grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
   }
   
+  .seven-star-layout {
+    min-height: 350px;
+  }
+  
+  .seven-star-layout .star-container {
+    height: 350px;
+    transform: scale(0.8);
+    transform-origin: top center;
+  }
+  
+  .cup-relationship-layout {
+    min-height: 600px;
+  }
+  
+  .cup-relationship-layout .cup-container {
+    height: 600px;
+    transform: scale(0.7);
+    transform-origin: top center;
+  }
+  
   .celtic-cross-layout {
-    min-height: 400px;
+    min-height: 500px;
   }
   
   .celtic-cross-layout .cards-container {
-    height: 400px;
-    transform: scale(0.75);
+    height: 500px;
+    transform: scale(0.8);
     transform-origin: top center;
+  }
+  
+  .celtic-cross-layout .card-position,
+  .cup-relationship-layout .cup-card {
+    width: 70px;
+    height: 100px;
+  }
+  
+  .celtic-cross-layout .position-label,
+  .cup-relationship-layout .position-label {
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
   }
   
   .cta-section h2 {
@@ -785,6 +1076,20 @@ onMounted(async () => {
   .primary-cta {
     font-size: 16px;
     padding: 14px 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cup-relationship-layout .cup-container {
+    transform: scale(0.6);
+  }
+  
+  .celtic-cross-layout .cards-container {
+    transform: scale(0.7);
+  }
+  
+  .seven-star-layout .star-container {
+    transform: scale(0.7);
   }
 }
 </style>
