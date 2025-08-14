@@ -193,6 +193,14 @@
       @close="handleQuestionCancel"
       @confirm="handleQuestionConfirm"
     />
+    
+    <!-- 연애 상태 선택 모달 -->
+    <RelationshipStatusModal
+      v-if="showRelationshipModal"
+      :is-open="showRelationshipModal"
+      @close="handleRelationshipCancel"
+      @confirm="handleRelationshipConfirm"
+    />
   </div>
 </template>
 
@@ -203,6 +211,7 @@ import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
 import { getSpreadsByTopic, getSpreadById } from '../data/spreads';
 import CustomQuestionModal from '../components/CustomQuestionModal.vue';
+import RelationshipStatusModal from '../components/RelationshipStatusModal.vue';
 import { showAlert, showConfirm } from '../utils/alerts';
 import { 
   canUsePremiumSpread, 
@@ -237,6 +246,7 @@ const tarotStore = useTarotStore();
 const selectedTopic = ref<string>('');
 const selectedSpread = ref<string>('');
 const showQuestionModal = ref(false);
+const showRelationshipModal = ref(false);
 const customQuestion = ref<string>('');
 const isMobile = ref(false);
 const isCheckingPremiumUsage = ref(false);
@@ -459,6 +469,28 @@ const handleQuestionCancel = () => {
   }
 };
 
+const handleRelationshipConfirm = (status: 'single' | 'couple') => {
+  console.log('[RelationshipModal] 연애 상태 선택:', status);
+  tarotStore.setRelationshipStatus(status);
+  showRelationshipModal.value = false;
+  
+  // 모달 확인 시 상태만 저장하고 대기
+  // 버튼 클릭 시 proceedToCardDrawing() 실행
+};
+
+const handleRelationshipCancel = () => {
+  console.log('[RelationshipModal] 취소');
+  showRelationshipModal.value = false;
+  
+  // 배열법 선택도 초기화 (취소했으므로)
+  selectedSpread.value = '';
+  
+  // 연애 상태도 초기화
+  tarotStore.clearRelationshipStatus();
+  
+  isStarting.value = false;
+};
+
 const selectSpread = async (spread: Spread) => {
   
   if (spread.isPremium && !userStore.isPremium) {
@@ -467,6 +499,13 @@ const selectSpread = async (spread: Spread) => {
         userStore.currentUser.email === 'test@example.com') {
       // 테스트 계정은 체크하지 않고 바로 선택 가능
       selectedSpread.value = spread.id;
+      
+      // 연애 + 특정 배열법 선택 시 바로 모달 표시
+      if (selectedTopic.value === 'love' && 
+          (spread.id === 'celtic_cross' || spread.id === 'seven_star')) {
+        console.log('[SelectSpread] 연애 + 특정 배열법 선택 - 모달 표시');
+        showRelationshipModal.value = true;
+      }
       return;
     }
     
@@ -499,7 +538,15 @@ const selectSpread = async (spread: Spread) => {
       }
     }
   }
+  
   selectedSpread.value = spread.id;
+  
+  // 연애 + 특정 배열법 선택 시 바로 모달 표시
+  if (selectedTopic.value === 'love' && 
+      (spread.id === 'celtic_cross' || spread.id === 'seven_star')) {
+    console.log('[SelectSpread] 연애 + 특정 배열법 선택 - 모달 표시');
+    showRelationshipModal.value = true;
+  }
 };
 
 const getTopicName = (topicId: string) => {
@@ -563,54 +610,9 @@ const getStartButtonText = () => {
   return '카드 뽑기 시작';
 };
 
-const startReading = async () => {
-  // 중복 클릭 방지
-  if (isStarting.value) {
-    console.log('[StartReading] 이미 진행 중');
-    return;
-  }
-  
-  isStarting.value = true;
-  
-  console.log('[StartReading] 시작', {
-    canStartReading: canStartReading.value,
-    selectedTopic: selectedTopic.value,
-    selectedSpread: selectedSpread.value,
-    isPremium: userStore.isPremium,
-    hasPremiumUsageToday: hasPremiumUsageToday.value,
-    currentUser: userStore.currentUser
-  });
-  
-  // 디버그: window.debugPremiumSpread 사용 가능 여부 확인
-  if (typeof window !== 'undefined' && (window as any).debugPremiumSpread) {
-    console.log('[StartReading] debugPremiumSpread 객체 사용 가능');
-    // 디버그 모드 시작 (함수가 아닌 객체의 메서드 호출)
-    if ((window as any).debugPremiumSpread.start) {
-      (window as any).debugPremiumSpread.start();
-    }
-  }
-  
-  // Haptics 피드백은 나중에 실행 (디버그를 위해 제거)
-  // try {
-  //   if (window.Capacitor && window.Capacitor.Plugins.Haptics) {
-  //     console.log('[StartReading] 햅틱 피드백 실행');
-  //     await window.Capacitor.Plugins.Haptics.impact({ style: 'heavy' });
-  //   }
-  // } catch (error) {
-  //   console.error('[StartReading] 햅틱 오류:', error);
-  // }
-  
-  if (!canStartReading.value) {
-    console.log('[StartReading] canStartReading이 false여서 종료');
-    await showAlert({
-      title: '선택 필요',
-      message: '카드를 뽑을 수 없습니다. 선택 사항을 확인해주세요.'
-    });
-    isStarting.value = false;
-    return;
-  }
-  
-  // 세븐스타와 릴레이션쉽 배열법은 이제 사용 가능합니다
+// 카드 뽑기 페이지로 이동하는 함수 (모달 후 혹은 직접 호출)
+const proceedToCardDrawing = async () => {
+  console.log('[ProceedToCardDrawing] 카드 뽑기 페이지로 이동 시작');
   
   const selectedTopicData = topics.value.find(t => t.id === selectedTopic.value);
   let selectedSpreadData;
@@ -622,145 +624,154 @@ const startReading = async () => {
     selectedSpreadData = getSpreadsByTopic(selectedTopic.value).find(s => s.spreadId === selectedSpread.value);
   }
   
-  console.log('[StartReading] 선택된 데이터', {
+  console.log('[ProceedToCardDrawing] 선택된 데이터', {
     selectedTopicData,
-    selectedSpreadData
+    selectedSpreadData,
+    relationshipStatus: tarotStore.getRelationshipStatus()
   });
   
-  if (!selectedTopicData) {
-    console.error('[StartReading] 선택된 주제 데이터가 없음');
+  if (!selectedTopicData || !selectedSpreadData) {
+    console.error('[ProceedToCardDrawing] 선택된 데이터가 없음');
     await showAlert({
       title: '오류',
-      message: '주제가 올바르게 선택되지 않았습니다.'
-    });
-    isStarting.value = false;
-    return;
-  }
-  
-  if (!selectedSpreadData) {
-    console.error('[StartReading] 선택된 배열법 데이터가 없음');
-    await showAlert({
-      title: '오류',
-      message: '배열법이 올바르게 선택되지 않았습니다.'
+      message: '주제나 배열법이 올바르게 선택되지 않았습니다.'
     });
     isStarting.value = false;
     return;
   }
   
   try {
-      // 테스트 계정 확인 (로그인한 사용자만)
-      if (userStore.currentUser && !userStore.currentUser.isAnonymous && 
-          userStore.currentUser.email === 'test@example.com' && 
-          !userStore.isPremium && isPremiumSpread(selectedSpread.value)) {
-        // 테스트 계정은 매번 확인 메시지 표시
-        const hasUsed = await hasUsedPremiumSpreadToday(userStore.currentUser.id);
-        const message = hasUsed 
-          ? '테스트 계정이시군요!\n\n정상적으로는 하루 1회만 사용 가능하지만,\n개발 테스트를 위해 허용합니다.\n\n계속하시겠습니까?'
-          : '테스트 계정으로 유료 배열을 사용합니다.\n\n테스트 목적으로 무제한 사용 가능합니다.\n\n계속하시겠습니까?';
-        
-        const confirmResult = await showConfirm({
-          title: '🧪 테스트 계정 확인',
-          message: message,
-          confirmText: '계속하기',
-          cancelText: '취소'
-        });
-        
-        if (!confirmResult) {
-          isStarting.value = false;
-          return;
-        }
-      }
+    // 테스트 계정 확인 (로그인한 사용자만)
+    if (userStore.currentUser && !userStore.currentUser.isAnonymous && 
+        userStore.currentUser.email === 'test@example.com' && 
+        !userStore.isPremium && isPremiumSpread(selectedSpread.value)) {
+      // 테스트 계정은 매번 확인 메시지 표시
+      const hasUsed = await hasUsedPremiumSpreadToday(userStore.currentUser.id);
+      const message = hasUsed 
+        ? '테스트 계정이시군요!\n\n정상적으로는 하루 1회만 사용 가능하지만,\n개발 테스트를 위해 허용합니다.\n\n계속하시겠습니까?'
+        : '테스트 계정으로 유료 배열을 사용합니다.\n\n테스트 목적으로 무제한 사용 가능합니다.\n\n계속하시겠습니까?';
       
-      // 무료 사용자가 유료 배열을 사용하는 경우 - 기록은 결과 보기 시점으로 이동
-      if (!userStore.isPremium && isPremiumSpread(selectedSpread.value)) {
-        console.log('[StartReading] 무료 사용자가 유료 배열 선택', {
-          spreadId: selectedSpread.value,
-          isAnonymous: userStore.currentUser?.isAnonymous,
-          userId: userStore.currentUser?.id,
-          message: '실제 카운트는 해석 보기 시점에 기록됩니다'
-        });
-        
-        // 테스트 계정이 아닌 경우 플래그 설정
-        if (userStore.currentUser?.email !== 'test@example.com') {
-          // 타로 스토어에 유료 배열 사용 플래그 저장
-          tarotStore.setPremiumSpreadUsage(true);
-        }
-      }
+      const confirmResult = await showConfirm({
+        title: '🧪 테스트 계정 확인',
+        message: message,
+        confirmText: '계속하기',
+        cancelText: '취소'
+      });
       
-      // 선택 정보를 스토어에 저장
-      console.log('[StartReading] 스토어에 정보 저장 시작');
-      
-      // 타로 스토어에 선택 정보 저장 시도
-      try {
-        tarotStore.setSelectedTopic(selectedTopicData);
-        console.log('[StartReading] 주제 저장 완료', tarotStore.selectedTopic);
-      } catch (error) {
-        console.error('[StartReading] 주제 저장 오류:', error);
-        await showAlert({
-          title: '오류',
-          message: '주제 저장 중 오류가 발생했습니다.'
-        });
+      if (!confirmResult) {
         isStarting.value = false;
         return;
       }
-      
-      try {
-        tarotStore.setSelectedSpread(selectedSpreadData);
-        console.log('[StartReading] 배열법 저장 완료', tarotStore.selectedSpread);
-      } catch (error) {
-        console.error('[StartReading] 배열법 저장 오류:', error);
-        await showAlert({
-          title: '오류',
-          message: '배열법 저장 중 오류가 발생했습니다.'
-        });
-        isStarting.value = false;
-        return;
-      }
-      
-      // 커스텀 질문이 있다면 저장
-      if (selectedTopic.value === 'custom' && customQuestion.value) {
-        tarotStore.setCustomQuestion(customQuestion.value);
-      } else {
-        tarotStore.setCustomQuestion('');
-      }
-      console.log('[StartReading] 커스텀 질문 저장 완료');
-      
-
-      
-      // 이동 전 디버그 로그
-      console.log('[StartReading] 라우터 이동 전 상태 확인', {
-        routerReady: router.isReady,
-        currentRoute: router.currentRoute.value.path,
-        targetRoute: '/card-drawing'
+    }
+    
+    // 무료 사용자가 유료 배열을 사용하는 경우 - 기록은 결과 보기 시점으로 이동
+    if (!userStore.isPremium && isPremiumSpread(selectedSpread.value)) {
+      console.log('[ProceedToCardDrawing] 무료 사용자가 유료 배열 선택', {
+        spreadId: selectedSpread.value,
+        isAnonymous: userStore.currentUser?.isAnonymous,
+        userId: userStore.currentUser?.id,
+        message: '실제 카운트는 해석 보기 시점에 기록됩니다'
       });
       
-      // 카드 뽑기 페이지로 이동
-      console.log('[StartReading] 카드 뽑기 페이지로 이동 시도');
-      console.log('[StartReading] 현재 경로:', router.currentRoute.value.path);
-      console.log('[StartReading] 스토어 상태 최종 확인:', {
-        selectedTopic: tarotStore.selectedTopic,
-        selectedSpread: tarotStore.selectedSpread,
-        customQuestion: tarotStore.customQuestion
-      });
-      
-      // 스토어 업데이트가 완료될 때까지 짧은 대기
-      await nextTick();
-      
-      // 단순하게 push로만 시도
-      console.log('[StartReading] 카드 뽑기 페이지로 이동');
-      router.push('/card-drawing');
+      // 테스트 계정이 아닌 경우 플래그 설정
+      if (userStore.currentUser?.email !== 'test@example.com') {
+        // 타로 스토어에 유료 배열 사용 플래그 저장
+        tarotStore.setPremiumSpreadUsage(true);
+      }
+    }
+    
+    // 선택 정보를 스토어에 저장
+    console.log('[ProceedToCardDrawing] 스토어에 정보 저장 시작');
+    
+    // 타로 스토어에 선택 정보 저장 시도
+    try {
+      tarotStore.setSelectedTopic(selectedTopicData);
+      console.log('[ProceedToCardDrawing] 주제 저장 완료', tarotStore.selectedTopic);
     } catch (error) {
-      console.error('[StartReading] 오류 발생:', error);
+      console.error('[ProceedToCardDrawing] 주제 저장 오류:', error);
       await showAlert({
         title: '오류',
-        message: `카드 뽑기 페이지로 이동 중 오류가 발생했습니다: ${error.message}`
+        message: '주제 저장 중 오류가 발생했습니다.'
       });
-      // 페이지 새로고침으로 대체
-      // window.location.href = '/card-drawing';
-    } finally {
-      // 버튼 상태 초기화
       isStarting.value = false;
+      return;
     }
+    
+    try {
+      tarotStore.setSelectedSpread(selectedSpreadData);
+      console.log('[ProceedToCardDrawing] 배열법 저장 완료', tarotStore.selectedSpread);
+    } catch (error) {
+      console.error('[ProceedToCardDrawing] 배열법 저장 오류:', error);
+      await showAlert({
+        title: '오류',
+        message: '배열법 저장 중 오류가 발생했습니다.'
+      });
+      isStarting.value = false;
+      return;
+    }
+    
+    // 커스텀 질문이 있다면 저장
+    if (selectedTopic.value === 'custom' && customQuestion.value) {
+      tarotStore.setCustomQuestion(customQuestion.value);
+    } else {
+      tarotStore.setCustomQuestion('');
+    }
+    console.log('[ProceedToCardDrawing] 커스텀 질문 저장 완료');
+    
+    // 이동 전 디버그 로그
+    console.log('[ProceedToCardDrawing] 라우터 이동 전 상태 확인', {
+      routerReady: router.isReady,
+      currentRoute: router.currentRoute.value.path,
+      targetRoute: '/card-drawing',
+      relationshipStatus: tarotStore.getRelationshipStatus()
+    });
+    
+    // 카드 뽑기 페이지로 이동
+    console.log('[ProceedToCardDrawing] 카드 뽑기 페이지로 이동 시도');
+    console.log('[ProceedToCardDrawing] 현재 경로:', router.currentRoute.value.path);
+    console.log('[ProceedToCardDrawing] 스토어 상태 최종 확인:', {
+      selectedTopic: tarotStore.selectedTopic,
+      selectedSpread: tarotStore.selectedSpread,
+      customQuestion: tarotStore.customQuestion,
+      relationshipStatus: tarotStore.getRelationshipStatus()
+    });
+    
+    // 스토어 업데이트가 완료될 때까지 짧은 대기
+    await nextTick();
+    
+    // 단순하게 push로만 시도
+    console.log('[ProceedToCardDrawing] 카드 뽑기 페이지로 이동');
+    router.push('/card-drawing');
+  } catch (error) {
+    console.error('[ProceedToCardDrawing] 오류 발생:', error);
+    await showAlert({
+      title: '오류',
+      message: `카드 뽑기 페이지로 이동 중 오류가 발생했습니다: ${error.message}`
+    });
+  } finally {
+    // 버튼 상태 초기화
+    isStarting.value = false;
+  }
+};
+
+const startReading = async () => {
+  // 중복 클릭 방지
+  if (isStarting.value) {
+    console.log('[StartReading] 이미 진행 중');
+    return;
+  }
+  
+  isStarting.value = true;
+  
+  console.log('[StartReading] 시작 - 바로 카드뽑기로 이동', {
+    selectedTopic: selectedTopic.value,
+    selectedSpread: selectedSpread.value,
+    relationshipStatus: tarotStore.getRelationshipStatus()
+  });
+  
+  // 바로 카드뽑기 페이지로 이동
+  proceedToCardDrawing();
+
 };
 
 const goBack = () => {

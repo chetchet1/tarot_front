@@ -103,6 +103,9 @@ export class CupOfRelationshipInterpreter {
       
       console.log('[CupRelationship] AI 해석 생성 성공');
       
+      // AI 응답에서 # 기호 제거
+      const cleanedInterpretation = this.removeHashSymbols(aiResponse.interpretation);
+      
       // 추가 분석 생성
       const summary = this.generateSummary();
       const advice = this.generateAdvice();
@@ -110,7 +113,7 @@ export class CupOfRelationshipInterpreter {
       const keyInsights = this.generateKeyInsights();
       
       const interpretation: CupRelationshipInterpretation = {
-        aiInterpretation: aiResponse.interpretation,
+        aiInterpretation: cleanedInterpretation,
         summary,
         advice,
         relationshipScore,
@@ -553,5 +556,23 @@ export class CupOfRelationshipInterpreter {
    */
   public getPositionDescription(index: number): string {
     return this.positions[index]?.description || '';
+  }
+  
+  /**
+   * AI 응답에서 # 기호 제거
+   */
+  private removeHashSymbols(text: string): string {
+    if (!text) return '';
+    
+    // 마크다운 헤더 제거 (### 제목 -> 제목)
+    let cleaned = text.replace(/^#{1,6}\s+/gm, '');
+    
+    // 제목 앞뒤의 # 제거
+    cleaned = cleaned.replace(/#{1,6}\s*([^#\n]+)\s*#{0,6}/g, '$1');
+    
+    // 연속된 줄바꿈 정리
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+    
+    return cleaned.trim();
   }
 }

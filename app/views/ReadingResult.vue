@@ -1007,32 +1007,28 @@ onMounted(async () => {
     return;
   }
   
-  // 프리미엄 배열법은 무료 사용자도 하루 1회 사용 가능하므로 AI 해석 제공
-  // 커스텀 질문은 프리미엄만 가능
+  // 프리미엄 배열법(seven_star, cup_of_relationship, celtic_cross)은 
+  // 이미 CardDrawing.vue의 goToResult에서 AI 해석을 생성한 후 넘어오므로
+  // 여기서는 절대 중복 생성하지 않음
+  
+  // AI 해석 생성 여부 결정
   if (reading.value && !reading.value.aiInterpretation) {
     const isPremiumSpread = ['celtic_cross', 'seven_star', 'cup_of_relationship'].includes(reading.value.spreadId);
     
+    // ⚠️ 중요: 프리미엄 배열법은 절대 여기서 생성하지 않음!
+    // CardDrawing.vue의 goToResult에서 이미 생성됨
     if (isPremiumSpread) {
-      // 프리미엄 배열법은 무조건 AI 해석 생성
-      console.log('🎴 [ReadingResult] 프리미엄 배열법 - AI 해석 자동 생성 시작:', reading.value.spreadId);
-      
-      // 바로 로딩 상태 표시
-      isLoadingInterpretation.value = true;
-      interpretationProgress.value = 0;
-      
-      // 잠시 대기 후 AI 해석 생성 (UI 업데이트를 위해)
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      try {
-        // regenerateAIInterpretation 대신 직접 generateAIInterpretation 호출
-        await generateAIInterpretation();
-        console.log('🎴 [ReadingResult] AI 해석 생성 완료');
-      } catch (error) {
-        console.error('🎴 [ReadingResult] AI 해석 생성 실패:', error);
-        isLoadingInterpretation.value = false;
-      }
+      console.log('🚫 [ReadingResult] 프리미엄 배열법 - AI 해석 생성 건너뜀 (중복 방지)');
+      console.log('🚫 [ReadingResult] spreadId:', reading.value.spreadId);
+      console.log('🚫 [ReadingResult] AI 해석이 없다면 CardDrawing에서 생성되지 않은 것');
+      console.log('🚫 [ReadingResult] 현재 AI 해석:', {
+        exists: !!reading.value.aiInterpretation,
+        length: reading.value.aiInterpretation?.length || 0
+      });
+      // 프리미엄 배열법은 절대 여기서 생성하지 않음
+      // return; // 더 이상 처리하지 않음
     } else if (customQuestion.value && userStore.isPremium) {
-      // 커스텀 질문은 프리미엄만
+      // 커스텀 질문은 프리미엄만 (1장, 3장 배열에서만)
       console.log('🎴 [ReadingResult] 커스텀 질문 - AI 해석 생성');
       await generateAIInterpretation();
     } else {

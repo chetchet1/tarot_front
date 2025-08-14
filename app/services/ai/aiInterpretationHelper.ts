@@ -1,7 +1,6 @@
 import { AIInterpretationService } from './AIInterpretationService';
 import { customInterpretationService } from './customInterpretationService';
-import { SevenStarInterpreter } from '../interpretation/SevenStarInterpreter';
-import { CupOfRelationshipInterpreter } from '../interpretation/CupOfRelationshipInterpreter';
+// SevenStarInterpreter와 CupOfRelationshipInterpreter는 CardDrawing.vue에서 직접 사용
 
 export interface InterpretationRequest {
   reading: any;
@@ -32,78 +31,22 @@ export const generateAIInterpretation = async (request: InterpretationRequest) =
   const { reading, customQuestion, isPremium, getPositionName, userId } = request;
   const aiService = new AIInterpretationService(isPremium);
   
-  // 세븐 스타와 컵 오브 릴레이션십은 Enhanced Interpreter 사용
-  if (reading.spreadId === 'seven_star') {
-    const interpreter = new SevenStarInterpreter(
-      reading.cards,
-      reading.topic || 'general',
-      customQuestion
-    );
-    
-    // 카드 데이터 설정
-    interpreter.setCards(reading.cards);
-    
-    // AI 해석 생성
-    const result = await interpreter.generateInterpretation(userId);
-    
-    if (result.success) {
-      let interpretationText = '';
-      if (typeof result.interpretation === 'object' && result.interpretation.aiInterpretation) {
-        interpretationText = result.interpretation.aiInterpretation;
-      } else if (typeof result.interpretation === 'string') {
-        interpretationText = result.interpretation;
-      }
-      
-      return {
-        success: true,
-        interpretation: interpretationText,
-        interpretationId: null
-      };
-    }
-    
+  // 세븐 스타와 컵 오브 릴레이션십은 CardDrawing.vue에서 직접 Interpreter를 사용하므로
+  // 여기서는 처리하지 않음 (중복 호출 방지)
+  if (reading.spreadId === 'seven_star' || reading.spreadId === 'cup_of_relationship') {
+    console.log('[aiInterpretationHelper] 세븐스타/컵오브릴레이션십은 CardDrawing.vue에서 직접 처리');
     return {
       success: false,
-      interpretation: '해석을 생성할 수 없습니다. 다시 시도해주세요.',
+      interpretation: '특별 배열법은 별도 처리됩니다.',
       interpretationId: null
     };
   }
   
-  if (reading.spreadId === 'cup_of_relationship') {
-    const interpreter = new CupOfRelationshipInterpreter(
-      reading.cards,
-      reading.topic || '연애',  // 컵 오브 릴레이션십은 기본적으로 연애 배열법
-      customQuestion
-    );
-    
-    // 카드 데이터 설정
-    interpreter.setCards(reading.cards);
-    
-    // AI 해석 생성
-    const result = await interpreter.generateInterpretation(userId);
-    
-    if (result.success) {
-      let interpretationText = '';
-      if (typeof result.interpretation === 'object' && result.interpretation.aiInterpretation) {
-        interpretationText = result.interpretation.aiInterpretation;
-      } else if (typeof result.interpretation === 'string') {
-        interpretationText = result.interpretation;
-      }
-      
-      return {
-        success: true,
-        interpretation: interpretationText,
-        interpretationId: null
-      };
-    }
-    
-    return {
-      success: false,
-      interpretation: '해석을 생성할 수 없습니다. 다시 시도해주세요.',
-      interpretationId: null
-    };
-  }
+  // customQuestion이 실제로 있는 경우에만 customInterpretationService 사용
+  // 빈 문자열이나 공백만 있는 경우는 제외
+  const hasRealCustomQuestion = customQuestion && customQuestion.trim().length > 0;
   
-  if (customQuestion) {
+  if (hasRealCustomQuestion) {
     // 커스텀 질문이 있는 경우
     const interpretationRequest = {
       readingId: reading.id,

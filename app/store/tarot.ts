@@ -502,6 +502,10 @@ export const useTarotStore = defineStore('tarot', () => {
         // 세븐 스타 해석기 사용
         const sevenStarInterpreter = new SevenStarInterpreter(cardsWithPositions, topic, question);
         sevenStarInterpreter.setCards(cardsWithPositions);
+        // 연애 상태 설정 (연애 주제일 때만)
+        if (topic === 'love' && relationshipStatus.value) {
+          sevenStarInterpreter.setRelationshipStatus(relationshipStatus.value);
+        }
         const sevenStarResult = await sevenStarInterpreter.generateInterpretation(userStore.currentUser?.id);
         
         if (sevenStarResult.success && typeof sevenStarResult.interpretation === 'object') {
@@ -538,6 +542,10 @@ export const useTarotStore = defineStore('tarot', () => {
         // 컵 오브 릴레이션십 해석기 사용
         const cupInterpreter = new CupOfRelationshipInterpreter(cardsWithPositions, topic, question);
         cupInterpreter.setCards(cardsWithPositions);
+        // 연애 상태 설정 (컵 오브 릴레이션십은 항상 연애 주제)
+        if (relationshipStatus.value) {
+          cupInterpreter.setRelationshipStatus(relationshipStatus.value);
+        }
         const cupResult = await cupInterpreter.generateInterpretation(userStore.currentUser?.id);
         
         if (cupResult.success && typeof cupResult.interpretation === 'object') {
