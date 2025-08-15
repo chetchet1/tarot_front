@@ -438,7 +438,34 @@
           <p>AI가 당신의 카드를 분석하고 있습니다...</p>
         </div>
         
-        <!-- 해석 내용 (aiInterpretation 또는 enhancedInterpretation 확인) -->
+        <!-- 캘틱 크로스의 카테고리별 해석 -->
+        <div v-else-if="reading.spreadId === 'celtic_cross' && hasCelticCategories()" class="ai-interpretation-categories">
+          <!-- 핵심 메시지 -->
+          <div v-if="getCelticCategory('핵심메시지')" class="category-section core-message">
+            <h3>🔮 핵심 메시지</h3>
+            <div class="category-content">
+              <p>{{ getCelticCategory('핵심메시지') }}</p>
+            </div>
+          </div>
+          
+          <!-- 심층 분석 -->
+          <div v-if="getCelticCategory('심층분석')" class="category-section deep-analysis">
+            <h3>📖 심층 분석</h3>
+            <div class="category-content">
+              <p>{{ getCelticCategory('심층분석') }}</p>
+            </div>
+          </div>
+          
+          <!-- 실천 조언 -->
+          <div v-if="getCelticCategory('실천조언')" class="category-section action-advice">
+            <h3>✨ 실천 조언</h3>
+            <div class="category-content">
+              <p>{{ getCelticCategory('실천조언') }}</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 기존 해석 내용 (캘틱 크로스가 아니거나 카테고리가 없는 경우) -->
         <div v-else-if="getAIInterpretationText()" class="ai-interpretation-content">
           <p>{{ getAIInterpretationText() }}</p>
         </div>
@@ -920,6 +947,64 @@ const getRatingHint = () => {
   return '';
 };
 
+// 캘틱 크로스 카테고리별 해석 관련 헬퍼 함수들
+const hasCelticCategories = () => {
+  if (!reading.value || reading.value.spreadId !== 'celtic_cross') {
+    return false;
+  }
+  
+  const interpretation = reading.value.aiInterpretation || reading.value.enhancedInterpretation;
+  if (!interpretation || typeof interpretation !== 'string') {
+    return false;
+  }
+  
+  // 카테고리 키워드 확인
+  return interpretation.includes('핵심메시지:') || 
+         interpretation.includes('심층분석:') || 
+         interpretation.includes('실천조언:');
+};
+
+const getCelticCategory = (category: string) => {
+  if (!reading.value) return null;
+  
+  const interpretation = reading.value.aiInterpretation || reading.value.enhancedInterpretation;
+  if (!interpretation || typeof interpretation !== 'string') {
+    return null;
+  }
+  
+  // 카테고리별 텍스트 추출
+  const lines = interpretation.split('\n');
+  let inCategory = false;
+  let categoryContent = [];
+  const categoryPrefix = category + ':';
+  
+  for (const line of lines) {
+    // 현재 카테고리 시작
+    if (line.trim().startsWith(categoryPrefix)) {
+      inCategory = true;
+      const content = line.replace(categoryPrefix, '').trim();
+      if (content) {
+        categoryContent.push(content);
+      }
+      continue;
+    }
+    
+    // 다른 카테고리 시작 (현재 카테고리 종료)
+    if (inCategory && (line.includes('핵심메시지:') || 
+                       line.includes('심층분석:') || 
+                       line.includes('실천조언:'))) {
+      break;
+    }
+    
+    // 현재 카테고리 내용 추가
+    if (inCategory && line.trim()) {
+      categoryContent.push(line.trim());
+    }
+  }
+  
+  return categoryContent.length > 0 ? categoryContent.join('\n') : null;
+};
+
 
 
 // AI 해석 텍스트 가져오기 (세븐스타, 컵오브릴레이션십의 enhancedInterpretation 지원)
@@ -1198,6 +1283,83 @@ const regenerateAIInterpretation = async () => {
     });
   } finally {
     isLoadingInterpretation.value = false;
+  }
+};
+
+// 프리미엄 배열법용 AI 해석 생성 함수
+const generatePremiumAIInterpretation = async () => {
+  console.log('🔮 [generatePremiumAIInterpretation] 시작');
+  console.log('🔮 spreadId:', reading.value?.spreadId);
+  
+  if (!reading.value) {
+    console.log('🔮 reading.value가 없어서 종료');
+    return;
+  }
+  
+  const isPremiumSpread = ['celtic_cross', 'seven_star', 'cup_of_relationship'].includes(reading.value.spreadId);
+  if (!isPremiumSpread) {
+    console.log('🔮 프리미엄 배열법이 아니어서 종료');
+    return;
+  }
+  
+  // 이미 해석이 있는지 확인
+  if (reading.value.aiInterpretation || reading.value.enhancedInterpretation) {
+    console.log('🔮 이미 해석이 있어서 종료');
+    return;
+  }
+  
+  isLoadingInterpretation.value = true;
+  interpretationProgress.value = 0;
+  
+  // 프로그레스 업데이트 시뮬레이션
+  const progressInterval = setInterval(() => {
+    if (interpretationProgress.value < 90) {
+      interpretationProgress.value += Math.random() * 15;
+    }
+  }, 500);
+  
+  try {
+    console.log('🔮 AI 해석 생성 요청 시작');
+    
+    const interpretationResult = await generateAI({
+      reading: reading.value,
+      customQuestion: customQuestion.value,
+      isPremium: true, // 프리미엄 배열법은 항상 프리미엄 모드
+      getPositionName,
+      userId: userStore.user?.id
+    });
+    
+    console.log('🔮 AI 해석 결과:', interpretationResult);
+    
+    // 프로그레스 완료
+    clearInterval(progressInterval);
+    interpretationProgress.value = 100;
+    
+    if (interpretationResult.success && interpretationResult.interpretation) {
+      console.log('🔮 AI 해석 저장 시작');
+      reading.value.aiInterpretation = interpretationResult.interpretation;
+      reading.value.aiInterpretationId = interpretationResult.interpretationId || null;
+      tarotStore.updateReading(reading.value);
+      console.log('🔮 AI 해석 저장 완료');
+    } else {
+      throw new Error('AI 해석 생성 실패');
+    }
+    
+  } catch (error) {
+    clearInterval(progressInterval);
+    console.error('🔮 AI 해석 생성 오류:', error);
+    await showConfirm({
+      title: '오류',
+      message: 'AI 해석을 생성하는 중 오류가 발생했습니다. 다시 시도해주세요.',
+      confirmText: '확인',
+      showCancel: false
+    });
+  } finally {
+    // 잠시 대기 후 로딩 화면 숨기기
+    await new Promise(resolve => setTimeout(resolve, 300));
+    isLoadingInterpretation.value = false;
+    interpretationProgress.value = 0;
+    console.log('🔮 [generatePremiumAIInterpretation] 종료');
   }
 };
 
@@ -1996,6 +2158,169 @@ onMounted(async () => {
   animation: pulse 1.5s ease-in-out infinite;
 }
 
+/* AI 해석 카테고리별 섹션 */
+.ai-interpretation-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.category-section {
+  padding: 25px;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 핵심 메시지 섹션 */
+.category-section.core-message {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%);
+  border: 2px solid rgba(236, 72, 153, 0.4);
+}
+
+.category-section.core-message::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.3) 0%, transparent 70%);
+  animation: rotate 10s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.category-section.core-message h3 {
+  color: #EC4899;
+  font-size: 22px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 0 15px rgba(236, 72, 153, 0.5);
+}
+
+/* 심층 분석 섹션 */
+.category-section.deep-analysis {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(79, 70, 229, 0.1) 100%);
+  border: 2px solid rgba(99, 102, 241, 0.4);
+}
+
+.category-section.deep-analysis::before {
+  content: '';
+  position: absolute;
+  bottom: -40px;
+  left: -40px;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%);
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.category-section.deep-analysis h3 {
+  color: #6366F1;
+  font-size: 22px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+}
+
+/* 실천 조언 섹션 */
+.category-section.action-advice {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%);
+  border: 2px solid rgba(34, 197, 94, 0.4);
+}
+
+.category-section.action-advice::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -50px;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(34, 197, 94, 0.2) 0%, transparent 70%);
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(-50%) scale(1); }
+  50% { transform: translateY(-50%) scale(1.1); }
+}
+
+.category-section.action-advice h3 {
+  color: #22C55E;
+  font-size: 22px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+}
+
+/* 카테고리 내용 스타일 */
+.category-content {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 20px;
+  backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 1;
+}
+
+.category-content p {
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.8;
+  font-size: 16px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 카테고리 섹션 호버 효과 */
+.category-section:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.category-section.core-message:hover {
+  box-shadow: 0 10px 30px rgba(236, 72, 153, 0.3);
+}
+
+.category-section.deep-analysis:hover {
+  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+}
+
+.category-section.action-advice:hover {
+  box-shadow: 0 10px 30px rgba(34, 197, 94, 0.3);
+}
+
 /* AI 해석 결과 섹션 */
 .ai-interpretation-section {
   margin: 40px 0;
@@ -2300,6 +2625,47 @@ onMounted(async () => {
 }
 
 /* 모바일 반응형 */
+@media (max-width: 768px) {
+  /* 카테고리별 섹션 모바일 스타일 */
+  .ai-interpretation-categories {
+    gap: 20px;
+  }
+  
+  .category-section {
+    padding: 20px;
+  }
+  
+  .category-section h3 {
+    font-size: 20px;
+    margin-bottom: 15px;
+  }
+  
+  .category-content {
+    padding: 15px;
+  }
+  
+  .category-content p {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  
+  /* 모바일에서 배경 애니메이션 크기 조정 */
+  .category-section.core-message::before {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .category-section.deep-analysis::before {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .category-section.action-advice::before {
+    width: 120px;
+    height: 120px;
+  }
+}
+
 @media (max-width: 768px) {
   .cards-grid {
     grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
