@@ -66,12 +66,7 @@ export class CupOfRelationshipInterpreter {
     this.relationshipStatus = status;
   }
   
-  /**
-   * 포지션 이름 가져오기
-   */
-  public getPositionName(index: number): string {
-    return this.positions[index]?.name || `위치 ${index + 1}`;
-  }
+
   
   /**
    * 카드 데이터 설정
