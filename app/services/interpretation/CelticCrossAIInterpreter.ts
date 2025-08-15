@@ -155,14 +155,14 @@ export class CelticCrossAIInterpreter {
       const prompt = this.generateAIPrompt();
       
       // Supabase Edge Function 호출
-      const { data, error } = await supabase.functions.invoke('interpret-tarot', {
+      const { data, error } = await supabase.functions.invoke('generate-interpretation', {
         body: {
-          readingId: `celtic_cross_${Date.now()}`,
           cards: this.cards,
-          spreadId: 'celtic_cross',
+          spreadType: 'celtic_cross',
           topic: this.topic,
           customQuestion: this.customQuestion,
-          userId: userId
+          userId: userId,
+          isPremium: true  // 캘틱 크로스는 프리미엄 기능
         }
       });
       

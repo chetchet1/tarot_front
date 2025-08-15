@@ -494,33 +494,33 @@ const onImageError = handleImageError;
 }
 
 .position-2 { /* 현재 상황 - 중앙 */
-  top: 50%;
+  top: 70%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 10;
 }
 
 .position-3 { /* 숨겨진 영향 - 좌측 상단 */
-  top: 25%;
-  left: 15%;
+  top: 30%;
+
 }
 
 .position-4 { /* 의식적 욕구 - 우측 상단 */
-  top: 25%;
-  right: 15%;
+  top: 30%;
+  left: 70%;
 }
 
 .position-5 { /* 무의식적 욕구 - 좌측 하단 */
-  top: 65%;
-  left: 15%;
+  top: 75%;
 }
 
 .position-6 { /* 조언 - 우측 하단 */
-  top: 65%;
-  right: 15%;
+  top: 75%;
+  left: 70%;
 }
 
 .position-7 { /* 최종 결과 - 하단 중앙 */
+  top: 100%;
   bottom: 5%;
   left: 50%;
   transform: translateX(-50%);

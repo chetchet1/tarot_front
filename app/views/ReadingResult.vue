@@ -1483,45 +1483,45 @@ onMounted(async () => {
 
 /* 세븐 스타 각 위치별 좌표 */
 .seven-star-layout .star-position-1 { /* 핵심 - 중앙 */
-  top: 50%;
+  top: 30%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 10;
 }
 
 .seven-star-layout .star-position-2 { /* 도움 - 위 */
-  top: 10%;
-  left: 50%;
+  top:45%;
+  left: 20%;
   transform: translate(-50%, -50%);
 }
 
 .seven-star-layout .star-position-3 { /* 내면 - 오른쪽 위 */
-  top: 20%;
-  left: 75%;
+  top: 45%;
+  left: 80%;
   transform: translate(-50%, -50%);
 }
 
 .seven-star-layout .star-position-4 { /* 예상 - 오른쪽 */
-  top: 50%;
-  left: 85%;
+  top: 65%;
+  left: 50%;
   transform: translate(-50%, -50%);
 }
 
 .seven-star-layout .star-position-5 { /* 결과 - 오른쪽 아래 */
-  top: 80%;
-  left: 75%;
+  top: 85%;
+  left: 20%;
   transform: translate(-50%, -50%);
 }
 
 .seven-star-layout .star-position-6 { /* 외부 - 왼쪽 아래 */
-  top: 80%;
-  left: 25%;
+  top: 85%;
+  left: 80%;
   transform: translate(-50%, -50%);
 }
 
 .seven-star-layout .star-position-7 { /* 운명 - 왼쪽 */
-  top: 50%;
-  left: 15%;
+  top: 100%;
+  left: 50%;
   transform: translate(-50%, -50%);
 }
 

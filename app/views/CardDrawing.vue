@@ -1489,6 +1489,15 @@ const checkFreeReadingStatus = () => {
 .card-drawing {
   min-height: 100vh;
   padding: 20px;
+  /* 모바일에서 좌우 드래그 방지 */
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+  position: relative;
+  /* 터치 스크롤 최적화 */
+  -webkit-overflow-scrolling: touch;
+  /* 바운스 효과 방지 */
+  overscroll-behavior-x: none;
 }
 
 .page-header {
@@ -1562,6 +1571,10 @@ const checkFreeReadingStatus = () => {
   max-width: 600px;
   margin: 0 auto;
   text-align: center;
+  /* 모바일에서 너비 제한 */
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
 }
 
 .deck-container,
@@ -2109,6 +2122,9 @@ const checkFreeReadingStatus = () => {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  /* 모바일에서 너비 제한 */
+  overflow-x: hidden;
+  position: relative;
 }
 
 .premium-instruction {
@@ -2134,6 +2150,9 @@ const checkFreeReadingStatus = () => {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  /* 모바일에서 너비 제한 */
+  overflow-x: hidden;
+  position: relative;
 }
 
 /* 세븐 스타 모드 스타일 */

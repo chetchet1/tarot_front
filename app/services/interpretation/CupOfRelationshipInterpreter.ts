@@ -36,15 +36,19 @@ export class CupOfRelationshipInterpreter {
   private customQuestion?: string;
   private relationshipStatus?: string;
   
-  // 컵 릴레이션쉽 배열법의 7개 포지션
+  // 컵 오브 릴레이션십 포지션 정의 (11장)
   private readonly positions = [
-    { name: '나의 마음', description: '질문자의 현재 감정과 마음 상태' },
-    { name: '상대의 마음', description: '상대방의 감정과 마음 상태' },
-    { name: '관계의 현재', description: '두 사람 관계의 현재 상황' },
-    { name: '나의 무의식', description: '질문자가 인식하지 못하는 감정' },
-    { name: '상대의 무의식', description: '상대방이 인식하지 못하는 감정' },
-    { name: '관계의 도전', description: '관계에서 극복해야 할 과제' },
-    { name: '관계의 미래', description: '관계가 나아갈 방향과 가능성' }
+    { name: '나', description: '나의 현재 감정과 상태' },
+    { name: '상대', description: '상대방의 현재 감정과 상태' },
+    { name: '관계 기본', description: '두 사람 관계의 기본적인 성향' },
+    { name: '관계 과거', description: '과거의 관계 상태' },
+    { name: '현재 느낌', description: '현재 두 사람의 관계 상태' },
+    { name: '현재 외부 상황', description: '관계에 영향을 미치는 외부 요인' },
+    { name: '현재 나는 어떻게 생각?', description: '현재 관계에 대한 나의 생각' },
+    { name: '현재 상대는 어떻게 생각?', description: '현재 관계에 대한 상대의 생각' },
+    { name: '미래 나는 어떻게 생각?', description: '미래에 나는 어떻게 생각할지' },
+    { name: '미래 상대는 어떻게 생각?', description: '미래에 상대는 어떻게 생각할지' },
+    { name: '결과', description: '관계의 최종 결과' }
   ];
 
   constructor(cards?: CardData[], topic: string = '연애', customQuestion?: string) {
@@ -60,6 +64,13 @@ export class CupOfRelationshipInterpreter {
    */
   public setRelationshipStatus(status: string): void {
     this.relationshipStatus = status;
+  }
+  
+  /**
+   * 포지션 이름 가져오기
+   */
+  public getPositionName(index: number): string {
+    return this.positions[index]?.name || `위치 ${index + 1}`;
   }
   
   /**

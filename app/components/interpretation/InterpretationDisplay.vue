@@ -168,6 +168,10 @@ const getTopicTitle = (topic: string): string => {
   padding: 20px;
   max-width: 800px;
   margin: 0 auto;
+  /* 모바일에서 좌우 드래그 방지 */
+  overflow-x: hidden;
+  width: 100%;
+  max-width: calc(100vw - 20px);
 }
 
 /* 섹션 타이틀 */

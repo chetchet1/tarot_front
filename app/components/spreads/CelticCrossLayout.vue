@@ -693,8 +693,15 @@ const onImageError = (event: Event) => {
 .celtic-cross-layout {
   position: relative;
   width: 100%;
-  min-height: 500px;
-  padding: 10px 10px 5px 10px;
+  min-height: 850px; /* 버튼 공간 포함하여 증가 */
+  padding: 10px 10px 80px 10px; /* 하단 패딩 추가 */
+  /* 모바일에서 좌우 드래그 방지 */
+  overflow-x: hidden;
+  max-width: 100vw;
+  /* 터치 스크롤 최적화 */
+  -webkit-overflow-scrolling: touch;
+  /* 바운스 효과 방지 */
+  overscroll-behavior-x: none;
 }
 
 /* 배경 장식 */
@@ -906,8 +913,10 @@ const onImageError = (event: Event) => {
   position: relative;
   width: 100%;
   max-width: 1200px;
-  height: 500px;
+  height: 700px; /* 높이 증가 */
   margin: 0 auto;
+  transform: scale(0.85); /* 전체 비율 축소 */
+  transform-origin: top center;
 }
 
 /* 카드 위치 */
@@ -1254,13 +1263,13 @@ const onImageError = (event: Event) => {
 /* 모바일 반응형 */
 @media (max-width: 768px) {
   .celtic-cross-layout {
-    min-height: 400px;
-    padding: 5px;
+    min-height: 700px; /* 모바일에서도 충분한 높이 확보 */
+    padding: 5px 5px 60px 5px;
   }
 
   .cards-container {
-    height: 400px;
-    transform: scale(0.75);
+    height: 600px;
+    transform: scale(0.65); /* 더 작게 조정 */
     transform-origin: top center;
   }
 
@@ -1354,8 +1363,13 @@ const onImageError = (event: Event) => {
 }
 
 @media (max-width: 480px) {
+  .celtic-cross-layout {
+    min-height: 650px;
+  }
+  
   .cards-container {
-    transform: scale(0.65);
+    height: 550px;
+    transform: scale(0.55); /* 더 작은 화면에서 더 축소 */
   }
   
   /* 작은 화면에서 배경 요소 더 축소 */
@@ -1412,16 +1426,17 @@ const onImageError = (event: Event) => {
 /* 액션 버튼 컨테이너 */
 .action-buttons-container {
   position: absolute;
-  bottom: 20px;
+  bottom: 10px;
   left: 50%;
-  transform: translate(-50%, 200%);
+  bottom: 60%;
+  transform: translateX(-50%);
   z-index: 100;
   display: flex;
   gap: 20px;
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 500px;
+  max-width: 300px;
 }
 
 .button-placeholder {
@@ -1458,7 +1473,7 @@ const onImageError = (event: Event) => {
 
 @media (max-width: 768px) {
   .action-buttons-container {
-    bottom: 10px;
+    bottom: 5px;
     gap: 10px;
     max-width: 100%;
     padding: 0 10px;
@@ -1485,6 +1500,10 @@ const onImageError = (event: Event) => {
   border-radius: 20px;
   position: relative;
   overflow: hidden;
+  /* 모바일에서 너비 제한 */
+  max-width: calc(100vw - 20px);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .interpretation-section::before {
@@ -1732,6 +1751,10 @@ const onImageError = (event: Event) => {
   position: relative;
   overflow: hidden;
   animation: slideInUp 0.5s ease-out;
+  /* 모바일에서 너비 제한 */
+  max-width: calc(100vw - 20px);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 @keyframes slideInUp {
