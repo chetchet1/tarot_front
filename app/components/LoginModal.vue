@@ -288,15 +288,6 @@ export default {
       errorMessage.value = '';
       successMessage.value = '';
 
-      // 전체 타임아웃 설정 (20초로 증가)
-      const timeoutId = setTimeout(() => {
-        if (isLoading.value) {
-          console.log('인증 타임아웃');
-          isLoading.value = false;
-          errorMessage.value = '요청 시간이 초과되었습니다. 다시 시도해주세요.';
-        }
-      }, 20000);
-
       try {
         if (isLoginMode.value) {
           // 로그인 시작 메시지 표시
@@ -304,9 +295,6 @@ export default {
           successMessage.value = '로그인 중입니다...';
           
           await userStore.login(formData.value.email, formData.value.password);
-          
-          // 타임아웃 클리어
-          clearTimeout(timeoutId);
           
           // 로그인 성공 메시지
           console.log('로그인 성공, 모달 닫기');
@@ -328,9 +316,6 @@ export default {
             { name: formData.value.name }
           );
           
-          // 타임아웃 클리어
-          clearTimeout(timeoutId);
-          
           // 즉시 로딩 해제
           isLoading.value = false;
           
@@ -342,16 +327,9 @@ export default {
         }
       } catch (error) {
         console.error('인증 오류:', error);
-        clearTimeout(timeoutId);
         isLoading.value = false;
         successMessage.value = ''; // 성공 메시지 클리어
-        
-        // 타임아웃 에러 특별 처리
-        if (error.message === 'Login timeout') {
-          errorMessage.value = '로그인 시간이 초과되었습니다. 네트워크 상태를 확인하고 다시 시도해주세요.';
-        } else {
-          errorMessage.value = getErrorMessage(error.message || error);
-        }
+        errorMessage.value = getErrorMessage(error.message || error);
       }
     };
 

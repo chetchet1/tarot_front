@@ -928,16 +928,7 @@ const goToResult = async () => {
       usageBeforeGoToResult = await adManager.checkPremiumSpreadUsage('celtic_cross');
       console.log('🔍 [디버그] 켈틱 크로스 현재 사용 횟수:', usageBeforeGoToResult);
       
-      // 디버그 모드: 모든 사용자에게 표시
-      const accountType = isTestUser ? '테스트 계정' : '일반 무료 계정';
-      const limitMessage = isTestUser 
-        ? '테스트 계정은 무제한 사용 가능' 
-        : '일반 계정은 하루 1회 제한';
-      
-      await showAlert({
-        title: '📊 켈틱 크로스 사용 현황',
-        message: `계정 유형: ${accountType}\n현재 이메일: ${currentUserEmail}\n\n오늘 사용 횟수: ${usageBeforeGoToResult.usedToday}회\n사용 가능: ${usageBeforeGoToResult.canUse ? '가능' : '불가능'}\n\n${limitMessage}`
-      });
+      // 디버그 알람 제거 - 불필요한 알람 표시하지 않음
     } catch (error) {
       console.error('🔍 [디버그] 에러:', error);
       // 에러는 무시하고 계속 진행
@@ -1119,10 +1110,6 @@ const goToResult = async () => {
         // 테스트 계정인 경우
         if (diff > 0) {
           console.error('⚠️ 버그 발견! 테스트 계정인데 카운트가 증가했습니다!');
-          await showAlert({
-            title: '⚠️ 버그 발견',
-            message: `테스트 계정인데 카운트가 ${diff}회 증가!\n\n이전: ${usageBeforeGoToResult.usedToday}회\n이후: ${usageAfterRecord.usedToday}회\n\n테스트 계정은 카운트되면 안됩니다.`
-          });
         } else {
           console.log('✅ 정상: 테스트 계정 카운트 증가 없음');
         }
@@ -1130,16 +1117,9 @@ const goToResult = async () => {
         // 일반 계정인 경우
         if (diff > 0) {
           console.log('✅ 정상: 일반 계정 카운트 증가');
-          await showAlert({
-            title: '✅ 켈틱 크로스 사용 완료',
-            message: `${accountType}\n\n사용 횟수: ${usageAfterRecord.usedToday}회\n\n오늘은 켈틱 크로스를 더 이상 사용할 수 없습니다.\n내일 다시 사용 가능합니다.\n\n(1장/3장 배열은 무제한 사용 가능)`
-          });
+          // 사용 완료 알람 제거 - 자연스러운 사용자 경험을 위해
         } else {
           console.log('🤔 예상치 못한 상황: 일반 계정인데 카운트 증가 없음');
-          await showAlert({
-            title: '📊 사용 현황',
-            message: `${accountType}\n\n현재 사용 횟수: ${usageAfterRecord.usedToday}회\n(카운트 변화 없음)`
-          });
         }
       }
     }

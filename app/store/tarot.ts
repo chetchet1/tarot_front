@@ -101,18 +101,79 @@ export const useTarotStore = defineStore('tarot', () => {
       
       if (cards && cards.length > 0) {
         // Supabase 데이터를 TarotCard 형식으로 변환
-        tarotCards.value = cards.map(card => ({
-          id: card.id,
-          name: card.name,
-          nameKr: card.name_kr,
-          arcana: card.arcana,
-          number: card.number,
-          keywords: typeof card.keywords === 'string' ? JSON.parse(card.keywords) : card.keywords,
-          meanings: typeof card.meanings === 'string' ? JSON.parse(card.meanings) : card.meanings,
-          element: card.element,
-          astrology: card.astrology,
-          imageUrl: card.image_url
-        }));
+        tarotCards.value = cards.map((card: any) => {
+          // 마이너 카드의 경우 suit 필드 추가
+          let suit = null;
+          let correctedNumber = card.number; // 수정된 number 값
+          
+          if (card.arcana === 'minor') {
+            // ID 범위로 suit 판단
+            if (card.id >= 22 && card.id <= 35) {
+              suit = 'wands';
+              // Wands 코트카드 number 수정
+              if (card.id === 32) correctedNumber = 11; // Page
+              else if (card.id === 33) correctedNumber = 12; // Knight
+              else if (card.id === 34) correctedNumber = 13; // Queen
+              else if (card.id === 35) correctedNumber = 14; // King
+              else correctedNumber = card.number; // DB의 원래 number 사용
+            }
+            else if (card.id >= 36 && card.id <= 49) {
+              suit = 'cups';
+              // Cups 코트카드 number 수정
+              if (card.id === 46) correctedNumber = 11; // Page
+              else if (card.id === 47) correctedNumber = 12; // Knight
+              else if (card.id === 48) correctedNumber = 13; // Queen
+              else if (card.id === 49) correctedNumber = 14; // King
+              else correctedNumber = card.number; // DB의 원래 number 사용
+            }
+            else if (card.id >= 50 && card.id <= 63) {
+              suit = 'swords';
+              // Swords 코트카드 number 수정
+              if (card.id === 60) correctedNumber = 11; // Page
+              else if (card.id === 61) correctedNumber = 12; // Knight
+              else if (card.id === 62) correctedNumber = 13; // Queen
+              else if (card.id === 63) correctedNumber = 14; // King
+              else correctedNumber = card.number; // DB의 원래 number 사용
+            }
+            else if (card.id >= 64 && card.id <= 77) {
+              suit = 'pentacles';
+              // Pentacles 코트카드 number 수정
+              if (card.id === 74) correctedNumber = 11; // Page
+              else if (card.id === 75) correctedNumber = 12; // Knight
+              else if (card.id === 76) correctedNumber = 13; // Queen
+              else if (card.id === 77) correctedNumber = 14; // King
+              else correctedNumber = card.number; // DB의 원래 number 사용
+            }
+          }
+          
+          const result = {
+            id: card.id,
+            name: card.name,
+            nameKr: card.name_kr,
+            arcana: card.arcana,
+            number: correctedNumber,
+            suit: suit, // suit 필드 추가
+            keywords: typeof card.keywords === 'string' ? JSON.parse(card.keywords) : card.keywords,
+            meanings: typeof card.meanings === 'string' ? JSON.parse(card.meanings) : card.meanings,
+            element: card.element,
+            astrology: card.astrology,
+            imageUrl: card.image_url
+          };
+          
+          // 디버깅용 로그 (코트카드 중심)
+          if (card.arcana === 'minor' && correctedNumber >= 11) {
+            console.log('👑 코트카드 로드:', {
+              id: card.id,
+              name: card.name,
+              nameKr: card.name_kr,
+              originalNumber: card.number,
+              correctedNumber: correctedNumber,
+              suit: suit
+            });
+          }
+          
+          return result;
+        });
         
         console.log(`타로카드 로드 성공: ${tarotCards.value.length}장`);
       } else {
@@ -330,21 +391,36 @@ export const useTarotStore = defineStore('tarot', () => {
 
   // 카드 뽑기 함수
   const getRandomCards = (count: number): TarotCard[] => {
-    console.log(`카드 뽑기 요청: ${count}장, 사용 가능한 카드: ${tarotCards.value.length}장`);
+    console.log(`🎲 [카드 뽑기] 요청: ${count}장, 사용 가능한 카드: ${tarotCards.value.length}장`);
     
     if (tarotCards.value.length === 0) {
-      console.error('사용 가능한 카드가 없습니다!');
+      console.error('❌ 사용 가능한 카드가 없습니다!');
       return [];
     }
     
     if (count > tarotCards.value.length) {
-      console.warn(`요청된 카드 수(${count})가 사용 가능한 카드 수(${tarotCards.value.length})보다 많습니다.`);
+      console.warn(`⚠️ 요청된 카드 수(${count})가 사용 가능한 카드 수(${tarotCards.value.length})보다 많습니다.`);
     }
+    
+    // 카드 데이터 확인
+    console.log('🔍 사용 가능한 카드 ID 범위:', {
+      minId: Math.min(...tarotCards.value.map(c => c.id)),
+      maxId: Math.max(...tarotCards.value.map(c => c.id)),
+      sampleCards: tarotCards.value.slice(0, 5).map(c => ({ id: c.id, name: c.name, nameKr: c.nameKr }))
+    });
     
     const shuffled = [...tarotCards.value].sort(() => Math.random() - 0.5);
     const selectedCards = shuffled.slice(0, count);
     
-    console.log('선택된 카드들:', selectedCards.map(c => c.nameKr));
+    console.log('🎴 선택된 카드들:', selectedCards.map(c => ({
+      id: c.id,
+      name: c.name,
+      nameKr: c.nameKr,
+      arcana: c.arcana,
+      number: c.number,
+      suit: (c as any).suit || null
+    })));
+    
     return selectedCards;
   };
 
@@ -401,10 +477,36 @@ export const useTarotStore = defineStore('tarot', () => {
   const drawCards = (count: number): DrawnCard[] => {
     const cards = getRandomCards(count);
     
-    return cards.map(card => ({
-      ...card,
-      orientation: Math.random() < 0.5 ? 'upright' : 'reversed'
-    } as DrawnCard));
+    return cards.map(card => {
+      // 카드의 모든 필드를 확실하게 보존
+      const drawnCard: DrawnCard = {
+        id: card.id,  // ID 필드를 명시적으로 보존
+        name: card.name,
+        nameKr: card.nameKr,
+        arcana: card.arcana,
+        number: card.number,
+        keywords: card.keywords,
+        meanings: card.meanings,
+        element: card.element,
+        astrology: card.astrology,
+        imageUrl: card.imageUrl,
+        orientation: Math.random() < 0.5 ? 'upright' : 'reversed'
+      };
+      
+      // 마이너 카드의 경우 suit 필드도 보존
+      if ((card as any).suit) {
+        (drawnCard as any).suit = (card as any).suit;
+      }
+      
+      console.log('🎴 Drew card:', {
+        id: drawnCard.id,
+        name: drawnCard.name,
+        nameKr: drawnCard.nameKr,
+        orientation: drawnCard.orientation
+      });
+      
+      return drawnCard;
+    });
   };
 
   // 점괘 생성

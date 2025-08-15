@@ -491,40 +491,36 @@ export const useUserStore = defineStore('user', () => {
     try {
       isLoading.value = true;
       
-      // 로그인 시도 with 타임아웃 (30초로 증가)
-      const loginPromise = authService.signIn(email, password);
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Login timeout')), 30000)
-      );
-      
-      const data = await Promise.race([loginPromise, timeoutPromise]) as any;
+      // 로그인 시도
+      const data = await authService.signIn(email, password);
       const user = data?.user;
       
       if (user) {
-        console.log('로그인 성공, 프로필 확인 중...');
+        console.log('로그인 성공:', user.email);
         
-        // 프로필 존재 확인 및 생성 (타임아웃 설정)
-        try {
-          const profilePromise = ensureProfileExists(user.id, user.email);
-          const profileTimeout = new Promise((resolve) => 
-            setTimeout(() => resolve(false), 3000)
-          );
-          await Promise.race([profilePromise, profileTimeout]);
-        } catch (profileError) {
-          console.warn('프로필 확인 실패:', profileError);
-        }
+        // 프로필 확인은 비동기로 처리 (로그인 차단하지 않음)
+        setTimeout(async () => {
+          try {
+            await ensureProfileExists(user.id, user.email);
+            const isPremiumUser = await checkPremiumStatus(user.id);
+            console.log('프리미엄 상태 확인:', isPremiumUser);
+            
+            // 프리미엄 상태만 업데이트
+            if (currentUser.value) {
+              currentUser.value.isPremium = isPremiumUser;
+              saveUser();
+            }
+          } catch (error) {
+            console.warn('프로필/프리미엄 확인 실패 (무시):', error);
+          }
+        }, 100);
         
-        // 프리미엄 상태 확인 (타임아웃 설정)
+        // 즉시 사용자 정보 설정 (프리미엄 상태는 나중에 업데이트)
         let isPremiumUser = false;
-        try {
-          const premiumPromise = checkPremiumStatus(user.id);
-          const premiumTimeout = new Promise((resolve) => 
-            setTimeout(() => resolve(false), 3000)
-          );
-          isPremiumUser = await Promise.race([premiumPromise, premiumTimeout]) as boolean;
-          console.log('로그인 시 프리미엄 상태:', isPremiumUser);
-        } catch (premiumError) {
-          console.warn('프리미엄 상태 확인 실패:', premiumError);
+        
+        // premium@example.com은 테스트용 프리미엄 계정
+        if (email === 'premium@example.com') {
+          isPremiumUser = true;
         }
         
         currentUser.value = {

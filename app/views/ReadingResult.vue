@@ -6,11 +6,25 @@
     </header>
 
     <div class="container" v-if="reading">
-      <!-- 커스텀 질문 표시 -->
-      <section v-if="customQuestion" class="custom-question-section">
-        <h2>📌 당신의 질문</h2>
+      <!-- 점괘 정보 표시 -->
+      <section class="reading-info-section">
+        <div class="reading-info-grid">
+          <div class="info-item">
+            <span class="info-label">테마</span>
+            <span class="info-value">{{ displayTheme }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">배열법</span>
+            <span class="info-value">{{ displaySpread }}</span>
+          </div>
+        </div>
+      </section>
+      
+      <!-- 질문 표시 (커스텀 질문 또는 테마별 기본 질문) -->
+      <section class="custom-question-section">
+        <h2>📌 {{ customQuestion ? '당신의 질문' : '오늘의 질문' }}</h2>
         <div class="custom-question-content">
-          <p>{{ customQuestion }}</p>
+          <p>{{ displayQuestion }}</p>
         </div>
       </section>
 
@@ -424,9 +438,22 @@
           <p>AI가 당신의 카드를 분석하고 있습니다...</p>
         </div>
         
-        <!-- 해석 내용 -->
-        <div v-else-if="reading.aiInterpretation" class="ai-interpretation-content">
-          <p>{{ reading.aiInterpretation }}</p>
+        <!-- 해석 내용 (aiInterpretation 또는 enhancedInterpretation 확인) -->
+        <div v-else-if="getAIInterpretationText()" class="ai-interpretation-content">
+          <p>{{ getAIInterpretationText() }}</p>
+        </div>
+        
+        <!-- 무료 사용자용 AI 해석 버튼 (해석이 없는 경우) -->
+        <div v-else-if="!reading.aiInterpretation && !reading.enhancedInterpretation && !reading.improvedInterpretation" class="ai-interpretation-cta">
+          <button 
+            class="crystal-ball-button" 
+            @click="generatePremiumAIInterpretation()"
+          >
+            <span class="crystal-icon">🔮</span>
+            <span class="button-text">AI 해석 생성하기</span>
+            <span class="sparkle-effect">✨</span>
+          </button>
+          <p class="cta-description">카드에 숨겨진 깊은 의미를 AI가 분석합니다</p>
         </div>
         
         <!-- 해석 생성 중 에러 -->
@@ -509,6 +536,7 @@ import { AIInterpretationService } from '../services/ai/AIInterpretationService'
 import { supabase } from '../services/supabase';
 import TarotLoadingScreen from '../components/loading/TarotLoadingScreen.vue';
 import type { DrawnCard } from '../models/tarot';
+import { getThemeQuestion, getThemeDisplayName, getSpreadDisplayName } from '../utils/themeQuestions';
 
 const router = useRouter();
 const route = useRoute();
@@ -546,6 +574,35 @@ const reading = computed(() => {
 // 커스텀 질문 가져오기
 const customQuestion = computed(() => {
   return tarotStore.getCustomQuestion();
+});
+
+// 테마와 서브테마 가져오기
+const selectedTheme = computed(() => {
+  return tarotStore.selectedTheme || reading.value?.topic || 'general';
+});
+
+const selectedSubTheme = computed(() => {
+  return tarotStore.selectedSubTheme || null;
+});
+
+// 표시용 테마 이름
+const displayTheme = computed(() => {
+  return getThemeDisplayName(selectedTheme.value, selectedSubTheme.value);
+});
+
+// 표시용 배열법 이름
+const displaySpread = computed(() => {
+  return getSpreadDisplayName(reading.value?.spreadId || '');
+});
+
+// 표시할 질문 (커스텀 질문 또는 테마별 기본 질문)
+const displayQuestion = computed(() => {
+  if (customQuestion.value) {
+    return customQuestion.value;
+  }
+  
+  const themeQuestion = getThemeQuestion(selectedTheme.value, selectedSubTheme.value);
+  return themeQuestion?.question || '오늘 나에게 필요한 메시지는 무엇일까요?';
 });
 
 // 평점 관련 상태
@@ -600,19 +657,119 @@ const createShareLink = async (reading: any): Promise<string> => {
   try {
     const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
     
+    // AI 해석 가져오기 - aiInterpretation 또는 enhancedInterpretation 사용
+    let aiInterpretationText = null;
+    
+    // 먼저 aiInterpretation 확인
+    if (reading.aiInterpretation) {
+      aiInterpretationText = reading.aiInterpretation;
+    }
+    // enhancedInterpretation 확인 (세븐스타, 컵오브릴레이션십 등)
+    else if (reading.enhancedInterpretation) {
+      if (typeof reading.enhancedInterpretation === 'object') {
+        // 객체인 경우 적절한 필드 선택
+        aiInterpretationText = reading.enhancedInterpretation.aiInterpretation || 
+                               reading.enhancedInterpretation.overallMessage || 
+                               reading.enhancedInterpretation.summary || 
+                               JSON.stringify(reading.enhancedInterpretation);
+      } else if (typeof reading.enhancedInterpretation === 'string') {
+        aiInterpretationText = reading.enhancedInterpretation;
+      }
+    }
+    
+    // 테마와 서브테마 정보 추가
+    const theme = reading.topic || tarotStore.selectedTheme || 'general';
+    const subTheme = tarotStore.selectedSubTheme || null;
+    
     const shareData = {
       spread_type: reading.spreadId,
-      cards: reading.cards.map((card: any) => ({
-        cardNumber: card.cardNumber || card.number || card.id || 0,
-        nameKr: card.nameKr || card.name_kr || '',
-        name: card.name || '',
-        orientation: card.orientation || 'upright',
-        position: card.position
-      })),
-      custom_question: reading.customQuestion || null,
+      cards: reading.cards.map((card: any) => {
+        // 카드 전체 데이터 출력 (디버깅용)
+        console.log('🔍 [createShareLink] Full card data:', JSON.stringify(card, null, 2));
+        
+        // 데이터베이스 ID 찾기 - 카드의 고유 식별자
+        let dbId: number | undefined;
+        
+        // 1. card.id가 있고 숫자인 경우 (DB에서 온 ID)
+        if (card.id !== undefined && card.id !== null) {
+          dbId = typeof card.id === 'number' ? card.id : Number(card.id);
+          console.log('🔍 Using card.id:', dbId);
+        }
+        // 2. cardNumber가 있는 경우 (이미 DB ID로 변환된 값)
+        else if (card.cardNumber !== undefined && card.cardNumber !== null) {
+          dbId = Number(card.cardNumber);
+          console.log('🔍 Using cardNumber:', dbId);
+        }
+        // 3. arcana와 number로 DB ID 계산
+        else if (card.arcana && card.number !== undefined) {
+          if (card.arcana === 'major') {
+            dbId = card.number; // 메이저: 0-21
+            console.log('🔍 Major arcana - using number:', dbId);
+          } else if (card.arcana === 'minor' && card.suit) {
+            const suitLower = card.suit.toLowerCase();
+            
+            // 코트카드와 숫자 카드를 구분하여 처리
+            if (card.number >= 11 && card.number <= 14) {
+              // 코트카드 (Page=11, Knight=12, Queen=13, King=14)
+              // 올바른 DB ID 매핑 (cups와 wands가 바뀌어 있었음을 수정)
+              const courtCardOffsets: Record<string, Record<number, number>> = {
+                'cups': { 11: 32, 12: 33, 13: 34, 14: 35 },      // Page of Cups = 32
+                'pentacles': { 11: 36, 12: 37, 13: 38, 14: 39 },  // Page of Pentacles = 36  
+                'swords': { 11: 40, 12: 41, 13: 42, 14: 43 },     // Page of Swords = 40
+                'wands': { 11: 44, 12: 45, 13: 46, 14: 47 }       // Page of Wands = 44
+              };
+              
+              if (courtCardOffsets[suitLower] && courtCardOffsets[suitLower][card.number]) {
+                dbId = courtCardOffsets[suitLower][card.number];
+                console.log(`🔍 Court card - suit: ${suitLower}, number: ${card.number}, DB ID: ${dbId}`);
+              }
+            } else {
+              // 숫자 카드 (1-10)  
+              const suitOffsets: Record<string, number> = {
+                'cups': 22,       // Ace of Cups = 22
+                'pentacles': 48,  // Ace of Pentacles = 48
+                'swords': 58,     // Ace of Swords = 58
+                'wands': 68       // Ace of Wands = 68
+              };
+              const offset = suitOffsets[suitLower];
+              if (offset !== undefined) {
+                dbId = offset + (card.number - 1);
+                console.log(`🔍 Number card - suit: ${suitLower}, number: ${card.number}, DB ID: ${dbId}`);
+              }
+            }
+          }
+        }
+        
+        // DB ID를 찾지 못한 경우 기본값
+        if (dbId === undefined || isNaN(dbId)) {
+          console.warn('❌ Could not determine DB ID for card:', card);
+          dbId = 0; // The Fool as fallback
+        }
+        
+        console.log('🎴 Mapping card for sharing:', {
+          originalCard: card,
+          resolvedDbId: dbId,
+          name: card.name,
+          nameKr: card.nameKr,
+          arcana: card.arcana,
+          suit: card.suit,
+          number: card.number
+        });
+        
+        return {
+          cardNumber: dbId,  // DB ID를 cardNumber 필드에 저장
+          nameKr: card.nameKr || card.name_kr || '',
+          name: card.name || '',
+          orientation: card.orientation || 'upright',
+          position: card.position
+        };
+      }),
+      custom_question: reading.customQuestion || displayQuestion.value,
       basic_interpretation: reading.overallMessage || null,
-      ai_interpretation: reading.aiInterpretation || null,
-      shared_by: reading.userId || null
+      ai_interpretation: aiInterpretationText,
+      shared_by: reading.userId || null,
+      theme: theme,
+      sub_theme: subTheme
     };
     
     console.log('Creating share link with data:', shareData);
@@ -641,18 +798,19 @@ const createShareLink = async (reading: any): Promise<string> => {
 const generateShareMessage = (reading: any, shareUrl: string): string => {
   let message = '🔮 타로 점괘 결과를 공유합니다\n\n';
   
-  if (reading.customQuestion) {
-    message += `❓ 질문: ${reading.customQuestion}\n\n`;
-  }
+  // 테마 정보 추가
+  const theme = reading.topic || tarotStore.selectedTheme || 'general';
+  const subTheme = tarotStore.selectedSubTheme || null;
+  const themeDisplay = getThemeDisplayName(theme, subTheme);
+  message += `🎯 테마: ${themeDisplay}\n`;
   
-  const spreadNames: Record<string, string> = {
-    'one_card': '원 카드',
-    'three_card_timeline': '시간의 흐름 (3장)',
-    'celtic_cross': '켈틱 크로스 (10장)',
-    'seven_star': '세븐 스타 (7장)',
-    'cup_of_relationship': '컵 오브 릴레이션십 (11장)'
-  };
-  message += `📋 배열법: ${spreadNames[reading.spreadId] || reading.spreadId}\n\n`;
+  // 배열법 정보
+  const spreadDisplay = getSpreadDisplayName(reading.spreadId);
+  message += `📋 배열법: ${spreadDisplay}\n\n`;
+  
+  // 질문 (커스텀 또는 테마별 기본 질문)
+  const question = reading.customQuestion || displayQuestion.value;
+  message += `❓ 질문: ${question}\n\n`;
   
   message += '🎴 뽑은 카드:\n';
   reading.cards.forEach((card: any, index: number) => {
@@ -660,6 +818,14 @@ const generateShareMessage = (reading: any, shareUrl: string): string => {
     const orientation = card.orientation === 'reversed' ? '(역)' : '';
     message += `${index + 1}. ${position}: ${card.nameKr || card.name}${orientation}\n`;
   });
+  
+  // AI 해석 미리보기 추가
+  const aiText = getAIInterpretationText();
+  if (aiText) {
+    message += '\n✨ 수정구슬의 신비로운 통찰\n';
+    const preview = aiText.substring(0, 100).trim();
+    message += `${preview}...\n`;
+  }
   
   message += `\n👉 자세한 해석 보기\n${shareUrl}\n\n`;
   message += '🎯 나만의 타로 - 매일 무료 타로 점';
@@ -755,6 +921,48 @@ const getRatingHint = () => {
 };
 
 
+
+// AI 해석 텍스트 가져오기 (세븐스타, 컵오브릴레이션십의 enhancedInterpretation 지원)
+const getAIInterpretationText = () => {
+  if (!reading.value) return null;
+  
+  // 먼저 aiInterpretation 확인
+  if (reading.value.aiInterpretation) {
+    console.log('🔍 [getAIInterpretationText] aiInterpretation 사용');
+    return reading.value.aiInterpretation;
+  }
+  
+  // enhancedInterpretation 확인 (세븐스타, 컵오브릴레이션십)
+  if (reading.value.enhancedInterpretation) {
+    console.log('🔍 [getAIInterpretationText] enhancedInterpretation 발견');
+    
+    // enhancedInterpretation이 객체인 경우
+    if (typeof reading.value.enhancedInterpretation === 'object') {
+      // aiInterpretation 필드가 있는 경우
+      if (reading.value.enhancedInterpretation.aiInterpretation) {
+        console.log('🔍 [getAIInterpretationText] enhancedInterpretation.aiInterpretation 사용');
+        return reading.value.enhancedInterpretation.aiInterpretation;
+      }
+      // overallMessage, summary 등 다른 필드 확인
+      if (reading.value.enhancedInterpretation.overallMessage) {
+        console.log('🔍 [getAIInterpretationText] enhancedInterpretation.overallMessage 사용');
+        return reading.value.enhancedInterpretation.overallMessage;
+      }
+      if (reading.value.enhancedInterpretation.summary) {
+        console.log('🔍 [getAIInterpretationText] enhancedInterpretation.summary 사용');
+        return reading.value.enhancedInterpretation.summary;
+      }
+    }
+    // enhancedInterpretation이 문자열인 경우
+    else if (typeof reading.value.enhancedInterpretation === 'string') {
+      console.log('🔍 [getAIInterpretationText] enhancedInterpretation 문자열 사용');
+      return reading.value.enhancedInterpretation;
+    }
+  }
+  
+  console.log('🔍 [getAIInterpretationText] 해석 없음');
+  return null;
+};
 
 // 카드 의미 가져오기
 const getCardMeaning = (card: DrawnCard, topic: string) => {
@@ -1012,7 +1220,10 @@ onMounted(async () => {
   // 여기서는 절대 중복 생성하지 않음
   
   // AI 해석 생성 여부 결정
-  if (reading.value && !reading.value.aiInterpretation) {
+  // enhancedInterpretation이나 aiInterpretation이 이미 있는지 확인
+  const hasInterpretation = !!(reading.value?.aiInterpretation || reading.value?.enhancedInterpretation);
+  
+  if (reading.value && !hasInterpretation) {
     const isPremiumSpread = ['celtic_cross', 'seven_star', 'cup_of_relationship'].includes(reading.value.spreadId);
     
     // ⚠️ 중요: 프리미엄 배열법은 절대 여기서 생성하지 않음!
@@ -1020,10 +1231,12 @@ onMounted(async () => {
     if (isPremiumSpread) {
       console.log('🚫 [ReadingResult] 프리미엄 배열법 - AI 해석 생성 건너뜀 (중복 방지)');
       console.log('🚫 [ReadingResult] spreadId:', reading.value.spreadId);
-      console.log('🚫 [ReadingResult] AI 해석이 없다면 CardDrawing에서 생성되지 않은 것');
-      console.log('🚫 [ReadingResult] 현재 AI 해석:', {
-        exists: !!reading.value.aiInterpretation,
-        length: reading.value.aiInterpretation?.length || 0
+      console.log('🚫 [ReadingResult] enhancedInterpretation:', !!reading.value.enhancedInterpretation);
+      console.log('🚫 [ReadingResult] aiInterpretation:', !!reading.value.aiInterpretation);
+      console.log('🚫 [ReadingResult] 해석 상태:', {
+        hasAI: !!reading.value.aiInterpretation,
+        hasEnhanced: !!reading.value.enhancedInterpretation,
+        interpretationText: getAIInterpretationText()?.substring(0, 100)
       });
       // 프리미엄 배열법은 절대 여기서 생성하지 않음
       // return; // 더 이상 처리하지 않음
@@ -1039,7 +1252,8 @@ onMounted(async () => {
       });
     }
   } else {
-    console.log('🎴 [ReadingResult] 이미 AI 해석이 있음:', reading.value?.aiInterpretation?.substring(0, 100));
+    console.log('🎴 [ReadingResult] 이미 해석이 있음');
+    console.log('🎴 [ReadingResult] 해석 텍스트:', getAIInterpretationText()?.substring(0, 100));
   }
 });
 </script>
@@ -1084,6 +1298,43 @@ onMounted(async () => {
 }
 
 /* 커스텀 질문 섹션 */
+/* 점괘 정보 섹션 */
+.reading-info-section {
+  margin-bottom: 25px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 12px;
+}
+
+.reading-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.info-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.info-value {
+  font-size: 16px;
+  color: white;
+  font-weight: 600;
+  background: linear-gradient(135deg, #A855F7 0%, #8B5CF6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .custom-question-section {
   margin-bottom: 30px;
   padding: 25px;

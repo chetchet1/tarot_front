@@ -1,5 +1,6 @@
 /**
  * 카드 이미지 경로를 반환하는 유틸리티 함수
+ * CARD_IMAGE_NAMING_RULES.md 문서를 기준으로 정확한 매핑 사용
  */
 export const getCardImagePath = (card: any): string => {
   try {
@@ -52,28 +53,144 @@ export const getCardImagePath = (card: any): string => {
     
     // 마이너 아르카나의 경우
     if (card.arcana === 'minor') {
-      const cardNumber = String(card.number || 1).padStart(2, '0');
-      let cardName;
+      // DB ID로부터 파일 경로를 직접 매핑하는 함수
+      const getFilePathFromId = (id: number): string => {
+        // 완전한 매핑 테이블 (CARD_IMAGE_NAMING_RULES.md 기준)
+        const completeMapping: Record<number, string> = {
+          // Wands 숫자 카드 (22-31)
+          22: '01-ace-of-wands.png',
+          23: '02-two-of-wands.png',
+          24: '03-three-of-wands.png',
+          25: '04-four-of-wands.png',
+          26: '05-five-of-wands.png',
+          27: '06-six-of-wands.png',
+          28: '07-seven-of-wands.png',
+          29: '08-eight-of-wands.png',
+          30: '09-nine-of-wands.png',
+          31: '10-ten-of-wands.png',
+          
+          // Wands 코트 카드 (32-35) - 파일번호 41-44
+          32: '41-Page-of-Wands.png',
+          33: '42-Knight-of-Wands.png',
+          34: '43-Queen-of-Wands.png',
+          35: '44-King-of-Wands.png',
+          
+          // Cups 숫자 카드 (36-45)
+          36: '01-ace-of-cups.png',
+          37: '02-two-of-cups.png',
+          38: '03-three-of-cups.png',
+          39: '04-four-of-cups.png',
+          40: '05-five-of-cups.png',
+          41: '06-six-of-cups.png',
+          42: '07-seven-of-cups.png',
+          43: '08-eight-of-cups.png',
+          44: '09-nine-of-cups.png',
+          45: '10-ten-of-cups.png',
+          
+          // Cups 코트 카드 (46-49) - 파일번호 45-48
+          46: '45-Page-of-Cups.png',
+          47: '46-Knight-of-Cups.png',
+          48: '47-Queen-of-Cups.png',
+          49: '48-King-of-Cups.png',
+          
+          // Swords 숫자 카드 (50-59)
+          50: '01-ace-of-swords.png',
+          51: '02-two-of-swords.png',
+          52: '03-three-of-swords.png',
+          53: '04-four-of-swords.png',
+          54: '05-five-of-swords.png',
+          55: '06-six-of-swords.png',
+          56: '07-seven-of-swords.png',
+          57: '08-eight-of-swords.png',
+          58: '09-nine-of-swords.png',
+          59: '10-ten-of-swords.png',
+          
+          // Swords 코트 카드 (60-63) - 파일번호 49-52
+          60: '49-Page-of-Swords.png',
+          61: '50-Knight-of-Swords.png',
+          62: '51-Queen-of-Swords.png',
+          63: '52-King-of-Swords.png',
+          
+          // Pentacles 숫자 카드 (64-73)
+          64: '01-ace-of-pentacles.png',
+          65: '02-two-of-pentacles.png',
+          66: '03-three-of-pentacles.png',
+          67: '04-four-of-pentacles.png',
+          68: '05-five-of-pentacles.png',
+          69: '06-six-of-pentacles.png',
+          70: '07-seven-of-pentacles.png',
+          71: '08-eight-of-pentacles.png',
+          72: '09-nine-of-pentacles.png',
+          73: '10-ten-of-pentacles.png',
+          
+          // Pentacles 코트 카드 (74-77) - 파일번호 53-56
+          74: '53-Page-of-Pentacles.png',
+          75: '54-Knight-of-Pentacles.png',
+          76: '55-Queen-of-Pentacles.png',
+          77: '56-King-of-Pentacles.png'
+        };
+        
+        return completeMapping[id] || '';
+      };
       
-      if (card.suit) {
-        if (card.number <= 10) {
-          const numberNames = {
-            1: 'ace', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
-            6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten'
-          };
-          cardName = `${numberNames[card.number]}-of-${card.suit}`;
-        } else {
+      // card.id가 있는 경우 ID 기반으로 처리
+      if (card.id) {
+        const fileName = getFilePathFromId(card.id);
+        if (fileName) {
+          return `/assets/tarot-cards/minor/${fileName}`;
+        }
+      }
+      
+      // 기존 로직 (card.number와 card.suit 기반) - 폴백용
+      if (card.number >= 11 && card.number <= 14 && card.suit) {
+        const courtNumbers = {
+          'wands': { 11: 41, 12: 42, 13: 43, 14: 44 },
+          'cups': { 11: 45, 12: 46, 13: 47, 14: 48 },
+          'swords': { 11: 49, 12: 50, 13: 51, 14: 52 },
+          'pentacles': { 11: 53, 12: 54, 13: 55, 14: 56 }
+        };
+        
+        const suitLower = card.suit.toLowerCase();
+        const fileNumber = courtNumbers[suitLower]?.[card.number];
+        
+        if (fileNumber) {
           const faceCards = {
             11: 'Page', 12: 'Knight', 13: 'Queen', 14: 'King'
           };
           const suitCapitalized = card.suit.charAt(0).toUpperCase() + card.suit.slice(1);
-          cardName = `${faceCards[card.number]}-of-${suitCapitalized}`;
+          const cardName = `${faceCards[card.number]}-of-${suitCapitalized}`;
+          return `/assets/tarot-cards/minor/${fileNumber}-${cardName}.png`;
         }
-      } else {
-        cardName = card.name.toLowerCase().replace(/\s+/g, '-');
       }
       
-      return `/assets/tarot-cards/minor/${cardNumber}-${cardName}.png`;
+      // 숫자 카드의 경우 (1-10) - 폴백용
+      if (card.number <= 10 && card.suit) {
+        // suit별 시작 ID
+        const suitStartIds = {
+          'wands': 22,    // 22-31
+          'cups': 36,     // 36-45
+          'swords': 50,   // 50-59
+          'pentacles': 64 // 64-73
+        };
+        
+        const suitLower = card.suit.toLowerCase();
+        const startId = suitStartIds[suitLower];
+        
+        if (startId) {
+          const dbId = startId + (card.number - 1);
+          const fileName = getFilePathFromId(dbId);
+          if (fileName) {
+            return `/assets/tarot-cards/minor/${fileName}`;
+          }
+        }
+      }
+      
+      // suit가 없는 경우 이름으로 추측
+      if (card.name) {
+        const cardName = card.name.toLowerCase().replace(/\s+/g, '-');
+        // 기본값으로 01번 사용
+        return `/assets/tarot-cards/minor/01-${cardName}.png`;
+      }
     }
     
     // 메이저 아르카나의 경우

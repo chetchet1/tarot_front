@@ -26,6 +26,28 @@ export const supabase = createClient(
           return;
         }
       } : undefined
+    },
+    global: {
+      fetch: (url, options = {}) => {
+        // 타임아웃 설정 (15초)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        
+        return fetch(url, {
+          ...options,
+          signal: controller.signal
+        }).then(response => {
+          clearTimeout(timeoutId);
+          return response;
+        }).catch(error => {
+          clearTimeout(timeoutId);
+          if (error.name === 'AbortError') {
+            console.error('⏰ Supabase API 요청 타임아웃');
+            throw new Error('네트워크 연결 시간이 초과되었습니다.');
+          }
+          throw error;
+        });
+      }
     }
   }
 );

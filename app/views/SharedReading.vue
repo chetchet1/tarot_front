@@ -36,18 +36,33 @@
     
     <!-- 정상 표시 -->
     <div v-else-if="sharedData" class="reading-content">
-      <!-- 헤더 -->
-      <header class="share-header">
-        <h1>🔮 공유된 타로 점괘</h1>
-        <p class="share-info">
-          공유일: {{ formatDate(sharedData.created_at) }}
-        </p>
-      </header>
       
       <!-- 읽기 전용 리딩 컨텐츠 -->
       <div class="container">
-        <!-- 커스텀 질문 표시 -->
-        <section v-if="sharedData.custom_question" class="custom-question-section">
+        <!-- 점괘 정보 표시 (인스타그램 스크린샷 최적화) -->
+        <section class="reading-summary-box">
+          <div class="summary-header">
+            <div class="summary-title">🔮 타로 점괘 결과 <span class="summary-date">{{ formatDate(sharedData.created_at) }}</span></div>
+          </div>
+          
+          <div class="summary-info">
+            <div class="info-row">
+              <span class="info-icon">🎯&nbsp;</span>
+              <span class="info-text">테마: {{ getThemeDisplay() }} &nbsp;&nbsp; </span>
+              <span class="info-icon">📋&nbsp;</span>
+              <span class="info-text">배열법: {{ getSpreadDisplay() }}</span>
+            </div>
+          </div>
+          
+          <div class="summary-insight" v-if="getShortInterpretation()">
+            <div class="insight-label">✨ 핵심 메시지</div>
+            <div class="insight-text">{{ getShortInterpretation() }}</div>
+          </div>
+
+        </section>
+        
+        <!-- 질문 표시 (커스텀 질문이 실제로 있을 때만) -->
+        <section v-if="sharedData.custom_question && sharedData.custom_question.trim()" class="custom-question-section">
           <h2>📌 질문</h2>
           <div class="custom-question-content">
             <p>{{ sharedData.custom_question }}</p>
@@ -67,10 +82,11 @@
                 :class="`star-card position-${index + 1}`"
               >
                 <div class="card-mini" :class="card.orientation">
-                  <img :src="getCardImageUrl(card)" 
-                       :alt="card.nameKr || card.name" 
-                       @error="onImageError"
-                       :class="{ reversed: card.orientation === 'reversed' }" />
+                  <div class="card-image-wrapper" :class="{ 'is-reversed': card.orientation === 'reversed' }">
+                    <img :src="getCardImageUrl(card)" 
+                         :alt="card.nameKr || card.name" 
+                         @error="onImageError" />
+                  </div>
                   <span class="position-label">{{ index + 1 }}</span>
                 </div>
               </div>
@@ -86,10 +102,11 @@
                 :class="`cup-card position-${index + 1}`"
               >
                 <div class="card-mini" :class="card.orientation">
-                  <img :src="getCardImageUrl(card)" 
-                       :alt="card.nameKr || card.name" 
-                       @error="onImageError"
-                       :class="{ reversed: card.orientation === 'reversed' }" />
+                  <div class="card-image-wrapper" :class="{ 'is-reversed': card.orientation === 'reversed' }">
+                    <img :src="getCardImageUrl(card)" 
+                         :alt="card.nameKr || card.name" 
+                         @error="onImageError" />
+                  </div>
                   <span class="position-label">{{ index + 1 }}</span>
                 </div>
               </div>
@@ -105,10 +122,11 @@
                 :class="`card-position position-${index + 1}`"
               >
                 <div class="card-mini" :class="card.orientation">
-                  <img :src="getCardImageUrl(card)" 
-                       :alt="card.nameKr || card.name" 
-                       @error="onImageError"
-                       :class="{ reversed: card.orientation === 'reversed' }" />
+                  <div class="card-image-wrapper" :class="{ 'is-reversed': card.orientation === 'reversed' }">
+                    <img :src="getCardImageUrl(card)" 
+                         :alt="card.nameKr || card.name" 
+                         @error="onImageError" />
+                  </div>
                   <span class="position-label">{{ index + 1 }}</span>
                 </div>
               </div>
@@ -118,11 +136,10 @@
           <!-- 오늘의 카드 레이아웃 -->
           <div v-else-if="sharedData.spread_type === 'daily_card' && parsedCards[0]" class="daily-card-layout">
             <div class="card-display">
-              <div class="card-image">
+              <div class="card-image" :class="{ 'is-reversed': parsedCards[0].orientation === 'reversed' }">
                 <img :src="getCardImageUrl(parsedCards[0])" 
                      :alt="parsedCards[0].nameKr || parsedCards[0].name" 
-                     @error="onImageError"
-                     :class="{ reversed: parsedCards[0].orientation === 'reversed' }" />
+                     @error="onImageError" />
               </div>
               <div class="card-name">{{ parsedCards[0].nameKr || parsedCards[0].name }}</div>
               <div class="card-orientation" :class="parsedCards[0].orientation">
@@ -138,11 +155,10 @@
               :key="index"
               class="card-display"
             >
-              <div class="card-image">
+              <div class="card-image" :class="{ 'is-reversed': card.orientation === 'reversed' }">
                 <img :src="getCardImageUrl(card)" 
                      :alt="card.nameKr || card.name" 
-                     @error="onImageError"
-                     :class="{ reversed: card.orientation === 'reversed' }" />
+                     @error="onImageError" />
               </div>
               <div class="card-name">{{ card.nameKr || card.name }}</div>
               <div class="card-orientation" :class="card.orientation">
@@ -193,6 +209,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { getThemeDisplayName, getSpreadDisplayName } from '../utils/themeQuestions';
+import { getCardImageFromObject } from '../utils/cardImageUtils';
 
 const route = useRoute();
 const loading = ref(true);
@@ -204,10 +222,26 @@ const sharedData = ref<any>(null);
 const parsedCards = computed(() => {
   if (!sharedData.value?.cards) return [];
   try {
-    return typeof sharedData.value.cards === 'string' 
+    const cards = typeof sharedData.value.cards === 'string' 
       ? JSON.parse(sharedData.value.cards)
       : sharedData.value.cards;
-  } catch {
+    
+    // 디버깅용 로그 - 더 자세히
+    console.log('🎴 [SharedReading] Parsed cards:', cards);
+    cards.forEach((card: any, index: number) => {
+      console.log(`📌 Card ${index + 1} details:`, {
+        cardNumber: card.cardNumber,
+        id: card.id,
+        name: card.name,
+        nameKr: card.nameKr,
+        orientation: card.orientation,
+        expectedImage: getCardImageFromObject(card)
+      });
+    });
+    
+    return cards;
+  } catch (err) {
+    console.error('Failed to parse cards:', err);
     return [];
   }
 });
@@ -244,66 +278,9 @@ const formattedDailyInterpretation = computed(() => {
   return html;
 });
 
-// 카드 이미지 URL 생성
+// 카드 이미지 URL 생성 - cardImageUtils 사용
 const getCardImageUrl = (card: any) => {
-  const cardNum = card.cardNumber || card.id || 0;
-  
-  // 메이저 아르카나 (0-21)
-  if (cardNum <= 21) {
-    const majorCardNames = {
-      0: '00-the-Fool.png', 1: '01-The-Magician.png', 2: '02-The-High-Priestess.png',
-      3: '03-The-Empress.png', 4: '04-The-Emperor.png', 5: '05-The-Hierophant.png',
-      6: '06-The-Lovers.png', 7: '07-The-Chariot.png', 8: '08-Strength.png',
-      9: '09-The-Hermit.png', 10: '10-Wheel-of-Fortune.png', 11: '11-Justice.png',
-      12: '12-The-Hanged-Man.png', 13: '13-Death.png', 14: '14-Temperance.png',
-      15: '15-The-Devil.png', 16: '16-The-Tower.png', 17: '17-The-Star.png',
-      18: '18-The-Moon.png', 19: '19-The-Sun.png', 20: '20-Judgement.png',
-      21: '21-The-World.png'
-    };
-    
-    const fileName = majorCardNames[cardNum as keyof typeof majorCardNames] || '00-the-Fool.png';
-    return `/assets/tarot-cards/major/${fileName}`;
-  }
-  
-  // 마이너 아르카나 (22-77)
-  // Wands: 22-35, Cups: 36-49, Swords: 50-63, Pentacles: 64-77
-  const minorCardMap: Record<number, string> = {
-    // Wands
-    22: '01-ace-of-wands.png', 23: '02-two-of-wands.png', 24: '03-three-of-wands.png',
-    25: '04-four-of-wands.png', 26: '05-five-of-wands.png', 27: '06-six-of-wands.png',
-    28: '07-seven-of-wands.png', 29: '08-eight-of-wands.png', 30: '09-nine-of-wands.png',
-    31: '10-ten-of-wands.png', 32: '11-Page-of-Wands.png', 33: '12-Knight-of-Wands.png',
-    34: '13-Queen-of-Wands.png', 35: '14-King-of-Wands.png',
-    // Cups
-    36: '01-ace-of-cups.png', 37: '02-two-of-cups.png', 38: '03-three-of-cups.png',
-    39: '04-four-of-cups.png', 40: '05-five-of-cups.png', 41: '06-six-of-cups.png',
-    42: '07-seven-of-cups.png', 43: '08-eight-of-cups.png', 44: '09-nine-of-cups.png',
-    45: '10-ten-of-cups.png', 46: '11-Page-of-Cups.png', 47: '12-Knight-of-Cups.png',
-    48: '13-Queen-of-Cups.png', 49: '14-King-of-Cups.png',
-    // Swords
-    50: '01-ace-of-swords.png', 51: '02-two-of-swords.png', 52: '03-three-of-swords.png',
-    53: '04-four-of-swords.png', 54: '05-five-of-swords.png', 55: '06-six-of-swords.png',
-    56: '07-seven-of-swords.png', 57: '08-eight-of-swords.png', 58: '09-nine-of-swords.png',
-    59: '10-ten-of-swords.png', 60: '11-Page-of-Swords.png', 61: '12-Knight-of-Swords.png',
-    62: '13-Queen-of-Swords.png', 63: '14-King-of-Swords.png',
-    // Pentacles
-    64: '01-ace-of-pentacles.png', 65: '02-two-of-pentacles.png', 66: '03-three-of-pentacles.png',
-    67: '04-four-of-pentacles.png', 68: '05-five-of-pentacles.png', 69: '06-six-of-pentacles.png',
-    70: '07-seven-of-pentacles.png', 71: '08-eight-of-pentacles.png', 72: '09-nine-of-pentacles.png',
-    73: '10-ten-of-pentacles.png', 74: '11-Page-of-Pentacles.png', 75: '12-Knight-of-Pentacles.png',
-    76: '13-Queen-of-Pentacles.png', 77: '14-King-of-Pentacles.png'
-  };
-  
-  const fileName = minorCardMap[cardNum];
-  if (fileName) {
-    return `/assets/tarot-cards/minor/${fileName}`;
-  }
-  
-  // 카드 정보를 로그로 확인
-  console.log('Unknown card:', card);
-  
-  // 폴백
-  return '/assets/tarot-cards/major/00-the-Fool.png';
+  return getCardImageFromObject(card);
 };
 
 // 이미지 에러 처리
@@ -315,18 +292,125 @@ const onImageError = (event: Event) => {
 // 날짜 포맷팅
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
-  return date.toLocaleString('ko-KR', {
+  // 인스타그램 스크린샷용 간단한 형식
+  return date.toLocaleDateString('ko-KR', {
     year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    month: 'numeric',
+    day: 'numeric'
   });
 };
 
 // 홈으로 이동
 const goHome = () => {
   window.location.href = '/';
+};
+
+// 테마 표시 이름 가져오기
+const getThemeDisplay = () => {
+  if (!sharedData.value) return '타로 점괘';
+  
+  // 커스텀 질문이 있으면 커스텀 질문으로 표시
+  if (sharedData.value.custom_question && sharedData.value.custom_question.trim()) {
+    return '커스텀 질문';
+  }
+  
+  const theme = sharedData.value.theme || 'general';
+  const subTheme = sharedData.value.sub_theme || null;
+  return getThemeDisplayName(theme, subTheme);
+};
+
+// 배열법 표시 이름 가져오기
+const getSpreadDisplay = () => {
+  if (!sharedData.value) return '';
+  return getSpreadDisplayName(sharedData.value.spread_type || '');
+};
+
+// 메인 카드만 가져오기 (최대 3장)
+const getMainCards = () => {
+  return parsedCards.value.slice(0, 3);
+};
+
+// 짧은 해석 가져오기 (인스타그램용) - 마무리 조언만 추출
+const getShortInterpretation = () => {
+  let interpretation = sharedData.value?.ai_interpretation || sharedData.value?.basic_interpretation;
+  if (!interpretation) return '';
+  
+  // 줄 단위로 분리
+  const lines = interpretation.split('\n');
+  
+  // 마무리 조언 섹션 찾기
+  let adviceSection = '';
+  let foundAdviceSection = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // 마무리 조언 섹션 시작 감지
+    if (line.match(/^[✨⭐🔮💫🌟]/)) {
+      // 마무리, 조언, 메시지 등의 키워드가 포함된 경우
+      if (line.match(/(마무리|최종|종합|전체)\s*(조언|메시지|통찰|이야기)/i)) {
+        foundAdviceSection = true;
+        continue; // 제목 자체는 건너뛰기
+      } else if (foundAdviceSection) {
+        // 다른 섹션이 시작되면 중단
+        break;
+      }
+    }
+    
+    // 마무리 조언 섹션의 내용 수집
+    if (foundAdviceSection && line && !line.match(/^[✨⭐🔮💫🌟]/)) {
+      adviceSection += (adviceSection ? ' ' : '') + line;
+    }
+  }
+  
+  // 마무리 조언을 찾지 못한 경우, 마지막 단락 찾기
+  if (!adviceSection) {
+    // 뒤에서부터 의미있는 내용 찾기
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i].trim();
+      
+      // 빈 줄이거나 제목으로 보이는 줄은 건너뛰기
+      if (!line || line.match(/^[✨⭐🔮💫🌟]/)) {
+        continue;
+      }
+      
+      // 문장으로 끝나는 의미있는 내용을 찾으면 사용
+      if (line.match(/[.!?。]$/)) {
+        adviceSection = line;
+        break;
+      }
+    }
+  }
+  
+  // 여전히 없으면 전체 텍스트에서 추출
+  if (!adviceSection) {
+    const filteredLines = [];
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (trimmedLine && 
+          !trimmedLine.match(/^[✨⭐🔮💫🌟]/) && 
+          !trimmedLine.match(/^(핵심|통찰|메시지|요약|정리|결론|조언)\s*[:：]/i)) {
+        filteredLines.push(trimmedLine);
+      }
+    }
+    adviceSection = filteredLines.join(' ').trim();
+  }
+  
+  // 최대 150자로 제한
+  const maxLength = 150;
+  if (adviceSection.length <= maxLength) {
+    return adviceSection;
+  }
+  
+  // 문장 단위로 자르기
+  const shortened = adviceSection.substring(0, maxLength);
+  const lastPeriod = shortened.lastIndexOf('.');
+  
+  if (lastPeriod > 100) {
+    return shortened.substring(0, lastPeriod + 1);
+  }
+  
+  return shortened.trim() + '...';
 };
 
 // 데이터 로드
@@ -481,10 +565,203 @@ onMounted(async () => {
   margin-bottom: 30px;
 }
 
+/* 요약 박스 (인스타그램 스크린샷 최적화) */
+.reading-summary-box {
+  background: linear-gradient(135deg, rgba(138, 92, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
+  border: 2px solid rgba(138, 92, 246, 0.3);
+  border-radius: 20px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.summary-header {
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.summary-title {
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #A855F7 0%, #8B5CF6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.summary-date {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 400;
+  background: none;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.5);
+}
+
+.summary-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 0px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.info-icon {
+  font-size: 20px;
+}
+
+.info-text {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.summary-question {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.question-label {
+  font-size: 14px;
+  color: #F59E0B;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.question-text {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.summary-cards {
+  margin-bottom: 20px;
+}
+
+.cards-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+
+.card-number {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  min-width: 20px;
+}
+
+.card-name {
+  flex: 1;
+  font-size: 15px;
+  color: white;
+  font-weight: 500;
+}
+
+.card-orientation {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.card-orientation.upright {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22C55E;
+}
+
+.card-orientation.reversed {
+  background: rgba(239, 68, 68, 0.2);
+  color: #EF4444;
+}
+
+.more-cards {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 8px;
+  text-align: center;
+  font-style: italic;
+}
+
+.summary-insight {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
+  border-left: 3px solid #A855F7;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.insight-label {
+  font-size: 14px;
+  color: #A855F7;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.insight-text {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+}
+
+.summary-footer {
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.app-branding {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.brand-icon {
+  font-size: 20px;
+}
+
+.brand-text {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
 /* 헤더 */
 .share-header {
   text-align: center;
-  padding: 40px 20px;
+  padding: 10px;
   background: linear-gradient(135deg, rgba(138, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   width: 100%;
@@ -564,8 +841,26 @@ onMounted(async () => {
   transition: transform 0.3s ease;
 }
 
-.card-image img.reversed {
+/* 역방향 카드 스타일 */
+.card-image.is-reversed img,
+.card-image-wrapper.is-reversed img {
   transform: rotate(180deg);
+}
+
+/* 카드 이미지 래퍼 스타일 */
+.card-image-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.card-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
 }
 
 .card-name {
@@ -590,7 +885,7 @@ onMounted(async () => {
 .seven-star-layout {
   position: relative;
   min-height: 450px;
-  margin: 40px auto;
+  margin: 20px auto;
   max-width: 600px;
 }
 
@@ -638,8 +933,8 @@ onMounted(async () => {
 
 /* 세븐스타 카드 위치 - 별 모양 */
 .seven-star-layout .position-1 { left: calc(50% - 35px); top: 20px; }  /* 상단 중앙 */
-.seven-star-layout .position-2 { left: calc(30% - 35px); top: 100px; } /* 좌측 상단 */
-.seven-star-layout .position-3 { left: calc(70% - 35px); top: 100px; } /* 우측 상단 */
+.seven-star-layout .position-2 { left: calc(20% - 35px); top: 100px; } /* 좌측 상단 */
+.seven-star-layout .position-3 { left: calc(80% - 35px); top: 100px; } /* 우측 상단 */
 .seven-star-layout .position-4 { left: calc(50% - 35px); top: 180px; } /* 중앙 */
 .seven-star-layout .position-5 { left: calc(20% - 35px); top: 260px; } /* 좌측 하단 */
 .seven-star-layout .position-6 { left: calc(80% - 35px); top: 260px; } /* 우측 하단 */
@@ -824,6 +1119,11 @@ onMounted(async () => {
   top: calc(50% - 60px); 
   transform: rotate(90deg); 
   z-index: 2;
+}
+
+/* position-2의 역방향 처리 */
+.celtic-cross-layout .position-2 .card-image-wrapper.is-reversed img {
+  transform: rotate(180deg);
 }
 
 .celtic-cross-layout .position-3 { 
@@ -1013,6 +1313,46 @@ onMounted(async () => {
 
 /* 모바일 반응형 */
 @media (max-width: 768px) {
+  .reading-summary-box {
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .summary-header {
+    margin-bottom: 20px;
+  }
+  
+  .summary-title {
+    font-size: 18px;
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .summary-date {
+    font-size: 12px;
+  }
+  
+  .info-row {
+    padding: 10px;
+  }
+  
+  .info-text {
+    font-size: 14px;
+  }
+  
+  .card-item {
+    padding: 8px;
+  }
+  
+  .card-name {
+    font-size: 14px;
+  }
+  
+  .insight-text {
+    font-size: 14px;
+  }
+  
   .share-header h1 {
     font-size: 24px;
   }

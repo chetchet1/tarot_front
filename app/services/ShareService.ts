@@ -45,19 +45,109 @@ export class ShareService {
    */
   async createShareLink(reading: Reading): Promise<string> {
     try {
+      // 타로 카드 데이터 가져오기 (폴백을 위해)
+      const { data: allCards } = await supabase
+        .from('tarot_cards')
+        .select('id, name, name_kr');
+      
+      // 카드 이름으로 ID를 찾기 위한 맵 생성
+      const cardNameToIdMap = new Map<string, number>();
+      const cardNameKrToIdMap = new Map<string, number>();
+      
+      if (allCards) {
+        allCards.forEach(card => {
+          if (card.name) cardNameToIdMap.set(card.name.toLowerCase(), card.id);
+          if (card.name_kr) cardNameKrToIdMap.set(card.name_kr, card.id);
+        });
+      }
+      
+      // AI 해석 가져오기 - aiInterpretation 또는 enhancedInterpretation 사용
+      let aiInterpretationText = null;
+      
+      // 먼저 aiInterpretation 확인
+      if (reading.aiInterpretation) {
+        aiInterpretationText = reading.aiInterpretation;
+      }
+      // enhancedInterpretation 확인 (세븐스타, 컵오브릴레이션십 등)
+      else if ((reading as any).enhancedInterpretation) {
+        const enhanced = (reading as any).enhancedInterpretation;
+        if (typeof enhanced === 'object') {
+          // 객체인 경우 적절한 필드 선택
+          aiInterpretationText = enhanced.aiInterpretation || 
+                                 enhanced.overallMessage || 
+                                 enhanced.summary || 
+                                 JSON.stringify(enhanced);
+        } else if (typeof enhanced === 'string') {
+          aiInterpretationText = enhanced;
+        }
+      }
+      
       // 1. 공유 데이터 준비
       const shareData = {
         spread_type: reading.spreadId,
-        cards: reading.cards.map(card => ({
-          cardNumber: card.cardNumber || card.id,
-          nameKr: card.nameKr,
-          name: card.name,
-          orientation: card.orientation,
-          position: card.position
-        })),
+        cards: reading.cards.map(card => {
+          // 카드 ID 결정 - id가 메인 식별자
+          let cardId = card.id;
+          
+          // id가 없거나 잘못된 값인 경우 폴백 로직
+          if (cardId === undefined || cardId === null || typeof cardId !== 'number') {
+            // 1. cardNumber 확인
+            if (card.cardNumber !== undefined && card.cardNumber !== null && typeof card.cardNumber === 'number') {
+              cardId = card.cardNumber;
+              console.warn('⚠️ Using cardNumber instead of id:', cardId, 'for card:', card.name);
+            }
+            // 2. number 확인
+            else if (card.number !== undefined && card.number !== null && typeof card.number === 'number') {
+              cardId = card.number;
+              console.warn('⚠️ Using number instead of id:', cardId, 'for card:', card.name);
+            }
+            // 3. 카드 이름으로 ID 찾기 (최종 폴백)
+            else if (card.name || card.nameKr) {
+              // 영어 이름으로 찾기
+              if (card.name && cardNameToIdMap.has(card.name.toLowerCase())) {
+                cardId = cardNameToIdMap.get(card.name.toLowerCase())!;
+                console.warn('⚠️ Found ID by English name:', cardId, 'for card:', card.name);
+              }
+              // 한글 이름으로 찾기
+              else if (card.nameKr && cardNameKrToIdMap.has(card.nameKr)) {
+                cardId = cardNameKrToIdMap.get(card.nameKr)!;
+                console.warn('⚠️ Found ID by Korean name:', cardId, 'for card:', card.nameKr);
+              }
+              // 특수 케이스 처리: Ace of Cups = 36
+              else if (card.name === 'Ace of Cups' || card.nameKr === '컵의 에이스') {
+                cardId = 36;
+                console.warn('⚠️ Hardcoded ID for Ace of Cups:', cardId);
+              }
+              else {
+                console.error('❌ Could not find ID for card:', card);
+                cardId = 0; // 기본값
+              }
+            }
+          }
+          
+          console.log('🎴 ShareService - Mapping card:', {
+            originalCard: card,
+            resolvedId: cardId,
+            name: card.name,
+            nameKr: card.nameKr,
+            id_field: card.id,
+            cardNumber_field: card.cardNumber,
+            number_field: card.number
+          });
+          
+          return {
+            cardNumber: cardId,  // cardNumber 필드에 올바른 ID 저장
+            nameKr: card.nameKr,
+            name: card.name,
+            orientation: card.orientation,
+            position: card.position
+          };
+        }),
+        theme: (reading as any).theme || null,  // 테마 정보 추가
+        sub_theme: (reading as any).subTheme || null,  // 서브테마 정보 추가
         custom_question: reading.customQuestion || null,
         basic_interpretation: reading.overallMessage || null,
-        ai_interpretation: reading.aiInterpretation || null,
+        ai_interpretation: aiInterpretationText,
         shared_by: (await supabase.auth.getUser()).data?.user?.id || null
       };
       
@@ -126,10 +216,21 @@ export class ShareService {
     }
     message += '\n';
     
-    // 간단한 해석
-    if (reading.aiInterpretation || reading.overallMessage) {
-      const interpretation = reading.aiInterpretation || reading.overallMessage || '';
-      const shortInterpretation = interpretation.substring(0, 60);
+    // 간단한 해석 - AI 해석 또는 기본 해석
+    let interpretationText = reading.aiInterpretation || reading.overallMessage;
+    
+    // enhancedInterpretation도 확인
+    if (!interpretationText && (reading as any).enhancedInterpretation) {
+      const enhanced = (reading as any).enhancedInterpretation;
+      if (typeof enhanced === 'object') {
+        interpretationText = enhanced.aiInterpretation || enhanced.overallMessage || enhanced.summary;
+      } else if (typeof enhanced === 'string') {
+        interpretationText = enhanced;
+      }
+    }
+    
+    if (interpretationText) {
+      const shortInterpretation = interpretationText.substring(0, 60);
       message += `✨ 해석\n${shortInterpretation}...\n\n`;
     }
     
