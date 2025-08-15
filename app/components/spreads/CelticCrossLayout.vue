@@ -693,8 +693,8 @@ const onImageError = (event: Event) => {
 .celtic-cross-layout {
   position: relative;
   width: 100%;
-  min-height: 850px; /* 버튼 공간 포함하여 증가 */
-  padding: 10px 10px 80px 10px; /* 하단 패딩 추가 */
+  min-height: 700px; /* 전체 높이 감소 */
+  padding: 10px 10px 60px 10px; /* 하단 패딩 조정 */
   /* 모바일에서 좌우 드래그 방지 */
   overflow-x: hidden;
   max-width: 100vw;
@@ -913,9 +913,9 @@ const onImageError = (event: Event) => {
   position: relative;
   width: 100%;
   max-width: 1200px;
-  height: 700px; /* 높이 증가 */
+  height: 600px; /* 높이 감소 */
   margin: 0 auto;
-  transform: scale(0.85); /* 전체 비율 축소 */
+  transform: scale(0.75); /* 스케일 조정 */
   transform-origin: top center;
 }
 
@@ -936,16 +936,16 @@ const onImageError = (event: Event) => {
 
 /* 각 위치별 좌표 */
 .position-1 { /* 현재상황 - 중앙 왼쪽 */
-  top: 55%;
+  top: 55%; /* 60% -> 80% 추가로 20% 아래로 이동 */
   left: calc(40% - 60px);
-  transform: translate(-80%, 25%);
+  transform: translate(-80%, 75%);
   z-index: 10;
 }
 
 .position-2 { /* 도전/십자가 - 중앙 오른쪽 */
-  top: 51%;
+  top: 51%; /* 56% -> 76% 추가로 20% 아래로 이동 */
   left: calc(40% + 60px);
-  transform: translate(-105%, 0%);
+  transform: translate(-105%, 50%);
   z-index: 10;
 }
 
@@ -970,50 +970,50 @@ const onImageError = (event: Event) => {
 .position-3 { /* 근본 - 아래 */
   top: 98%;
   left: 40%;
-  transform: translate(-90%, 65%);
+  transform: translate(-90%, 115%);
 }
 
 .position-4 { /* 과거 - 왼쪽 */
   top: 53%;
   left: -5%;
-  transform: translate(-140%, 15%);
+  transform: translate(-140%, 65%);
 }
 
 .position-5 { /* 드러나는 모습 - 위 */
   top: 21%;
   left: 40%;
-  transform: translate(-90%, -15%);
+  transform: translate(-90%, 35%);
 }
 
 .position-6 { /* 미래 - 오른쪽 */
   top: 53%;
   left: 85%;
-  transform: translate(-40%, 15%);
+  transform: translate(-40%, 65%);
 }
 
 /* 오른쪽 기둥 */
 .position-7 { /* 내가보는나 - 맨 아래 */
   top: 85%;
   left: 95%;
-  transform: translate(0%, 125%);
+  transform: translate(0%, 175%);
 }
 
 .position-8 { /* 남이보는나 */
   top: 62%;
   left: 95%;
-  transform: translate(30%, 60%);
+  transform: translate(30%, 110%);
 }
 
 .position-9 { /* 예상하는 결과 */
   top: 38%;
   left: 95%;
-  transform: translate(0%, 0%);
+  transform: translate(0%, 50%);
 }
 
 .position-10 { /* 실제 결과 - 맨 위 */
   top: 15%;
   left: 95%;
-  transform: translate(30%, -65%);
+  transform: translate(30%, -15%);
 }
 
 /* 위치 라벨 */
@@ -1263,13 +1263,13 @@ const onImageError = (event: Event) => {
 /* 모바일 반응형 */
 @media (max-width: 768px) {
   .celtic-cross-layout {
-    min-height: 700px; /* 모바일에서도 충분한 높이 확보 */
-    padding: 5px 5px 60px 5px;
+    min-height: 600px; /* 모바일 높이 조정 */
+    padding: 5px 5px 50px 5px;
   }
 
   .cards-container {
-    height: 600px;
-    transform: scale(0.65); /* 더 작게 조정 */
+    height: 520px;
+    transform: scale(0.58); /* 비율 유지하며 조정 */
     transform-origin: top center;
   }
 
@@ -1364,12 +1364,12 @@ const onImageError = (event: Event) => {
 
 @media (max-width: 480px) {
   .celtic-cross-layout {
-    min-height: 650px;
+    min-height: 550px;
   }
   
   .cards-container {
-    height: 550px;
-    transform: scale(0.55); /* 더 작은 화면에서 더 축소 */
+    height: 480px;
+    transform: scale(0.5); /* 더 작은 화면에서 더 축소 */
   }
   
   /* 작은 화면에서 배경 요소 더 축소 */
