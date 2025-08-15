@@ -12,12 +12,12 @@ import {
 import { useUserStore } from './user';
 import { tarotService, spreadService } from '../services/supabase';
 import { tarotSpreads } from '../data/spreads';
-import { generateEnhancedInterpretation, generateCelticCrossInterpretation, CelticCrossInterpreter } from '../services/premiumInterpretation';
+import { generateEnhancedInterpretation } from '../services/premiumInterpretation';
 import { CardCombinationAnalyzer, TopicSpecificInterpretation } from '../services/interpretation/cardCombinations';
 import { PersonalizedInterpretation, LifePathCalculator, ZodiacCalculator } from '../services/interpretation/personalizedInterpretation';
 import { AIInterpretationEnhancer, ProbabilityInterpreter } from '../services/interpretation/aiEnhancer';
 import { DeepInterpretationService } from '../services/premium/deepInterpretation';
-import { EnhancedCelticCrossInterpreter } from '../services/interpretation/EnhancedCelticCrossInterpreter.js';
+import { CelticCrossAIInterpreter } from '../services/interpretation/CelticCrossAIInterpreter';
 import { SevenStarInterpreter } from '../services/interpretation/SevenStarInterpreter';
 import { CupOfRelationshipInterpreter } from '../services/interpretation/CupOfRelationshipInterpreter';
 
@@ -554,52 +554,49 @@ export const useTarotStore = defineStore('tarot', () => {
       });
       
       // 1. 기본 해석 생성
-      if (spreadId === 'celtic_cross' && userStore.isPremium) {
-        // 프리미엄 사용자는 향상된 켈틱 크로스 해석기 사용
-        const enhancedInterpreter = new EnhancedCelticCrossInterpreter(topic, cardsWithPositions);
-        const enhancedInterpretation = await enhancedInterpreter.generateInterpretation();
+      if (spreadId === 'celtic_cross') {
+        // 캘틱 크로스 AI 해석기 사용
+        const celticAIInterpreter = new CelticCrossAIInterpreter(cardsWithPositions, topic, question);
+        celticAIInterpreter.setCards(cardsWithPositions);
         
-        interpretation = {
-          cards: cardsWithPositions.map((card, index) => {
-            const positionMeaning = enhancedInterpretation.positionMeanings?.find(pm => pm.position === index + 1);
-            return {
+        // 연애 상태 설정 (연애 주제일 때만)
+        if (topic === 'love' && relationshipStatus.value) {
+          celticAIInterpreter.setRelationshipStatus(relationshipStatus.value);
+        }
+        
+        const celticResult = await celticAIInterpreter.generateInterpretation(userStore.currentUser?.id);
+        
+        if (celticResult.success && typeof celticResult.interpretation === 'object') {
+          const celticInterpretation = celticResult.interpretation;
+          interpretation = {
+            cards: cardsWithPositions.map((card, index) => ({
               ...card,
               interpretation: {
-                basic: positionMeaning?.meaning || `${card.position.name}에서 ${card.nameKr}`,
-                advice: enhancedInterpretation.actionSuggestions?.find(as => as.position === index + 1)?.action || ''
+                basic: celticAIInterpreter.getPositionName(index),
+                advice: celticInterpretation.advice || ''
               }
-            };
-          }),
-          overallMessage: enhancedInterpretation.overallMessage,
-          enhancedInterpretation: enhancedInterpretation,
-          premiumInsights: {
-            combinationPatterns: enhancedInterpretation.combinationPatterns,
-            synergies: enhancedInterpretation.synergies,
-            actionSuggestions: enhancedInterpretation.actionSuggestions,
-            positionMeanings: enhancedInterpretation.positionMeanings
-          }
-        };
-      } else if (spreadId === 'celtic_cross') {
-        // 무료 사용자는 기존 켈틱 크로스 해석기 사용
-        const celticInterpreter = new CelticCrossInterpreter(cardsWithPositions, topic);
-        const celticInterpretation = await celticInterpreter.generateInterpretation();
-        
-        interpretation = {
-          cards: cardsWithPositions.map((card, index) => ({
-            ...card,
-            interpretation: {
-              basic: celticInterpretation.positions[index].meaning,
-              advice: celticInterpretation.advice
-            }
-          })),
-          overallMessage: celticInterpretation.overallPattern,
-          premiumInsights: {
-            relationships: celticInterpretation.relationships || [],
-            elementAnalysis: celticInterpretation.elementAnalysis || [],
-            timelineAnalysis: celticInterpretation.timelineAnalysis || {},
-            keywords: celticInterpretation.keywords || []
-          }
-        };
+            })),
+            overallMessage: celticInterpretation.summary || celticInterpretation.aiInterpretation,
+            enhancedInterpretation: celticInterpretation,
+            premiumInsights: userStore.isPremium ? {
+              aiInterpretation: celticInterpretation.aiInterpretation,
+              keyInsights: celticInterpretation.keyInsights,
+              timelineAnalysis: celticInterpretation.timelineAnalysis
+            } : undefined
+          };
+        } else {
+          // 폴백 해석 사용
+          interpretation = {
+            cards: cardsWithPositions.map((card, index) => ({
+              ...card,
+              interpretation: {
+                basic: celticAIInterpreter.getPositionName(index),
+                advice: ''
+              }
+            })),
+            overallMessage: typeof celticResult.interpretation === 'string' ? celticResult.interpretation : '캘틱 크로스가 전하는 메시지'
+          };
+        }
       } else if (spreadId === 'seven_star') {
         // 세븐 스타 해석기 사용
         const sevenStarInterpreter = new SevenStarInterpreter(cardsWithPositions, topic, question);
