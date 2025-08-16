@@ -354,44 +354,44 @@ const getPositionName = (index: number): string => {
 }
 
 .seven-star-layout .star-position-1 { /* 과거의 영향 - 상단 중앙 */
-  top: 5%;
+  top: 0%;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .seven-star-layout .star-position-2 { /* 현재 상황 - 중앙 */
-  top: 70%;
-  left: 50%;
+  top: 35%;
+  left: 20%;
   transform: translate(-50%, -50%);
   z-index: 10;
 }
 
 .seven-star-layout .star-position-3 { /* 숨겨진 영향 - 좌측 상단 */
-  top: 30%;
-  left: 30%;
-  transform: translateX(-50%);
+  top: 35%;
+  left: 80%;
+  transform: translate(-50%, -50%);
 }
 
 .seven-star-layout .star-position-4 { /* 의식적 욕구 - 우측 상단 */
-  top: 30%;
-  left: 70%;
+  top: 37%;
+  left: 50%;
   transform: translateX(-50%);
 }
 
 .seven-star-layout .star-position-5 { /* 무의식적 욕구 - 좌측 하단 */
-  top: 75%;
-  left: 30%;
-  transform: translateX(-50%);
+  top: 70%;
+  left: 20%;
+  transform: translate(-50%, -50%);
 }
 
 .seven-star-layout .star-position-6 { /* 조언 - 우측 하단 */
-  top: 75%;
-  left: 70%;
-  transform: translateX(-50%);
+  top: 70%;
+  left: 80%;
+  transform: translate(-50%, -50%);
 }
 
 .seven-star-layout .star-position-7 { /* 최종 결과 - 하단 중앙 */
-  bottom: 5%;
+  bottom: -5%;
   left: 50%;
   transform: translateX(-50%);
 }
