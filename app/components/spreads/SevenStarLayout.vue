@@ -287,18 +287,7 @@
       </div>
     </div>
 
-    <!-- 버튼 컨테이너 -->
-    <div class="action-buttons-container" v-if="!isDrawing">
-      <button 
-        v-if="hasUnrevealedCards"
-        class="btn-action btn-reveal-all" 
-        @click="revealAllCards"
-      >
-        <span class="icon">✨</span> 모든 카드 뒤집기
-      </button>
-      
-      <slot name="action-button"></slot>
-    </div>
+    <!-- 버튼 컨테이너는 레이아웃 밖에 배치 -->
 
     <!-- 진행 상태 표시 -->
     <div class="progress-indicator" v-if="isDrawing">
@@ -307,6 +296,18 @@
         <div class="progress-fill" :style="{ width: drawProgress + '%' }"></div>
       </div>
     </div>
+  </div>
+  <!-- 버튼 컨테이너 -->
+  <div class="action-buttons-container" v-if="!isDrawing">
+    <button 
+      v-if="hasUnrevealedCards"
+      class="btn-action btn-reveal-all" 
+      @click="revealAllCards"
+    >
+      <span class="icon">✨</span> 모든 카드 뒤집기
+    </button>
+    
+    <slot name="action-button"></slot>
   </div>
 </template>
 
@@ -762,12 +763,12 @@ const onImageError = handleImageError;
   opacity: 0;
 }
 
-/* 액션 버튼 컨테이너 */
+/* 액션 버튼 컨테이너 - 레이아웃 밖 */
 .action-buttons-container {
-  position: absolute;
-  bottom: 20px;
+  position: fixed;
+  bottom: 200px;
   left: 50%;
-  transform: translate(-50%, 200%);
+  transform: translate(-50%, -600%);
   z-index: 100;
   display: flex;
   gap: 20px;
@@ -775,6 +776,7 @@ const onImageError = handleImageError;
   justify-content: center;
   width: 100%;
   max-width: 500px;
+  padding: 0 20px;
 }
 
 .btn-action {
@@ -852,8 +854,8 @@ const onImageError = handleImageError;
   .action-buttons-container {
     bottom: 10px;
     gap: 10px;
-    max-width: 100%;
-    padding: 0 10px;
+    max-width: calc(100% - 40px);
+    padding: 0 20px;
   }
   
   .btn-action {

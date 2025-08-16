@@ -642,6 +642,38 @@ const drawCard = async () => {
       throw new Error('사용자 ID를 찾을 수 없습니다');
     }
     
+    // readings 테이블에도 저장 (점괘 기록용)
+    try {
+      console.log('readings 테이블에 오늘의 카드 저장 시도');
+      const readingData = {
+        user_id: userId,
+        spread_type: 'daily_card',
+        question: `${today} 오늘의 카드`,
+        cards: [{
+          position: 'daily',
+          card_id: card.id,
+          orientation: 'upright'
+        }],
+        created_at: new Date().toISOString()
+      };
+      
+      const { data: savedReading, error: readingError } = await supabase
+        .from('readings')
+        .insert(readingData)
+        .select('*')
+        .single();
+      
+      if (readingError) {
+        console.error('readings 테이블 저장 실패:', readingError);
+        // 에러가 나도 계속 진행 (daily_cards는 이미 저장됨)
+      } else {
+        console.log('readings 테이블 저장 성공:', savedReading);
+      }
+    } catch (error) {
+      console.error('readings 테이블 저장 중 예외:', error);
+      // 에러가 나도 계속 진행
+    }
+    
     // 중복 체크 및 저장 처리
     if (!isTestAcc) {
       // 이미 오늘 카드를 뽑았는지 먼저 확인

@@ -69,27 +69,30 @@
               
               <div class="cards-preview">
                 <div 
-                  v-for="(card, idx) in reading.cards.slice(0, 3)" 
+                  v-for="(card, idx) in getReadingCards(reading).slice(0, 3)" 
                   :key="idx"
                   class="mini-card"
                   :class="{ reversed: isReversedCard(card) }"
                 >
                   <img 
                     :src="getMiniCardImage(card)" 
-                    :alt="card.card_name"
+                    :alt="getCardName(card)"
                     @error="handleImageError"
                   />
                 </div>
-                <span v-if="reading.cards.length > 3" class="more-cards">
-                  +{{ reading.cards.length - 3 }}
+                <span v-if="getReadingCards(reading).length > 3" class="more-cards">
+                  +{{ getReadingCards(reading).length - 3 }}
                 </span>
               </div>
             </div>
             
             <div class="reading-footer">
-              <span class="card-count">{{ reading.cards.length }}장</span>
+              <span class="card-count">{{ getReadingCards(reading).length }}장</span>
               <span v-if="reading.spread_name === '켈틱 크로스'" class="premium-badge">
                 👑 프리미엄
+              </span>
+              <span v-if="reading.spread_type === 'daily_card'" class="daily-badge">
+                ☀️ 오늘의 카드
               </span>
             </div>
           </div>
@@ -261,11 +264,40 @@ const formatDateTime = (date: string) => {
   });
 };
 
-const getMiniCardImage = (card: DrawnCard): string => {
+const getMiniCardImage = (card: any): string => {
+  // 카드가 객체인 경우와 ID인 경우 처리
+  if (typeof card === 'object' && card.card_id) {
+    // card_id로 이미지 경로 생성 필요
+    return `/assets/tarot-cards/default.png`; // 기본 이미지
+  }
   return getCardImagePath(card);
 };
 
+const getCardName = (card: any): string => {
+  if (typeof card === 'object') {
+    return card.card_name || card.name_kr || card.name || '카드';
+  }
+  return '카드';
+};
+
+const getReadingCards = (reading: ReadingHistory): any[] => {
+  // reading.cards가 배열인지 확인
+  if (Array.isArray(reading.cards)) {
+    return reading.cards;
+  }
+  // 객체인 경우 배열로 변환
+  if (reading.cards && typeof reading.cards === 'object') {
+    return [reading.cards];
+  }
+  return [];
+};
+
 const getSummary = (reading: ReadingHistory): string => {
+  // 오늘의 카드인 경우
+  if (reading.spread_type === 'daily_card') {
+    return reading.question || '오늘 하루의 운세를 보았습니다.';
+  }
+  
   if (reading.ai_interpretation) {
     // AI 해석의 첫 100자 정도를 요약으로 사용
     return reading.ai_interpretation.substring(0, 100) + '...';
@@ -302,14 +334,8 @@ const fetchReadings = async () => {
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     
     const { data, error } = await supabase
-      .from('reading_history')
-      .select(`
-        *,
-        cards:reading_cards(
-          *,
-          card:tarot_cards(*)
-        )
-      `)
+      .from('readings')
+      .select('*')
       .eq('user_id', userStore.user.id)
       .gte('created_at', oneYearAgo.toISOString()) // 1년 이내 기록만
       .order('created_at', { ascending: false });
@@ -317,15 +343,24 @@ const fetchReadings = async () => {
     if (error) throw error;
     
     // 데이터 구조 변환
-    readings.value = (data || []).map(reading => ({
-      ...reading,
-      cards: reading.cards.map((rc: any) => ({
-        ...rc.card,
-        position: rc.position,
-        card_name: rc.card.name_kr,
-        is_reversed: rc.is_reversed
-      }))
-    }));
+    readings.value = (data || []).map(reading => {
+      // spread_type이 'daily_card'인 경우 특별 처리
+      if (reading.spread_type === 'daily_card') {
+        return {
+          ...reading,
+          spread_name: '오늘의 카드',
+          topic: 'general',
+          cards: reading.cards || []
+        };
+      }
+      
+      // 일반 점괘 처리
+      return {
+        ...reading,
+        spread_name: reading.spread_id || reading.spread_type,
+        cards: reading.cards || []
+      };
+    });
     
     // 1년 지난 기록 자동 삭제 (백그라운드에서 실행)
     cleanupOldReadings();
@@ -343,7 +378,7 @@ const cleanupOldReadings = async () => {
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     
     const { error } = await supabase
-      .from('reading_history')
+      .from('readings')
       .delete()
       .eq('user_id', userStore.user?.id)
       .lt('created_at', oneYearAgo.toISOString());
@@ -640,6 +675,16 @@ watch(() => userStore.isPremium, (isPremium) => {
   font-size: 10px;
   font-weight: 700;
   box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+.daily-badge {
+  background: linear-gradient(135deg, #FDB813 0%, #FFEB3B 100%);
+  color: #1E1B4B;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(253, 184, 19, 0.3);
 }
 
 .pagination {
