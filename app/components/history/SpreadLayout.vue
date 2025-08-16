@@ -1,0 +1,539 @@
+<template>
+  <div class="spread-layout" :class="spreadClass">
+    <!-- 켈틱 크로스 레이아웃 -->
+    <div v-if="spreadId === 'celtic_cross'" class="celtic-cross-layout">
+      <div 
+        v-for="(card, index) in cards.slice(0, 10)" 
+        :key="index"
+        :class="`card-position position-${index + 1}`"
+      >
+        <div class="card-wrapper">
+          <img 
+            :src="getCardImagePath(card)" 
+            :alt="getCardName(card)"
+            class="card-image"
+            :class="{ reversed: isReversedCard(card) }"
+            @error="handleImageError"
+          />
+          <div class="card-info">
+            <div class="position-label">{{ getPositionName(index) }}</div>
+            <div class="card-name">{{ getCardName(card) }}</div>
+            <div class="card-orientation" :class="{ reversed: isReversedCard(card) }">
+              {{ isReversedCard(card) ? '역방향' : '정방향' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 세븐 스타 레이아웃 -->
+    <div v-else-if="spreadId === 'seven_star'" class="seven-star-layout">
+      <div 
+        v-for="(card, index) in cards.slice(0, 7)" 
+        :key="index"
+        :class="`card-position star-position-${index + 1}`"
+      >
+        <div class="card-wrapper">
+          <img 
+            :src="getCardImagePath(card)" 
+            :alt="getCardName(card)"
+            class="card-image"
+            :class="{ reversed: isReversedCard(card) }"
+            @error="handleImageError"
+          />
+          <div class="card-info">
+            <div class="position-label">{{ getPositionName(index) }}</div>
+            <div class="card-name">{{ getCardName(card) }}</div>
+            <div class="card-orientation" :class="{ reversed: isReversedCard(card) }">
+              {{ isReversedCard(card) ? '역방향' : '정방향' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 컵 오브 릴레이션십 레이아웃 -->
+    <div v-else-if="spreadId === 'cup_of_relationship'" class="cup-relationship-layout">
+      <div 
+        v-for="(card, index) in cards.slice(0, 11)" 
+        :key="index"
+        :class="`card-position cup-position-${index + 1}`"
+      >
+        <div class="card-wrapper">
+          <img 
+            :src="getCardImagePath(card)" 
+            :alt="getCardName(card)"
+            class="card-image"
+            :class="{ reversed: isReversedCard(card) }"
+            @error="handleImageError"
+          />
+          <div class="card-info">
+            <div class="position-label">{{ getPositionName(index) }}</div>
+            <div class="card-name">{{ getCardName(card) }}</div>
+            <div class="card-orientation" :class="{ reversed: isReversedCard(card) }">
+              {{ isReversedCard(card) ? '역방향' : '정방향' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 3장 타임라인 레이아웃 -->
+    <div v-else-if="spreadId === 'three_card_timeline'" class="timeline-layout">
+      <div 
+        v-for="(card, index) in cards.slice(0, 3)" 
+        :key="index"
+        :class="`card-position timeline-position-${index + 1}`"
+      >
+        <div class="card-wrapper">
+          <img 
+            :src="getCardImagePath(card)" 
+            :alt="getCardName(card)"
+            class="card-image"
+            :class="{ reversed: isReversedCard(card) }"
+            @error="handleImageError"
+          />
+          <div class="card-info">
+            <div class="position-label">{{ getPositionName(index) }}</div>
+            <div class="card-name">{{ getCardName(card) }}</div>
+            <div class="card-orientation" :class="{ reversed: isReversedCard(card) }">
+              {{ isReversedCard(card) ? '역방향' : '정방향' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 1장 레이아웃 -->
+    <div v-else-if="spreadId === 'one_card' || spreadType === 'daily_card'" class="single-layout">
+      <div class="card-position single-position">
+        <div class="card-wrapper">
+          <img 
+            :src="getCardImagePath(cards[0])" 
+            :alt="getCardName(cards[0])"
+            class="card-image"
+            :class="{ reversed: isReversedCard(cards[0]) }"
+            @error="handleImageError"
+          />
+          <div class="card-info">
+            <div class="position-label">
+              {{ spreadType === 'daily_card' ? '오늘의 카드' : '현재 상황' }}
+            </div>
+            <div class="card-name">{{ getCardName(cards[0]) }}</div>
+            <div class="card-orientation" :class="{ reversed: isReversedCard(cards[0]) }">
+              {{ isReversedCard(cards[0]) ? '역방향' : '정방향' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 기본 그리드 레이아웃 -->
+    <div v-else class="grid-layout">
+      <div 
+        v-for="(card, index) in cards" 
+        :key="index"
+        class="card-position"
+      >
+        <div class="card-wrapper">
+          <img 
+            :src="getCardImagePath(card)" 
+            :alt="getCardName(card)"
+            class="card-image"
+            :class="{ reversed: isReversedCard(card) }"
+            @error="handleImageError"
+          />
+          <div class="card-info">
+            <div class="position-label">카드 {{ index + 1 }}</div>
+            <div class="card-name">{{ getCardName(card) }}</div>
+            <div class="card-orientation" :class="{ reversed: isReversedCard(card) }">
+              {{ isReversedCard(card) ? '역방향' : '정방향' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+import { getCardImagePath, isReversedCard, handleImageError } from '@/utils/cardUtils';
+
+interface Props {
+  spreadId?: string;
+  spreadType?: string;
+  cards: any[];
+}
+
+const props = defineProps<Props>();
+
+const spreadClass = computed(() => {
+  if (props.spreadType === 'daily_card') return 'daily-card-spread';
+  return `${props.spreadId}-spread`;
+});
+
+const getCardName = (card: any): string => {
+  return card?.nameKr || card?.name_kr || card?.card_name || card?.name || '카드';
+};
+
+const getPositionName = (index: number): string => {
+  const positions: Record<string, string[]> = {
+    'celtic_cross': [
+      '현재 내면', '현재 외부', '근본', '과거',
+      '드러나는 모습', '미래', '내가 보는 나',
+      '남이 보는 나', '예상하는 결과', '실제 결과'
+    ],
+    'seven_star': [
+      '핵심', '도움', '내면', '예상', '결과', '외부', '운명'
+    ],
+    'cup_of_relationship': [
+      '나', '상대', '관계 기본', '관계 과거',
+      '현재 느낌', '현재 외부 상황',
+      '현재 나는 어떻게 생각?', '현재 상대는 어떻게 생각?',
+      '미래 나는 어떻게 생각?', '미래 상대는 어떻게 생각?',
+      '결과'
+    ],
+    'three_card_timeline': ['과거', '현재', '미래'],
+    'one_card': ['현재 상황']
+  };
+  
+  return positions[props.spreadId || '']?.[index] || `카드 ${index + 1}`;
+};
+</script>
+
+<style scoped>
+.spread-layout {
+  width: 100%;
+  min-height: 400px;
+  position: relative;
+  padding: 20px;
+}
+
+/* 카드 기본 스타일 */
+.card-position {
+  position: absolute;
+  transition: all 0.3s ease;
+}
+
+.card-wrapper {
+  text-align: center;
+}
+
+.card-image {
+  width: 80px;
+  height: 120px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 2px solid rgba(168, 85, 247, 0.3);
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.card-image.reversed {
+  transform: rotate(180deg);
+}
+
+.card-position:hover .card-image {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.4);
+}
+
+.card-position:hover .card-image.reversed {
+  transform: rotate(180deg) scale(1.1);
+}
+
+.card-info {
+  margin-top: 8px;
+}
+
+.position-label {
+  font-size: 11px;
+  color: #A855F7;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.card-name {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.card-orientation {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  display: inline-block;
+  background: rgba(34, 197, 94, 0.2);
+  color: #22C55E;
+}
+
+.card-orientation.reversed {
+  background: rgba(239, 68, 68, 0.2);
+  color: #EF4444;
+}
+
+/* 켈틱 크로스 레이아웃 - 유료배열과 동일 */
+.celtic-cross-layout {
+  position: relative;
+  width: 100%;
+  min-height: 500px;
+}
+
+.celtic-cross-layout .position-1 {
+  top: 50%;
+  left: 35%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.celtic-cross-layout .position-2 {
+  top: 50%;
+  left: 35%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  z-index: 3;
+}
+
+.celtic-cross-layout .position-3 {
+  top: 73%;
+  left: 35%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.celtic-cross-layout .position-4 {
+  top: 50%;
+  left: 15%;
+  transform: translate(-50%, -50%);
+}
+
+.celtic-cross-layout .position-5 {
+  top: 27%;
+  left: 35%;
+  transform: translate(-50%, -50%);
+}
+
+.celtic-cross-layout .position-6 {
+  top: 50%;
+  left: 55%;
+  transform: translate(-50%, -50%);
+}
+
+.celtic-cross-layout .position-7 {
+  bottom: 5%;
+  right: 15%;
+  transform: translateX(50%);
+}
+
+.celtic-cross-layout .position-8 {
+  bottom: 30%;
+  right: 15%;
+  transform: translateX(50%);
+}
+
+.celtic-cross-layout .position-9 {
+  bottom: 55%;
+  right: 15%;
+  transform: translateX(50%);
+}
+
+.celtic-cross-layout .position-10 {
+  top: 5%;
+  right: 15%;
+  transform: translateX(50%);
+}
+
+/* 세븐 스타 레이아웃 - 유료배열과 동일하게 */
+.seven-star-layout {
+  position: relative;
+  width: 100%;
+  min-height: 500px;
+}
+
+.seven-star-layout .star-position-1 { /* 과거의 영향 - 상단 중앙 */
+  top: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.seven-star-layout .star-position-2 { /* 현재 상황 - 중앙 */
+  top: 70%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+.seven-star-layout .star-position-3 { /* 숨겨진 영향 - 좌측 상단 */
+  top: 30%;
+  left: 30%;
+  transform: translateX(-50%);
+}
+
+.seven-star-layout .star-position-4 { /* 의식적 욕구 - 우측 상단 */
+  top: 30%;
+  left: 70%;
+  transform: translateX(-50%);
+}
+
+.seven-star-layout .star-position-5 { /* 무의식적 욕구 - 좌측 하단 */
+  top: 75%;
+  left: 30%;
+  transform: translateX(-50%);
+}
+
+.seven-star-layout .star-position-6 { /* 조언 - 우측 하단 */
+  top: 75%;
+  left: 70%;
+  transform: translateX(-50%);
+}
+
+.seven-star-layout .star-position-7 { /* 최종 결과 - 하단 중앙 */
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* 컵 오브 릴레이션십 레이아웃 - 유료배열과 동일 */
+.cup-relationship-layout {
+  position: relative;
+  width: 100%;
+  min-height: 550px;
+}
+
+.cup-relationship-layout .cup-position-1 {
+  bottom: 20%;
+  left: 20%;
+  transform: translate(-50%, 50%);
+}
+
+.cup-relationship-layout .cup-position-2 {
+  bottom: 20%;
+  right: 20%;
+  transform: translate(50%, 50%);
+}
+
+.cup-relationship-layout .cup-position-3 {
+  bottom: 20%;
+  left: 50%;
+  transform: translate(-50%, 50%);
+}
+
+.cup-relationship-layout .cup-position-4 {
+  bottom: 40%;
+  left: 35%;
+  transform: translate(-50%, 50%);
+}
+
+.cup-relationship-layout .cup-position-5 {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.cup-relationship-layout .cup-position-6 {
+  bottom: 40%;
+  right: 35%;
+  transform: translate(50%, 50%);
+}
+
+.cup-relationship-layout .cup-position-7 {
+  top: 30%;
+  left: 20%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-8 {
+  top: 30%;
+  right: 20%;
+  transform: translate(50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-9 {
+  top: 10%;
+  left: 30%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-10 {
+  top: 10%;
+  right: 30%;
+  transform: translate(50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-11 {
+  top: 5%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 3장 타임라인 레이아웃 */
+.timeline-layout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 50px;
+  min-height: 250px;
+}
+
+.timeline-layout .card-position {
+  position: relative;
+}
+
+/* 1장 레이아웃 */
+.single-layout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 250px;
+}
+
+.single-layout .card-position {
+  position: relative;
+}
+
+.single-layout .card-image {
+  width: 100px;
+  height: 150px;
+}
+
+/* 그리드 레이아웃 */
+.grid-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.grid-layout .card-position {
+  position: relative;
+}
+
+/* 반응형 스타일 */
+@media (max-width: 768px) {
+  .card-image {
+    width: 60px;
+    height: 90px;
+  }
+  
+  .single-layout .card-image {
+    width: 80px;
+    height: 120px;
+  }
+  
+  .position-label {
+    font-size: 10px;
+  }
+  
+  .card-name {
+    font-size: 11px;
+  }
+  
+  .card-orientation {
+    font-size: 9px;
+  }
+}
+</style>

@@ -1,14 +1,22 @@
 // History 관련 타입 정의
 export interface DrawnCard {
-  id: number;
-  name_kr: string;
+  id?: number;
+  cardNumber?: number;
+  name?: string;
+  name_kr?: string;
+  nameKr?: string;
   card_name?: string;
-  meaning_upright: string;
-  meaning_reverse: string;
-  position?: string;
+  meaning_upright?: string;
+  meaning_reverse?: string;
+  position?: string | { index: number; name: string };
+  orientation?: 'upright' | 'reversed';
   is_reversed?: boolean;
   card_id?: number;
   image_url?: string;
+  imageUrl?: string;
+  arcana?: string;
+  suit?: string;
+  number?: number;
 }
 
 export interface ReadingHistory {

@@ -1,0 +1,463 @@
+<template>
+  <div class="mini-spread-layout" :class="spreadClass">
+    <!-- 켈틱 크로스 레이아웃 -->
+    <div v-if="spreadId === 'celtic_cross'" class="mini-celtic-cross">
+      <div 
+        v-for="(card, index) in cards.slice(0, 10)" 
+        :key="index"
+        :class="`mini-card position-${index + 1}`"
+        :title="getPositionName(index)"
+      >
+        <div class="card-content" :class="{ reversed: isReversed(card) }">
+          <div class="card-number">{{ index + 1 }}</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 세븐 스타 레이아웃 -->
+    <div v-else-if="spreadId === 'seven_star'" class="mini-seven-star">
+      <div 
+        v-for="(card, index) in cards.slice(0, 7)" 
+        :key="index"
+        :class="`mini-card star-position-${index + 1}`"
+        :title="getPositionName(index)"
+      >
+        <div class="card-content" :class="{ reversed: isReversed(card) }">
+          <div class="card-number">{{ index + 1 }}</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 컵 오브 릴레이션십 레이아웃 -->
+    <div v-else-if="spreadId === 'cup_of_relationship'" class="mini-cup-relationship">
+      <div 
+        v-for="(card, index) in cards.slice(0, 11)" 
+        :key="index"
+        :class="`mini-card cup-position-${index + 1}`"
+        :title="getPositionName(index)"
+      >
+        <div class="card-content" :class="{ reversed: isReversed(card) }">
+          <div class="card-number">{{ index + 1 }}</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 3장 타임라인 레이아웃 -->
+    <div v-else-if="spreadId === 'three_card_timeline'" class="mini-timeline">
+      <div 
+        v-for="(card, index) in cards.slice(0, 3)" 
+        :key="index"
+        :class="`mini-card timeline-position-${index + 1}`"
+        :title="getPositionName(index)"
+      >
+        <div class="card-content" :class="{ reversed: isReversed(card) }">
+          <div class="card-label">{{ getTimelineLabel(index) }}</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 1장 레이아웃 -->
+    <div v-else-if="spreadId === 'one_card' || spreadType === 'daily_card'" class="mini-single">
+      <div 
+        class="mini-card single-position"
+        :title="spreadType === 'daily_card' ? '오늘의 카드' : '현재 상황'"
+      >
+        <div class="card-content" :class="{ reversed: isReversed(cards[0]) }">
+          <div class="card-icon">{{ spreadType === 'daily_card' ? '☀️' : '🔮' }}</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 기본 그리드 레이아웃 (기타) -->
+    <div v-else class="mini-grid">
+      <div 
+        v-for="(card, index) in cards.slice(0, 6)" 
+        :key="index"
+        class="mini-card"
+        :title="`카드 ${index + 1}`"
+      >
+        <div class="card-content" :class="{ reversed: isReversed(card) }">
+          <div class="card-number">{{ index + 1 }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue';
+
+interface Props {
+  spreadId?: string;
+  spreadType?: string;
+  cards: any[];
+}
+
+const props = defineProps<Props>();
+
+const spreadClass = computed(() => {
+  if (props.spreadType === 'daily_card') return 'daily-card-layout';
+  return `${props.spreadId}-layout`;
+});
+
+const isReversed = (card: any): boolean => {
+  return card?.orientation === 'reversed';
+};
+
+const getPositionName = (index: number): string => {
+  const positions: Record<string, string[]> = {
+    'celtic_cross': [
+      '현재 내면', '현재 외부', '근본', '과거',
+      '드러나는 모습', '미래', '내가 보는 나',
+      '남이 보는 나', '예상하는 결과', '실제 결과'
+    ],
+    'seven_star': [
+      '핵심', '도움', '내면', '예상', '결과', '외부', '운명'
+    ],
+    'cup_of_relationship': [
+      '나', '상대', '관계 기본', '관계 과거',
+      '현재 느낌', '현재 외부 상황',
+      '현재 나는 어떻게 생각?', '현재 상대는 어떻게 생각?',
+      '미래 나는 어떻게 생각?', '미래 상대는 어떻게 생각?',
+      '결과'
+    ],
+    'three_card_timeline': ['과거', '현재', '미래'],
+    'one_card': ['현재 상황']
+  };
+  
+  return positions[props.spreadId || '']?.[index] || `카드 ${index + 1}`;
+};
+
+const getTimelineLabel = (index: number): string => {
+  const labels = ['과거', '현재', '미래'];
+  return labels[index] || '';
+};
+</script>
+
+<style scoped>
+.mini-spread-layout {
+  width: 100%;
+  height: 120px;
+  position: relative;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+/* 미니 카드 기본 스타일 */
+.mini-card {
+  position: absolute;
+  width: 20px;
+  height: 30px;
+  transition: all 0.3s ease;
+}
+
+.card-content {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.card-content:hover {
+  transform: scale(1.2);
+  z-index: 10;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.card-content.reversed {
+  background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.card-number {
+  font-size: 9px;
+  color: white;
+  font-weight: bold;
+}
+
+.card-label {
+  font-size: 7px;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+}
+
+.card-icon {
+  font-size: 12px;
+}
+
+/* 켈틱 크로스 미니 레이아웃 */
+.mini-celtic-cross {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.mini-celtic-cross .position-1 {
+  top: 35%;
+  left: 30%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.mini-celtic-cross .position-2 {
+  top: 35%;
+  left: 35%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  z-index: 3;
+}
+
+.mini-celtic-cross .position-3 {
+  top: 65%;
+  left: 32.5%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-celtic-cross .position-4 {
+  top: 35%;
+  left: 15%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-celtic-cross .position-5 {
+  top: 10%;
+  left: 32.5%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-celtic-cross .position-6 {
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-celtic-cross .position-7 {
+  top: 75%;
+  left: 70%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-celtic-cross .position-8 {
+  top: 55%;
+  left: 70%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-celtic-cross .position-9 {
+  top: 35%;
+  left: 70%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-celtic-cross .position-10 {
+  top: 15%;
+  left: 70%;
+  transform: translate(-50%, -50%);
+}
+
+/* 세븐 스타 미니 레이아웃 */
+.mini-seven-star {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.mini-seven-star .star-position-1 {
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.mini-seven-star .star-position-2 {
+  top: 10%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-seven-star .star-position-3 {
+  top: 20%;
+  left: 75%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-seven-star .star-position-4 {
+  top: 50%;
+  left: 80%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-seven-star .star-position-5 {
+  top: 75%;
+  left: 65%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-seven-star .star-position-6 {
+  top: 75%;
+  left: 35%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-seven-star .star-position-7 {
+  top: 50%;
+  left: 20%;
+  transform: translate(-50%, -50%);
+}
+
+/* 컵 오브 릴레이션십 미니 레이아웃 */
+.mini-cup-relationship {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.mini-cup-relationship .cup-position-1 {
+  top: 75%;
+  left: 25%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-cup-relationship .cup-position-2 {
+  top: 75%;
+  left: 75%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-cup-relationship .cup-position-3 {
+  top: 75%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-cup-relationship .cup-position-4 {
+  top: 55%;
+  left: 30%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-cup-relationship .cup-position-5 {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.mini-cup-relationship .cup-position-6 {
+  top: 55%;
+  left: 70%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-cup-relationship .cup-position-7 {
+  top: 35%;
+  left: 25%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-cup-relationship .cup-position-8 {
+  top: 35%;
+  left: 75%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-cup-relationship .cup-position-9 {
+  top: 15%;
+  left: 30%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-cup-relationship .cup-position-10 {
+  top: 15%;
+  left: 70%;
+  transform: translate(-50%, -50%);
+}
+
+.mini-cup-relationship .cup-position-11 {
+  top: 10%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 3장 타임라인 미니 레이아웃 */
+.mini-timeline {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.mini-timeline .mini-card {
+  position: relative;
+  width: 25px;
+  height: 35px;
+}
+
+/* 1장 미니 레이아웃 */
+.mini-single {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mini-single .mini-card {
+  position: relative;
+  width: 35px;
+  height: 50px;
+}
+
+/* 기본 그리드 레이아웃 */
+.mini-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  padding: 10px;
+  height: 100%;
+}
+
+.mini-grid .mini-card {
+  position: relative;
+  width: 100%;
+  height: 30px;
+}
+
+/* 오늘의 카드 특별 스타일 */
+.daily-card-layout .card-content {
+  background: linear-gradient(135deg, #FDB813 0%, #FFEB3B 100%);
+  border-color: rgba(253, 184, 19, 0.3);
+}
+
+/* 반응형 스타일 */
+@media (max-width: 480px) {
+  .mini-spread-layout {
+    height: 100px;
+  }
+  
+  .mini-card {
+    width: 18px;
+    height: 27px;
+  }
+  
+  .card-number {
+    font-size: 8px;
+  }
+  
+  .card-label {
+    font-size: 6px;
+  }
+}
+</style>

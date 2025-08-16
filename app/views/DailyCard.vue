@@ -642,18 +642,42 @@ const drawCard = async () => {
       throw new Error('사용자 ID를 찾을 수 없습니다');
     }
     
-    // readings 테이블에도 저장 (점괘 기록용)
+    // readings 테이블에도 저장 (점괘 기록용) - 모든 사용자 대상
+    // 테스트 계정도 기록은 남겨야 함
     try {
       console.log('readings 테이블에 오늘의 카드 저장 시도');
+      
+      // 테스트 계정인 경우 기존 데이터 삭제 후 새로 삽입
+      if (isTestAcc) {
+        const { error: deleteError } = await supabase
+          .from('readings')
+          .delete()
+          .eq('user_id', userId)
+          .eq('spread_id', 'daily_card')
+          .eq('question', `${today} 오늘의 카드`);
+        
+        if (deleteError) {
+          console.log('테스트 계정 기존 readings 삭제 실패 (무시):', deleteError);
+        }
+      }
+      
       const readingData = {
         user_id: userId,
-        spread_type: 'daily_card',
+        spread_id: 'daily_card',  // spread_type이 아니라 spread_id
+        topic: 'general',  // 기본 주제
         question: `${today} 오늘의 카드`,
-        cards: [{
-          position: 'daily',
-          card_id: card.id,
-          orientation: 'upright'
-        }],
+        cards: {
+          positions: [{
+            position: 'daily',
+            card_id: card.id,
+            card_name: card.name,
+            card_name_kr: card.name_kr,
+            orientation: 'upright'
+          }]
+        },
+        overall_message: `오늘의 카드: ${card.name_kr}`,
+        is_premium: false,
+        shared: false,
         created_at: new Date().toISOString()
       };
       
@@ -665,9 +689,15 @@ const drawCard = async () => {
       
       if (readingError) {
         console.error('readings 테이블 저장 실패:', readingError);
+        console.error('저장 시도한 데이터:', readingData);
         // 에러가 나도 계속 진행 (daily_cards는 이미 저장됨)
       } else {
         console.log('readings 테이블 저장 성공:', savedReading);
+        
+        // 저장된 reading ID를 보관 (나중에 해석 업데이트용)
+        if (savedReading && savedReading.id) {
+          todayCard.value = { ...todayCard.value, reading_id: savedReading.id } as any;
+        }
       }
     } catch (error) {
       console.error('readings 테이블 저장 중 예외:', error);
@@ -1203,6 +1233,61 @@ const generateInterpretation = async (card: TarotCard) => {
       }
     } else {
       console.log('테스트 계정: 기본 해석 캐싱 스킵');
+    }
+  }
+  
+  // readings 테이블에도 해석 업데이트 (점괘 기록용) - 모든 사용자 대상
+  if (interpretation.value) {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // todayCard에 저장된 reading_id가 있으면 사용, 없으면 조회
+      let readingId = (todayCard.value as any)?.reading_id;
+      
+      if (!readingId) {
+        // reading_id가 없으면 DB에서 조회
+        const { data: existingReading } = await supabase
+          .from('readings')
+          .select('id')
+          .eq('user_id', userStore.currentUser?.id)
+          .eq('spread_id', 'daily_card')
+          .eq('question', `${today} 오늘의 카드`)
+          .single();
+        
+        readingId = existingReading?.id;
+      }
+      
+      if (readingId) {
+        // AI 해석을 overall_message에 포함
+        const interpretationSummary = interpretation.value.detailedFortune?.mainMessage || 
+                                     interpretation.value.dailyQuote || 
+                                     `오늘의 카드: ${card.name_kr}`;
+        
+        const { error: updateError } = await supabase
+          .from('readings')
+          .update({ 
+            overall_message: interpretationSummary,
+            // AI 해석 데이터를 tags 필드에 저장 (주요 키워드 추출)
+            tags: [
+              `운세지수: ${interpretation.value.fortuneIndex.overall}/5`,
+              `행운색: ${interpretation.value.luckyItems.color}`,
+              `행운숫자: ${interpretation.value.luckyItems.number}`,
+              card.arcana === 'major' ? '메이저아르카나' : '마이너아르카나',
+              `${today.split('-')[1]}월${today.split('-')[2]}일`
+            ]
+          })
+          .eq('id', readingId);
+        
+        if (updateError) {
+          console.log('readings 테이블 해석 업데이트 실패:', updateError);
+        } else {
+          console.log('readings 테이블 해석 업데이트 성공');
+        }
+      } else {
+        console.log('readings 테이블에 해당 레코드가 없음');
+      }
+    } catch (error) {
+      console.error('readings 테이블 해석 업데이트 중 예외:', error);
     }
   }
 };

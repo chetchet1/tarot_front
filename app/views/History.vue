@@ -37,12 +37,30 @@
         <div class="section-header">
           <h2>내 점괘 기록</h2>
           <div class="filters">
-            <select v-model="selectedFilter" class="filter-select">
-              <option value="all">전체</option>
+            <select v-model="selectedDateFilter" class="filter-select">
+              <option value="all">전체 기간</option>
+              <option value="today">오늘</option>
+              <option value="week">이번 주</option>
+              <option value="month">이번 달</option>
+              <option value="3months">최근 3개월</option>
+              <option value="6months">최근 6개월</option>
+              <option value="year">올해</option>
+            </select>
+            <select v-model="selectedTopicFilter" class="filter-select">
+              <option value="all">모든 주제</option>
               <option value="love">연애/사랑</option>
               <option value="career">직업/진로</option>
               <option value="money">금전/재물</option>
               <option value="general">종합운세</option>
+            </select>
+            <select v-model="selectedSpreadFilter" class="filter-select">
+              <option value="all">모든 배열</option>
+              <option value="daily_card">오늘의 카드</option>
+              <option value="one_card">한 장 리딩</option>
+              <option value="three_card_timeline">세 장 타임라인</option>
+              <option value="celtic_cross">켈틱 크로스</option>
+              <option value="seven_star">세븐스타</option>
+              <option value="cup_of_relationship">컵 오브 릴레이션십</option>
             </select>
           </div>
         </div>
@@ -144,33 +162,11 @@
             
             <div class="cards-section">
               <h4>뽑힌 카드들</h4>
-              <div class="drawn-cards">
-                <div 
-                  v-for="(card, index) in selectedReading.cards" 
-                  :key="index"
-                  class="drawn-card"
-                >
-                  <div class="card-visual">
-                    <img 
-                      :src="getCardImagePath(card)" 
-                      :alt="card.card_name"
-                      class="card-image"
-                      :class="{ reversed: isReversedCard(card) }"
-                      @error="handleImageError"
-                    />
-                    <div class="card-orientation" :class="{ reversed: isReversedCard(card) }">
-                      {{ isReversedCard(card) ? '역방향' : '정방향' }}
-                    </div>
-                  </div>
-                  <div class="card-details">
-                    <h5>{{ card.position || `카드 ${index + 1}` }}</h5>
-                    <p class="card-name">{{ card.card_name }}</p>
-                    <p class="card-meaning">
-                      {{ isReversedCard(card) ? card.meaning_reverse : card.meaning_upright }}
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <SpreadLayout
+                :spread-id="selectedReading.spread_id"
+                :spread-type="selectedReading.spread_type"
+                :cards="selectedReading.cards"
+              />
             </div>
             
             <div v-if="getFullInterpretation(selectedReading)" class="interpretation-section">
@@ -193,6 +189,7 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '@/store/user';
 import { supabase } from '@/services/supabase';
 import LoginModal from '@/components/LoginModal.vue';
+import SpreadLayout from '@/components/history/SpreadLayout.vue';
 import { getCardImagePath, isReversedCard, handleImageError } from '@/utils/cardUtils';
 import { showAlert } from '@/utils/alerts';
 import type { ReadingHistory, DrawnCard } from '@/types/history';
@@ -200,7 +197,9 @@ import type { ReadingHistory, DrawnCard } from '@/types/history';
 const router = useRouter();
 const userStore = useUserStore();
 const showLogin = ref(false);
-const selectedFilter = ref('all');
+const selectedTopicFilter = ref('all');
+const selectedSpreadFilter = ref('all');
+const selectedDateFilter = ref('all');
 const selectedReading = ref<ReadingHistory | null>(null);
 const currentPage = ref(1);
 const itemsPerPage = 6;
@@ -210,8 +209,56 @@ const loading = ref(false);
 const filteredReadings = computed(() => {
   let filtered = readings.value;
   
-  if (selectedFilter.value !== 'all') {
-    filtered = filtered.filter(reading => reading.topic === selectedFilter.value);
+  // 날짜 필터 적용
+  if (selectedDateFilter.value !== 'all') {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    
+    filtered = filtered.filter(reading => {
+      const readingDate = new Date(reading.created_at);
+      
+      switch(selectedDateFilter.value) {
+        case 'today':
+          return readingDate >= today;
+        case 'week':
+          return readingDate >= startOfWeek;
+        case 'month':
+          return readingDate >= startOfMonth;
+        case '3months':
+          const threeMonthsAgo = new Date(now);
+          threeMonthsAgo.setMonth(now.getMonth() - 3);
+          return readingDate >= threeMonthsAgo;
+        case '6months':
+          const sixMonthsAgo = new Date(now);
+          sixMonthsAgo.setMonth(now.getMonth() - 6);
+          return readingDate >= sixMonthsAgo;
+        case 'year':
+          return readingDate >= startOfYear;
+        default:
+          return true;
+      }
+    });
+  }
+  
+  // 주제 필터 적용
+  if (selectedTopicFilter.value !== 'all') {
+    filtered = filtered.filter(reading => reading.topic === selectedTopicFilter.value);
+  }
+  
+  // 배열 필터 적용
+  if (selectedSpreadFilter.value !== 'all') {
+    filtered = filtered.filter(reading => {
+      // spread_type이 daily_card인 경우 처리
+      if (selectedSpreadFilter.value === 'daily_card') {
+        return reading.spread_type === 'daily_card' || reading.spread_id === 'daily_card';
+      }
+      // 일반 spread_id 비교
+      return reading.spread_id === selectedSpreadFilter.value;
+    });
   }
   
   // 날짜순 정렬 (최신순)
@@ -225,9 +272,58 @@ const filteredReadings = computed(() => {
 });
 
 const totalPages = computed(() => {
-  const filtered = readings.value.filter(reading => 
-    selectedFilter.value === 'all' || reading.topic === selectedFilter.value
-  );
+  let filtered = readings.value;
+  
+  // 날짜 필터 적용 (filteredReadings와 동일한 로직)
+  if (selectedDateFilter.value !== 'all') {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    
+    filtered = filtered.filter(reading => {
+      const readingDate = new Date(reading.created_at);
+      
+      switch(selectedDateFilter.value) {
+        case 'today':
+          return readingDate >= today;
+        case 'week':
+          return readingDate >= startOfWeek;
+        case 'month':
+          return readingDate >= startOfMonth;
+        case '3months':
+          const threeMonthsAgo = new Date(now);
+          threeMonthsAgo.setMonth(now.getMonth() - 3);
+          return readingDate >= threeMonthsAgo;
+        case '6months':
+          const sixMonthsAgo = new Date(now);
+          sixMonthsAgo.setMonth(now.getMonth() - 6);
+          return readingDate >= sixMonthsAgo;
+        case 'year':
+          return readingDate >= startOfYear;
+        default:
+          return true;
+      }
+    });
+  }
+  
+  // 주제 필터 적용
+  if (selectedTopicFilter.value !== 'all') {
+    filtered = filtered.filter(reading => reading.topic === selectedTopicFilter.value);
+  }
+  
+  // 배열 필터 적용
+  if (selectedSpreadFilter.value !== 'all') {
+    filtered = filtered.filter(reading => {
+      if (selectedSpreadFilter.value === 'daily_card') {
+        return reading.spread_type === 'daily_card' || reading.spread_id === 'daily_card';
+      }
+      return reading.spread_id === selectedSpreadFilter.value;
+    });
+  }
+  
   return Math.ceil(filtered.length / itemsPerPage);
 });
 
@@ -292,6 +388,30 @@ const getCardName = (card: any): string => {
   return '카드';
 };
 
+// 스프레드별 포지션 이름 가져오기
+const getPositionNameForSpread = (spreadId: string, index: number): string => {
+  const positions: Record<string, string[]> = {
+    'one_card': ['현재 상황'],
+    'three_card_timeline': ['과거', '현재', '미래'],
+    'celtic_cross': [
+      '현재 내면', '현재 외부', '근본', '과거',
+      '드러나는 모습', '미래', '내가 보는 나',
+      '남이 보는 나', '예상하는 결과', '실제 결과'
+    ],
+    'seven_star': [
+      '핵심', '도움', '내면', '예상', '결과', '외부', '운명'
+    ],
+    'cup_of_relationship': [
+      '나', '상대', '관계 기본', '관계 과거',
+      '현재 느낌', '현재 외부 상황',
+      '현재 나는 어떻게 생각?', '현재 상대는 어떻게 생각?',
+      '미래 나는 어떻게 생각?', '미래 상대는 어떻게 생각?',
+      '결과'
+    ]
+  };
+  return positions[spreadId]?.[index] || `카드 ${index + 1}`;
+};
+
 const getReadingCards = (reading: ReadingHistory): any[] => {
   // reading.cards가 배열인지 확인
   if (Array.isArray(reading.cards)) {
@@ -320,43 +440,12 @@ const getSummary = (reading: ReadingHistory): string => {
 
 // AI 해석 전문 가져오기 함수
 const getFullInterpretation = (reading: ReadingHistory): string | null => {
-  // 1. ai_interpretation_text 확인 (기본)
+  // 1. ai_interpretation_text 확인 (DB에서 가져온 AI 해석)
   if (reading.ai_interpretation_text) {
     return reading.ai_interpretation_text;
   }
   
-  // 2. ai_interpretation 필드 확인
-  if (reading.ai_interpretation) {
-    if (typeof reading.ai_interpretation === 'string') {
-      return reading.ai_interpretation;
-    }
-    // 객체인 경우 적절한 필드 찾기
-    if (typeof reading.ai_interpretation === 'object' && reading.ai_interpretation !== null) {
-      const interpretation = reading.ai_interpretation as any;
-      return interpretation.aiInterpretation || 
-             interpretation.overallMessage || 
-             interpretation.summary || 
-             interpretation.text ||
-             JSON.stringify(interpretation);
-    }
-  }
-  
-  // 3. enhanced_interpretation 필드 확인 (세븐스타, 컵오브릴레이션십)
-  if (reading.enhanced_interpretation) {
-    if (typeof reading.enhanced_interpretation === 'string') {
-      return reading.enhanced_interpretation;
-    }
-    if (typeof reading.enhanced_interpretation === 'object' && reading.enhanced_interpretation !== null) {
-      const enhanced = reading.enhanced_interpretation as any;
-      return enhanced.aiInterpretation || 
-             enhanced.overallMessage || 
-             enhanced.summary || 
-             enhanced.text ||
-             JSON.stringify(enhanced);
-    }
-  }
-  
-  // 4. overall_message 필드 확인
+  // 2. overall_message 필드 확인 (기본 해석)
   if (reading.overall_message) {
     return reading.overall_message;
   }
@@ -393,26 +482,42 @@ const fetchReadings = async () => {
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     
+    // readings 테이블과 ai_interpretations 조인해서 가져오기
     const { data, error } = await supabase
       .from('readings')
-      .select('*')
+      .select(`
+        *,
+        ai_interpretations!ai_interpretations_reading_id_fkey (
+          interpretation_text,
+          custom_question,
+          probability_analysis
+        )
+      `)
       .eq('user_id', userStore.currentUser.id)
       .gte('created_at', oneYearAgo.toISOString()) // 1년 이내 기록만
       .order('created_at', { ascending: false });
     
-
-
     if (error) throw error;
     
     // 데이터 구조 변환
     readings.value = (data || []).map(reading => {
+      // AI 해석 병합
+      let aiInterpretationText = null;
+      if (reading.ai_interpretations && reading.ai_interpretations.length > 0) {
+        // 가장 최근 AI 해석 사용
+        aiInterpretationText = reading.ai_interpretations[0].interpretation_text;
+      }
+      
       // spread_type이 'daily_card'인 경우 특별 처리
-      if (reading.spread_type === 'daily_card') {
+      if (reading.spread_type === 'daily_card' || reading.spread_id === 'daily_card') {
         return {
           ...reading,
+          spread_id: 'daily_card',  // spread_id 통일
+          spread_type: 'daily_card',  // spread_type도 유지
           spread_name: '오늘의 카드',
-          topic: 'general',
-          cards: reading.cards || []
+          topic: reading.topic || 'general',
+          cards: reading.cards || [],
+          ai_interpretation_text: aiInterpretationText
         };
       }
       
@@ -421,14 +526,16 @@ const fetchReadings = async () => {
         'one_card': '한 장 리딩',
         'three_card_timeline': '세 장 타임라인',
         'celtic_cross': '켈틱 크로스',
-        'seven_star': '세븐스타'
+        'seven_star': '세븐스타',
+        'cup_of_relationship': '컵 오브 릴레이션십'
       };
       
       // 일반 점괘 처리
       return {
         ...reading,
         spread_name: spreadNames[reading.spread_id] || reading.spread_id || reading.spread_type || '일반 점괘',
-        cards: reading.cards || []
+        cards: reading.cards || [],
+        ai_interpretation_text: aiInterpretationText
       };
     });
     
@@ -486,6 +593,11 @@ onMounted(async () => {
   
   // 프리미엄 사용자만 기록 불러오기
   fetchReadings();
+});
+
+// 필터 변경 시 페이지 리셋
+watch([selectedTopicFilter, selectedSpreadFilter, selectedDateFilter], () => {
+  currentPage.value = 1;
 });
 
 // 프리미엄 상태 변경 감지
@@ -605,11 +717,23 @@ watch(() => userStore.isPremium, (isPremium) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
 .section-header h2 {
   color: #A855F7;
   margin: 0;
+  flex-shrink: 0;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
 }
 
 .filter-select {
@@ -619,6 +743,24 @@ watch(() => userStore.isPremium, (isPremium) => {
   border-radius: 8px;
   color: white;
   font-size: 14px;
+  min-width: 120px;
+  max-width: 180px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.filter-select:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(168, 85, 247, 0.5);
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #A855F7;
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
 }
 
 .filter-select option {
@@ -862,77 +1004,20 @@ watch(() => userStore.isPremium, (isPremium) => {
   margin-bottom: 20px;
 }
 
-.drawn-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.drawn-card {
-  display: flex;
-  gap: 15px;
-  padding: 15px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-}
-
-.card-visual {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-}
-
-.card-image {
-  width: 60px;
-  height: 90px;
-  object-fit: contain;
-  border-radius: 4px;
-}
-
-.card-image.reversed {
-  transform: rotate(180deg);
-}
-
-.card-orientation {
-  padding: 2px 6px;
-  border-radius: 8px;
-  font-size: 10px;
-  font-weight: 600;
-  background: rgba(34, 197, 94, 0.2);
-  color: #22C55E;
-}
-
-.card-orientation.reversed {
-  background: rgba(239, 68, 68, 0.2);
-  color: #EF4444;
-}
-
-.card-details {
-  flex: 1;
-}
-
-.card-details h5 {
-  color: #A855F7;
-  margin-bottom: 5px;
-  font-size: 14px;
-}
-
-.card-name {
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.card-meaning {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 14px;
-  line-height: 1.4;
-}
+/* 카드 섹션 스타일은 SpreadLayout 컴포넌트에서 처리함 */
 
 .full-interpretation {
   color: rgba(255, 255, 255, 0.8);
   line-height: 1.6;
   white-space: pre-wrap;
+}
+
+@media (max-width: 1024px) {
+  .filter-select {
+    min-width: 110px;
+    max-width: 150px;
+    font-size: 13px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -946,9 +1031,34 @@ watch(() => userStore.isPremium, (isPremium) => {
     align-items: stretch;
   }
   
-  .drawn-card {
-    flex-direction: column;
+  .section-header h2 {
     text-align: center;
+  }
+  
+  .filters {
+    justify-content: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 5px;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .filter-select {
+    font-size: 13px;
+    padding: 7px 10px;
+    min-width: 90px;
+    max-width: 120px;
+    flex: 1 1 auto;
+  }
+  
+  .cards-layout-simple {
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 15px;
+  }
+  
+  .card-image {
+    width: 70px;
+    height: 105px;
   }
   
   .modal-content {
