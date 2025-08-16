@@ -368,8 +368,15 @@ export const getPremiumSpreads = (): TarotSpread[] => {
 };
 
 // 특정 주제에 사용 가능한 스프레드 가져오기
-export const getSpreadsByTopic = (topic: string): TarotSpread[] => {
-  return tarotSpreads.filter(spread => spread.topics.includes(topic));
+export const getSpreadsByTopic = (topic: string, relationshipStatus?: 'single' | 'couple' | null): TarotSpread[] => {
+  let availableSpreads = tarotSpreads.filter(spread => spread.topics.includes(topic));
+  
+  // 연애 주제이고 솔로인 경우, 컵 오브 릴레이션십 제외
+  if (topic === 'love' && relationshipStatus === 'single') {
+    availableSpreads = availableSpreads.filter(spread => spread.spreadId !== 'cup_of_relationship');
+  }
+  
+  return availableSpreads;
 };
 
 // Alias for backward compatibility

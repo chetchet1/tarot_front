@@ -219,10 +219,22 @@ const goToPremium = () => {
 };
 
 const showHistoryAlert = async () => {
-  await showAlert({
-    title: '점괴 기록',
-    message: '해당 기능은 차후 업데이트 됩니다.'
-  });
+  // 프리미엄 사용자 체크
+  if (!userStore.isPremium) {
+    await showAlert({
+      title: '프리미엄 전용 기능',
+      message: '점괘 기록 보관은 프리미엄 구독자만 이용 가능합니다.\n\n프리미엄 구독 시 1년간 점괘를 안전하게 보관할 수 있습니다.',
+      confirmText: '프리미엄 구독하기',
+      cancelText: '닫기',
+      onConfirm: () => {
+        router.push('/premium');
+      }
+    });
+    return;
+  }
+  
+  // 프리미엄 사용자는 기록 페이지로 이동
+  router.push('/history');
 };
 
 const handleClickOutside = (event: MouseEvent) => {

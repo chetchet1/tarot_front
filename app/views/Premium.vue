@@ -254,10 +254,34 @@ const processPurchase = async () => {
 };
 
 const manageSub = async () => {
-  await showAlert({
-    title: '안내',
-    message: '구독 관리 기능은 곧 추가될 예정입니다.'
+  const result = await showConfirm({
+    title: '구독 관리',
+    message: '구독을 취소하시겠습니까?\n\n⚠️ 경고: 구독 취소 시 모든 기록이 즉시 삭제됩니다!',
+    confirmText: '구독 취소',
+    cancelText: '돌아가기'
   });
+  
+  if (result) {
+    try {
+      isLoading.value = true;
+      await userStore.cancelSubscription();
+      await showAlert({
+        title: '구독 취소 완료',
+        message: '구독이 취소되고 모든 기록이 삭제되었습니다.'
+      });
+      
+      // 프리미엄 상태 새로고침
+      await userStore.refreshPremiumStatus();
+    } catch (error) {
+      console.error('구독 취소 실패:', error);
+      await showAlert({
+        title: '오류',
+        message: '구독 취소에 실패했습니다. 다시 시도해주세요.'
+      });
+    } finally {
+      isLoading.value = false;
+    }
+  }
 };
 
 const formatDate = (date: Date | string) => {

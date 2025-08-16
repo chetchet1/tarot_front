@@ -309,13 +309,18 @@ const goHome = () => {
 const getThemeDisplay = () => {
   if (!sharedData.value) return '타로 점괘';
   
-  // 커스텀 질문이 있으면 커스텀 질문으로 표시
-  if (sharedData.value.custom_question && sharedData.value.custom_question.trim()) {
+  // 커스텀 질문이 실제로 있으면 커스텀 질문으로 표시
+  // (theme이 'custom'이고 실제 질문이 있는 경우)
+  if (sharedData.value.theme === 'custom' && sharedData.value.custom_question && sharedData.value.custom_question.trim()) {
     return '커스텀 질문';
   }
   
+  // 테마와 서브테마 정보 사용
   const theme = sharedData.value.theme || 'general';
   const subTheme = sharedData.value.sub_theme || null;
+  
+  console.log('🎯 Theme info:', { theme, subTheme });
+  
   return getThemeDisplayName(theme, subTheme);
 };
 

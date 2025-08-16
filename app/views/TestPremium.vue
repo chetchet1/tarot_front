@@ -16,7 +16,10 @@
         프리미엄 업그레이드
       </button>
       <button @click="downgradeToPremium" class="btn btn-secondary">
-        프리미엄 다운그레이드
+        프리미엄 다운그레이드 (테스트용)
+      </button>
+      <button @click="cancelSubscription" class="btn btn-danger">
+        구독 취소 (기록 삭제)
       </button>
       <button @click="refreshPremiumStatus" class="btn btn-info">
         프리미엄 상태 새로고침
@@ -54,7 +57,19 @@ const upgradeToPremium = async () => {
 
 const downgradeToPremium = async () => {
   await userStore.downgradeToPremium();
-  alert('프리미엄이 해제되었습니다!');
+  alert('프리미엄이 해제되었습니다! (테스트용 - 기록은 유지됨)');
+};
+
+const cancelSubscription = async () => {
+  if (confirm('정말로 구독을 취소하시겠습니까?\n\n경고: 모든 기록이 즉시 삭제됩니다!')) {
+    try {
+      await userStore.cancelSubscription();
+      alert('구독이 취소되고 모든 기록이 삭제되었습니다.');
+    } catch (error) {
+      console.error('구독 취소 실패:', error);
+      alert('구독 취소에 실패했습니다.');
+    }
+  }
 };
 
 const refreshPremiumStatus = async () => {
@@ -103,31 +118,33 @@ const createTestReading = async () => {
   cursor: pointer;
   font-size: 16px;
   transition: all 0.3s ease;
-}
-
-.btn-primary {
-  background: #A855F7;
-  color: white;
-}
-
-.btn-secondary {
-  background: #6B7280;
-  color: white;
-}
-
-.btn-info {
-  background: #3B82F6;
-  color: white;
-}
-
-.btn-success {
-  background: #10B981;
   color: white;
 }
 
 .btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  opacity: 0.9;
+}
+
+.btn-primary {
+  background: #4CAF50;
+}
+
+.btn-secondary {
+  background: #6B7280;
+}
+
+.btn-danger {
+  background: #f44336;
+}
+
+.btn-info {
+  background: #3B82F6;
+}
+
+.btn-success {
+  background: #10B981;
 }
 
 pre {

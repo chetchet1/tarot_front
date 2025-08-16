@@ -11,6 +11,7 @@ import { useRoute } from 'vue-router';
 import { Capacitor } from '@capacitor/core';
 import { useUserStore } from './store/user';
 import { oauthService } from './services/oauth';
+import { revenueCatService } from './services/RevenueCatService';
 import './styles/main.scss';
 
 const route = useRoute();
@@ -39,6 +40,15 @@ onMounted(async () => {
     // OAuth 리스너 설정 (네이티브 앱에서만)
     if (Capacitor.isNativePlatform()) {
       await oauthService.setupDeepLinkListener();
+      
+      // RevenueCat 초기화 (네이티브 앱에서만)
+      try {
+        await revenueCatService.initialize();
+        console.log('✅ RevenueCat initialized');
+      } catch (error) {
+        console.error('⚠️ RevenueCat initialization failed:', error);
+        // RevenueCat 초기화 실패해도 앱은 계속 실행
+      }
     }
     
     // 사용자 초기화 (공유 페이지가 아닌 경우만)

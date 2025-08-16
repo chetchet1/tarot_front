@@ -6,7 +6,7 @@
     </header>
 
     <div class="container">
-      <div v-if="!userStore.isAuthenticated" class="login-prompt">
+      <div v-if="!userStore.isLoggedIn" class="login-prompt">
         <div class="prompt-card card">
           <div class="prompt-icon">🔒</div>
           <h2>로그인이 필요합니다</h2>
@@ -185,12 +185,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/store/user';
 import { supabase } from '@/services/supabase';
 import LoginModal from '@/components/LoginModal.vue';
 import { getCardImagePath, isReversedCard, handleImageError } from '@/utils/cardUtils';
+import { showAlert } from '@/utils/alerts';
 import type { ReadingHistory, DrawnCard } from '@/types/history';
 
 const router = useRouter();
@@ -287,8 +288,19 @@ const changePage = (page: number) => {
 const fetchReadings = async () => {
   if (!userStore.user?.id) return;
   
+  // 프리미엄 사용자가 아니면 읽기 차단
+  if (!userStore.isPremium) {
+    console.log('무료 사용자는 기록을 볼 수 없습니다');
+    readings.value = [];
+    return;
+  }
+  
   loading.value = true;
   try {
+    // 1년 전 날짜 계산
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    
     const { data, error } = await supabase
       .from('reading_history')
       .select(`
@@ -299,6 +311,7 @@ const fetchReadings = async () => {
         )
       `)
       .eq('user_id', userStore.user.id)
+      .gte('created_at', oneYearAgo.toISOString()) // 1년 이내 기록만
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -313,6 +326,9 @@ const fetchReadings = async () => {
         is_reversed: rc.is_reversed
       }))
     }));
+    
+    // 1년 지난 기록 자동 삭제 (백그라운드에서 실행)
+    cleanupOldReadings();
   } catch (error) {
     console.error('Error fetching readings:', error);
   } finally {
@@ -320,9 +336,63 @@ const fetchReadings = async () => {
   }
 };
 
-onMounted(() => {
+// 1년 지난 기록 삭제 함수
+const cleanupOldReadings = async () => {
+  try {
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    
+    const { error } = await supabase
+      .from('reading_history')
+      .delete()
+      .eq('user_id', userStore.user?.id)
+      .lt('created_at', oneYearAgo.toISOString());
+    
+    if (error) {
+      console.error('Error cleaning up old readings:', error);
+    } else {
+      console.log('1년 지난 기록이 자동 삭제되었습니다');
+    }
+  } catch (error) {
+    console.error('Error in cleanup:', error);
+  }
+};
+
+onMounted(async () => {
+  // 프리미엄 사용자 체크
+  if (!userStore.isPremium) {
+    await showAlert({
+      title: '프리미엄 전용 기능',
+      message: '점괘 기록 보관은 프리미엄 구독자만 이용 가능합니다.\n\n프리미엄 구독 시 1년간 점괘를 안전하게 보관할 수 있습니다.',
+      confirmText: '프리미엄 구독하기',
+      cancelText: '돌아가기',
+      onConfirm: () => {
+        router.push('/premium');
+      },
+      onCancel: () => {
+        router.push('/app');
+      }
+    });
+    return;
+  }
+  
   if (userStore.isAuthenticated) {
     fetchReadings();
+  }
+});
+
+// 프리미엄 상태 변경 감지
+watch(() => userStore.isPremium, (isPremium) => {
+  if (!isPremium) {
+    // 프리미엄 해지 시 기록 페이지에서 나가기
+    showAlert({
+      title: '프리미엄 구독 해지',
+      message: '프리미엄 구독이 해지되어 기록을 볼 수 없습니다.',
+      confirmText: '확인',
+      onConfirm: () => {
+        router.push('/app');
+      }
+    });
   }
 });
 </script>

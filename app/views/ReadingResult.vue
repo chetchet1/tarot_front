@@ -609,7 +609,11 @@ const selectedTheme = computed(() => {
 });
 
 const selectedSubTheme = computed(() => {
-  return tarotStore.selectedSubTheme || null;
+  // 컵 오브 릴레이션십은 항상 couple
+  if (reading.value?.spreadId === 'cup_of_relationship') {
+    return 'couple';
+  }
+  return tarotStore.getSelectedSubTheme() || null;
 });
 
 // 표시용 테마 이름
@@ -624,6 +628,11 @@ const displaySpread = computed(() => {
 
 // 표시할 질문 (커스텀 질문 또는 테마별 기본 질문)
 const displayQuestion = computed(() => {
+  // 컵 오브 릴레이션십인 경우 특별한 메시지 표시
+  if (reading.value?.spreadId === 'cup_of_relationship') {
+    return '💕 우리의 관계에 대하여';
+  }
+  
   if (customQuestion.value) {
     return customQuestion.value;
   }
@@ -705,8 +714,17 @@ const createShareLink = async (reading: any): Promise<string> => {
     }
     
     // 테마와 서브테마 정보 추가
-    const theme = reading.topic || tarotStore.selectedTheme || 'general';
-    const subTheme = tarotStore.selectedSubTheme || null;
+    // 컵 오브 릴레이션십은 항상 couple
+    let theme = tarotStore.selectedTheme || reading.topic || 'general';
+    let subTheme = tarotStore.getSelectedSubTheme() || null;
+    
+    // 컵 오브 릴레이션십인 경우 강제 설정
+    if (reading.spreadId === 'cup_of_relationship') {
+      theme = 'love';
+      subTheme = 'couple';
+    }
+    
+    console.log('🎯 [createShareLink] Theme info:', { theme, subTheme });
     
     const shareData = {
       spread_type: reading.spreadId,

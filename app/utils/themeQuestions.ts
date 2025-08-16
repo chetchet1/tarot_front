@@ -79,17 +79,27 @@ export function getThemeQuestion(theme: string, subTheme?: string): ThemeQuestio
 /**
  * 테마 표시 이름 가져오기
  */
-export function getThemeDisplayName(theme: string, subTheme?: string): string {
+export function getThemeDisplayName(theme: string, subTheme?: string | null): string {
   const themeNames: Record<string, string> = {
     'love': '연애운',
     'money': '재물운',
     'health': '건강운',
     'career': '직업운',
     'study': '학업운',
-    'general': '종합운'
+    'general': '종합운',
+    'custom': '커스텀 질문'
   };
   
   let displayName = themeNames[theme] || '타로 점괘';
+  
+  // 연애운의 경우 서브테마 추가 표시
+  if (theme === 'love' && subTheme) {
+    if (subTheme === 'single') {
+      displayName = '연애운 (솔로)';
+    } else if (subTheme === 'couple') {
+      displayName = '연애운 (커플)';
+    }
+  }
   
   return displayName;
 }

@@ -4,6 +4,7 @@ import { User, UserPreferences, Subscription } from '../models/user';
 import { authService, profileService } from '../services/supabase';
 import { Capacitor } from '@capacitor/core';
 import { SUPABASE_CONFIG } from '../config/env';
+import { revenueCatService } from '../services/RevenueCatService';
 
 export const useUserStore = defineStore('user', () => {
   // State
@@ -433,6 +434,15 @@ export const useUserStore = defineStore('user', () => {
             console.warn('로그인 시 프리미엄 상태 확인 실패:', error);
           }
           
+          // RevenueCat에 사용자 연결 (네이티브 앱에서만)
+          if (Capacitor.isNativePlatform() && revenueCatService) {
+            try {
+              await revenueCatService.loginUser(user.id);
+            } catch (error) {
+              console.warn('RevenueCat 사용자 연결 실패:', error);
+            }
+          }
+          
           currentUser.value = {
             id: user.id,
             email: user.email!,
@@ -633,6 +643,10 @@ export const useUserStore = defineStore('user', () => {
     isLoading.value = true;
     
     try {
+      // 로그아웃 전 사용자 ID 저장 (기록 삭제용)
+      const userId = currentUser.value?.id;
+      const wasPremium = currentUser.value?.isPremium;
+      
       // 먼저 로컬 상태 초기화
       currentUser.value = null;
       localStorage.removeItem('tarot_user');
@@ -640,6 +654,34 @@ export const useUserStore = defineStore('user', () => {
       // 로컬 스토리지 정리
       const supabaseKey = 'sb-' + SUPABASE_CONFIG.url.replace('https://', '').split('.')[0] + '-auth-token';
       localStorage.removeItem(supabaseKey);
+      
+      // 프리미엄 사용자였다면 기록 삭제
+      if (userId && wasPremium && !userId.startsWith('anon_')) {
+        try {
+          console.log('프리미엄 사용자 기록 삭제 시작:', userId);
+          const { error } = await authService.supabase
+            .from('reading_history')
+            .delete()
+            .eq('user_id', userId);
+          
+          if (error) {
+            console.error('기록 삭제 실패:', error);
+          } else {
+            console.log('프리미엄 사용자 기록 삭제 완료');
+          }
+        } catch (error) {
+          console.error('기록 삭제 중 오류:', error);
+        }
+      }
+      
+      // RevenueCat 로그아웃 (네이티브 앱에서만)
+      if (Capacitor.isNativePlatform() && revenueCatService) {
+        try {
+          await revenueCatService.logoutUser();
+        } catch (error) {
+          console.warn('RevenueCat 로그아웃 실패:', error);
+        }
+      }
       
       // Supabase 로그아웃 시도 (비동기, 에러 무시)
       try {
@@ -719,6 +761,53 @@ export const useUserStore = defineStore('user', () => {
     }
   };
 
+  // 구독 취소 (프리미엄 -> 무료)
+  const cancelSubscription = async () => {
+    if (!currentUser.value || currentUser.value.isAnonymous) return;
+    
+    try {
+      const userId = currentUser.value.id;
+      
+      // 1. 프리미엄 상태 해제
+      const { error: profileError } = await authService.supabase
+        .from('profiles')
+        .update({ is_premium: false })
+        .eq('id', userId);
+      
+      if (profileError) {
+        console.error('프리미엄 상태 해제 실패:', profileError);
+        throw profileError;
+      }
+      
+      // 2. 기록 삭제
+      console.log('구독 취소 - 기록 삭제 시작:', userId);
+      const { error: deleteError } = await authService.supabase
+        .from('reading_history')
+        .delete()
+        .eq('user_id', userId);
+      
+      if (deleteError) {
+        console.error('기록 삭제 실패:', deleteError);
+        // 기록 삭제 실패해도 계속 진행
+      } else {
+        console.log('구독 취소 - 기록 삭제 완료');
+      }
+      
+      // 3. 로컬 상태 업데이트
+      currentUser.value.isPremium = false;
+      if (currentUser.value.subscription) {
+        currentUser.value.subscription.status = 'cancelled';
+      }
+      saveUser();
+      
+      console.log('구독 취소 완료');
+      return true;
+    } catch (error) {
+      console.error('구독 취소 실패:', error);
+      throw error;
+    }
+  };
+
   // 비밀번호 재설정
   const resetPassword = async (email: string) => {
     try {
@@ -759,6 +848,7 @@ export const useUserStore = defineStore('user', () => {
     updatePreferences,
     updateProfile,
     updateSubscription,
+    cancelSubscription,
     resetPassword,
     resendVerificationEmail,
     incrementFreeReading,

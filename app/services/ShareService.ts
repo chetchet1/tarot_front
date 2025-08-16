@@ -143,9 +143,12 @@ export class ShareService {
             position: card.position
           };
         }),
-        theme: (reading as any).theme || null,  // 테마 정보 추가
-        sub_theme: (reading as any).subTheme || null,  // 서브테마 정보 추가
-        custom_question: reading.customQuestion || null,
+        theme: (reading as any).theme || (reading as any).topic || null,  // 테마 정보 추가
+        sub_theme: (reading as any).subTheme || (reading as any).sub_theme || null,  // 서브테마 정보 추가
+        // 컵 오브 릴레이션십인 경우 특별한 문구 설정
+        custom_question: reading.spreadId === 'cup_of_relationship' 
+          ? '💕 우리의 관계에 대하여' 
+          : (reading.customQuestion || null),
         basic_interpretation: reading.overallMessage || null,
         ai_interpretation: aiInterpretationText,
         shared_by: (await supabase.auth.getUser()).data?.user?.id || null

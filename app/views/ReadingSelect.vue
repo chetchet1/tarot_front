@@ -119,12 +119,18 @@
             class="spread-card card"
             :class="{ 
               selected: selectedSpread === spread.id,
-              premium: spread.isPremium && !userStore.isPremium
+              premium: spread.isPremium && !userStore.isPremium,
+              'seven-star': spread.id === 'seven_star',
+              'celtic-cross': spread.id === 'celtic_cross',
+              'cup-relationship': spread.id === 'cup_of_relationship'
             }"
             @click="selectSpread(spread)"
           >
             <div class="spread-header">
-              <h3>{{ spread.name }}</h3>
+              <h3>
+                {{ spread.name }}
+                <span v-if="spread.id === 'cup_of_relationship'" class="relationship-badge">💕 연애/커플 전용</span>
+              </h3>
               <span v-if="spread.isPremium && !userStore.isPremium" class="premium-badge">👑</span>
             </div>
             <p class="spread-description">{{ spread.description }}</p>
@@ -366,8 +372,11 @@ const spreads = computed(() => {
     return [];
   }
   
-  // 일반 주제인 경우 기존 로직 사용
-  return getSpreadsByTopic(selectedTopic.value).map(spread => ({
+  // 연애 주제인 경우 연애 상태를 고려하여 스프레드 필터링
+  const relationshipStatus = selectedTopic.value === 'love' ? tarotStore.getRelationshipStatus() : null;
+  
+  // 일반 주제인 경우 기존 로직 사용 (연애 상태 매개변수 추가)
+  return getSpreadsByTopic(selectedTopic.value, relationshipStatus).map(spread => ({
     id: spread.spreadId,
     name: spread.nameKr,
     description: spread.description,
@@ -450,6 +459,11 @@ const selectTopic = (topicId: string) => {
       return;
     }
     showQuestionModal.value = true;
+  } else if (topicId === 'love') {
+    // 연애 카테고리 선택 시 바로 솔로/커플 모달 표시
+    selectedTopic.value = topicId;
+    customQuestion.value = '';
+    showRelationshipModal.value = true;
   } else {
     selectedTopic.value = topicId;
     customQuestion.value = '';
@@ -474,16 +488,15 @@ const handleRelationshipConfirm = (status: 'single' | 'couple') => {
   tarotStore.setRelationshipStatus(status);
   showRelationshipModal.value = false;
   
-  // 모달 확인 시 상태만 저장하고 대기
-  // 버튼 클릭 시 proceedToCardDrawing() 실행
+  // 상태 저장 후 배열법 선택을 기다림
 };
 
 const handleRelationshipCancel = () => {
   console.log('[RelationshipModal] 취소');
   showRelationshipModal.value = false;
   
-  // 배열법 선택도 초기화 (취소했으므로)
-  selectedSpread.value = '';
+  // 연애 카테고리 선택도 취소
+  selectedTopic.value = '';
   
   // 연애 상태도 초기화
   tarotStore.clearRelationshipStatus();
@@ -540,13 +553,6 @@ const selectSpread = async (spread: Spread) => {
   }
   
   selectedSpread.value = spread.id;
-  
-  // 연애 + 특정 배열법 선택 시 바로 모달 표시
-  if (selectedTopic.value === 'love' && 
-      (spread.id === 'celtic_cross' || spread.id === 'seven_star')) {
-    console.log('[SelectSpread] 연애 + 특정 배열법 선택 - 모달 표시');
-    showRelationshipModal.value = true;
-  }
 };
 
 const getTopicName = (topicId: string) => {
@@ -624,10 +630,20 @@ const proceedToCardDrawing = async () => {
     selectedSpreadData = getSpreadsByTopic(selectedTopic.value).find(s => s.spreadId === selectedSpread.value);
   }
   
+  // 컵 오브 릴레이션십인 경우 subTheme을 'couple'로 설정
+  if (selectedSpread.value === 'cup_of_relationship') {
+    tarotStore.setSelectedSubTheme('couple');
+    console.log('[ProceedToCardDrawing] 컵 오브 릴레이션십 - subTheme을 couple로 설정');
+  } else {
+    // 다른 배열법은 subTheme 초기화
+    tarotStore.setSelectedSubTheme(null);
+  }
+  
   console.log('[ProceedToCardDrawing] 선택된 데이터', {
     selectedTopicData,
     selectedSpreadData,
-    relationshipStatus: tarotStore.getRelationshipStatus()
+    relationshipStatus: tarotStore.getRelationshipStatus(),
+    subTheme: tarotStore.getSelectedSubTheme()
   });
   
   if (!selectedTopicData || !selectedSpreadData) {
@@ -850,6 +866,7 @@ const resetSelection = () => {
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
+  border-radius: 16px;
 }
 
 .topic-card:hover,
@@ -862,6 +879,120 @@ const resetSelection = () => {
 .spread-card.selected {
   background: rgba(168, 85, 247, 0.2);
   border-color: #A855F7;
+}
+
+/* 세븐스타 배열법 스타일 */
+.spread-card.seven-star {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.05), rgba(59, 130, 246, 0.05));
+  border: 2px solid rgba(56, 189, 248, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.spread-card.seven-star::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(90deg, #38BDF8, #3B82F6, #38BDF8);
+  border-radius: 16px;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.spread-card.seven-star:hover::before {
+  opacity: 0.3;
+  animation: shimmer 3s linear infinite;
+}
+
+.spread-card.seven-star:hover {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(59, 130, 246, 0.1));
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.2);
+}
+
+.spread-card.seven-star.selected {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(59, 130, 246, 0.2));
+  border-color: #38BDF8;
+}
+
+/* 켈틱 크로스 배열법 스타일 */
+.spread-card.celtic-cross {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.05), rgba(91, 33, 182, 0.05));
+  border: 2px solid rgba(124, 58, 237, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.spread-card.celtic-cross::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(90deg, #7C3AED, #5B21B6, #7C3AED);
+  border-radius: 16px;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.spread-card.celtic-cross:hover::before {
+  opacity: 0.3;
+  animation: shimmer 3s linear infinite;
+}
+
+.spread-card.celtic-cross:hover {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(91, 33, 182, 0.1));
+  border-color: rgba(124, 58, 237, 0.4);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.2);
+}
+
+.spread-card.celtic-cross.selected {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(91, 33, 182, 0.2));
+  border-color: #7C3AED;
+}
+
+/* 컵 오브 릴레이션쉽 배열법 스타일 */
+.spread-card.cup-relationship {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.05), rgba(251, 146, 60, 0.05));
+  border: 2px solid rgba(236, 72, 153, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.spread-card.cup-relationship::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(90deg, #EC4899, #FB923C, #EC4899);
+  border-radius: 16px;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.spread-card.cup-relationship:hover::before {
+  opacity: 0.3;
+  animation: shimmer 3s linear infinite;
+}
+
+.spread-card.cup-relationship:hover {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(251, 146, 60, 0.1));
+  border-color: rgba(236, 72, 153, 0.4);
+  box-shadow: 0 4px 20px rgba(236, 72, 153, 0.2);
+}
+
+.spread-card.cup-relationship.selected {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(251, 146, 60, 0.2));
+  border-color: #EC4899;
 }
 
 .topic-icon {
@@ -877,12 +1008,33 @@ const resetSelection = () => {
   text-align: center;
 }
 
-.topic-card p,
-.spread-description {
+.topic-card p {
   font-size: 14px;
   color: rgba(255, 255, 255, 0.7);
   text-align: center;
   line-height: 1.4;
+}
+
+.spread-description {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.85);
+  text-align: center;
+  line-height: 1.5;
+  margin: 12px 0;
+  font-weight: 400;
+}
+
+/* 각 배열법별 설명 강조 */
+.spread-card.seven-star .spread-description {
+  color: rgba(147, 197, 253, 0.95);
+}
+
+.spread-card.celtic-cross .spread-description {
+  color: rgba(196, 181, 253, 0.95);
+}
+
+.spread-card.cup-relationship .spread-description {
+  color: rgba(251, 207, 232, 0.95);
 }
 
 .spread-header {
@@ -890,6 +1042,32 @@ const resetSelection = () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+}
+
+.spread-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+/* 연애/커플 전용 배지 */
+.relationship-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #EC4899, #F472B6);
+  color: white;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
+  animation: pulse-pink 2s ease-in-out infinite;
+}
+
+@keyframes pulse-pink {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1; box-shadow: 0 2px 12px rgba(236, 72, 153, 0.5); }
 }
 
 .spread-info {
@@ -1155,6 +1333,11 @@ const resetSelection = () => {
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-2px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
 
 /* 모바일/데스크탑 뷰 분리 */

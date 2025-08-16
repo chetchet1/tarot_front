@@ -619,19 +619,6 @@ const removeSelectedCard = async (index: number) => {
 const confirmManualSelection = async () => {
   console.log('🎯 [confirmManualSelection] 시작');
   
-  // 컵 오브 릴레이션십인 경우 특별 알림
-  if (isCupOfRelationship.value) {
-    const confirmed = await showConfirm({
-      title: '컵 오브 릴레이션십',
-      message: '이 배열법은 마음에 둔 상대가 있을 경우 선택하시는게 가장 좋습니다.\n계속 하시겠습니까?'
-    });
-    
-    if (!confirmed) {
-      router.go(-1);
-      return;
-    }
-  }
-  
   // 바로 진행 (연애 상태는 ReadingSelect에서 이미 처리됨)
   await proceedWithManualSelection();
 };
@@ -708,20 +695,6 @@ const startDrawing = async () => {
   
   // 버튼 클릭 햇틱 피드백
   await nativeUtils.buttonTapHaptic();
-  
-  // 컵 오브 릴레이션십인 경우 특별 알림
-  if (isCupOfRelationship.value) {
-    console.log('💖 [startDrawing] 컵오브릴레이션십 분기 진입');
-    const confirmed = await showConfirm({
-      title: '컵 오브 릴레이션십',
-      message: '이 배열법은 마음에 둔 상대가 있을 경우 선택하시는게 가장 좋습니다.\n계속 하시겠습니까?'
-    });
-    
-    if (!confirmed) {
-      router.go(-1);
-      return;
-    }
-  }
   
   // 바로 진행 (연애 상태는 ReadingSelect에서 이미 처리됨)
   await proceedWithDrawing();

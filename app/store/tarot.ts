@@ -1476,6 +1476,20 @@ export const useTarotStore = defineStore('tarot', () => {
     relationshipStatus.value = null;
   };
   
+  // 서브테마 관련 함수 (컵 오브 릴레이션십 등)
+  const selectedSubTheme = ref<string | null>(null);
+  
+  const setSelectedSubTheme = (subTheme: string | null) => {
+    selectedSubTheme.value = subTheme;
+    console.log('[TarotStore] setSelectedSubTheme:', subTheme);
+  };
+  
+  const getSelectedSubTheme = () => selectedSubTheme.value;
+  
+  const clearSelectedSubTheme = () => {
+    selectedSubTheme.value = null;
+  };
+  
   // 개선된 해석 저장 (켈틱 크로스 등)
   const improvedInterpretation = ref<any>(null);
   
@@ -1552,6 +1566,9 @@ export const useTarotStore = defineStore('tarot', () => {
     clearPremiumSpreadUsage,
     setRelationshipStatus,
     getRelationshipStatus,
-    clearRelationshipStatus
+    clearRelationshipStatus,
+    setSelectedSubTheme,
+    getSelectedSubTheme,
+    clearSelectedSubTheme
   };
 });
