@@ -30,11 +30,6 @@
           <router-link to="/reading-select" class="btn btn-primary">
             타로 점보기
           </router-link>
-          <div style="margin-top: 20px; font-size: 12px; color: rgba(255,255,255,0.5);">
-            디버그: User ID={{ userStore.currentUser?.id }}<br>
-            Premium={{ userStore.isPremium }}<br>
-            Logged In={{ userStore.isLoggedIn }}
-          </div>
         </div>
       </div>
 
@@ -178,9 +173,9 @@
               </div>
             </div>
             
-            <div v-if="selectedReading.ai_interpretation_text" class="interpretation-section">
+            <div v-if="getFullInterpretation(selectedReading)" class="interpretation-section">
               <h4>AI 종합 해석</h4>
-              <p class="full-interpretation">{{ selectedReading.ai_interpretation_text }}</p>
+              <p class="full-interpretation">{{ getFullInterpretation(selectedReading) }}</p>
             </div>
           </div>
         </div>
@@ -315,11 +310,58 @@ const getSummary = (reading: ReadingHistory): string => {
     return reading.question || '오늘 하루의 운세를 보았습니다.';
   }
   
-  if (reading.ai_interpretation_text) {
+  const interpretation = getFullInterpretation(reading);
+  if (interpretation) {
     // AI 해석의 첫 100자 정도를 요약으로 사용
-    return reading.ai_interpretation_text.substring(0, 100) + '...';
+    return interpretation.substring(0, 100) + '...';
   }
   return '카드 해석이 저장되어 있습니다.';
+};
+
+// AI 해석 전문 가져오기 함수
+const getFullInterpretation = (reading: ReadingHistory): string | null => {
+  // 1. ai_interpretation_text 확인 (기본)
+  if (reading.ai_interpretation_text) {
+    return reading.ai_interpretation_text;
+  }
+  
+  // 2. ai_interpretation 필드 확인
+  if (reading.ai_interpretation) {
+    if (typeof reading.ai_interpretation === 'string') {
+      return reading.ai_interpretation;
+    }
+    // 객체인 경우 적절한 필드 찾기
+    if (typeof reading.ai_interpretation === 'object' && reading.ai_interpretation !== null) {
+      const interpretation = reading.ai_interpretation as any;
+      return interpretation.aiInterpretation || 
+             interpretation.overallMessage || 
+             interpretation.summary || 
+             interpretation.text ||
+             JSON.stringify(interpretation);
+    }
+  }
+  
+  // 3. enhanced_interpretation 필드 확인 (세븐스타, 컵오브릴레이션십)
+  if (reading.enhanced_interpretation) {
+    if (typeof reading.enhanced_interpretation === 'string') {
+      return reading.enhanced_interpretation;
+    }
+    if (typeof reading.enhanced_interpretation === 'object' && reading.enhanced_interpretation !== null) {
+      const enhanced = reading.enhanced_interpretation as any;
+      return enhanced.aiInterpretation || 
+             enhanced.overallMessage || 
+             enhanced.summary || 
+             enhanced.text ||
+             JSON.stringify(enhanced);
+    }
+  }
+  
+  // 4. overall_message 필드 확인
+  if (reading.overall_message) {
+    return reading.overall_message;
+  }
+  
+  return null;
 };
 
 const openReading = (reading: ReadingHistory) => {
@@ -336,16 +378,11 @@ const changePage = (page: number) => {
 
 const fetchReadings = async () => {
   if (!userStore.currentUser?.id) {
-    console.log('사용자 ID가 없습니다');
     return;
   }
   
-  console.log('현재 사용자:', userStore.currentUser);
-  console.log('프리미엄 상태:', userStore.isPremium);
-  
   // 프리미엄 사용자가 아니면 읽기 차단
   if (!userStore.isPremium) {
-    console.log('무료 사용자는 기록을 볼 수 없습니다');
     readings.value = [];
     return;
   }
@@ -363,7 +400,7 @@ const fetchReadings = async () => {
       .gte('created_at', oneYearAgo.toISOString()) // 1년 이내 기록만
       .order('created_at', { ascending: false });
     
-    console.log('조회 결과:', { data, error });
+
 
     if (error) throw error;
     
@@ -384,7 +421,7 @@ const fetchReadings = async () => {
         'one_card': '한 장 리딩',
         'three_card_timeline': '세 장 타임라인',
         'celtic_cross': '켈틱 크로스',
-        'seven_star': '세븐스타'  // 또는 '일곱 별의 운명'
+        'seven_star': '세븐스타'
       };
       
       // 일반 점괘 처리
@@ -418,8 +455,6 @@ const cleanupOldReadings = async () => {
     
     if (error) {
       console.error('Error cleaning up old readings:', error);
-    } else {
-      console.log('1년 지난 기록이 자동 삭제되었습니다');
     }
   } catch (error) {
     console.error('Error in cleanup:', error);
@@ -429,13 +464,8 @@ const cleanupOldReadings = async () => {
 onMounted(async () => {
   // 로그인 체크
   if (!userStore.isLoggedIn) {
-    console.log('로그인 필요');
     return;
   }
-  
-  // 사용자 정보 확인
-  console.log('마운트 시 사용자:', userStore.currentUser);
-  console.log('마운트 시 프리미엄 상태:', userStore.isPremium);
   
   // 프리미엄 사용자 체크
   if (!userStore.isPremium) {

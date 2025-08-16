@@ -14,12 +14,20 @@ export interface DrawnCard {
 export interface ReadingHistory {
   id: string;
   user_id: string;
+  spread_id?: string;
   spread_name: string;
+  spread_type?: string;
   topic: string;
   question?: string;
-  ai_interpretation?: string;
+  ai_interpretation?: string | Record<string, any>;
+  ai_interpretation_text?: string;
+  enhanced_interpretation?: string | Record<string, any>;
+  overall_message?: string;
   created_at: string;
   cards: DrawnCard[];
+  is_premium?: boolean;
+  shared?: boolean;
+  tags?: string[];
 }
 
 export interface ReadingCard {

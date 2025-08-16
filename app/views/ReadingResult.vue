@@ -1422,7 +1422,7 @@ const saveReadingToDB = async () => {
       readingId = generateUUID();
     }
     
-    // 저장할 데이터 준비
+    // 1. readings 테이블에 저장 (ai_interpretation_text 제거)
     const readingData = {
       id: readingId,
       user_id: userStore.currentUser?.id,
@@ -1437,10 +1437,10 @@ const saveReadingToDB = async () => {
       created_at: reading.value.createdAt || new Date().toISOString()
     };
     
-    console.log('💾 저장할 데이터:', readingData);
+    console.log('💾 저장할 readings 데이터:', readingData);
     
     // Supabase에 저장
-    const { data, error } = await supabase
+    const { data: readingDataResult, error: readingError } = await supabase
       .from('readings')
       .upsert(readingData, {
         onConflict: 'id'
@@ -1448,11 +1448,79 @@ const saveReadingToDB = async () => {
       .select()
       .single();
     
-    if (error) {
-      console.error('💾 DB 저장 실패:', error);
-    } else {
-      console.log('💾 DB 저장 성공:', data);
+    if (readingError) {
+      console.error('💾 readings 테이블 저장 실패:', readingError);
+      return;
     }
+    
+    console.log('💾 readings 테이블 저장 성공:', readingDataResult);
+    
+    // 2. AI 해석이 있는 경우 ai_interpretations 테이블에 별도 저장
+    let aiInterpretationText = null;
+    
+    // aiInterpretation 확인
+    if (reading.value.aiInterpretation) {
+      aiInterpretationText = reading.value.aiInterpretation;
+    }
+    // enhancedInterpretation 확인 (세븐스타, 컵오브릴레이션십)
+    else if (reading.value.enhancedInterpretation) {
+      if (typeof reading.value.enhancedInterpretation === 'string') {
+        aiInterpretationText = reading.value.enhancedInterpretation;
+      } else if (typeof reading.value.enhancedInterpretation === 'object') {
+        const enhanced = reading.value.enhancedInterpretation as any;
+        aiInterpretationText = enhanced.aiInterpretation || 
+                              enhanced.overallMessage || 
+                              enhanced.summary || 
+                              enhanced.text ||
+                              JSON.stringify(enhanced);
+      }
+    }
+    // improvedInterpretation 확인
+    else if (reading.value.improvedInterpretation) {
+      if (typeof reading.value.improvedInterpretation === 'string') {
+        aiInterpretationText = reading.value.improvedInterpretation;
+      } else if (typeof reading.value.improvedInterpretation === 'object') {
+        const improved = reading.value.improvedInterpretation as any;
+        aiInterpretationText = improved.aiInterpretation || 
+                              improved.overallMessage || 
+                              improved.summary || 
+                              improved.text ||
+                              JSON.stringify(improved);
+      }
+    }
+    
+    // AI 해석이 있으면 ai_interpretations 테이블에 저장
+    if (aiInterpretationText) {
+      const aiInterpretationData = {
+        user_id: userStore.currentUser?.id,
+        reading_id: readingId,
+        interpretation_text: aiInterpretationText,
+        custom_question: customQuestion.value || null,
+        probability_analysis: reading.value.probabilityAnalysis || null,
+        rating: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('💾 저장할 AI 해석 데이터:', aiInterpretationData);
+      
+      const { data: aiData, error: aiError } = await supabase
+        .from('ai_interpretations')
+        .insert(aiInterpretationData)
+        .select()
+        .single();
+      
+      if (aiError) {
+        console.error('💾 AI 해석 저장 실패:', aiError);
+      } else {
+        console.log('💾 AI 해석 저장 성공:', aiData);
+        // AI 해석 ID 업데이트
+        if (aiData && aiData.id) {
+          reading.value.aiInterpretationId = aiData.id;
+        }
+      }
+    }
+    
   } catch (error) {
     console.error('💾 점괘 저장 중 오류:', error);
   }
