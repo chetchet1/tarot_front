@@ -101,37 +101,39 @@ export const useUserStore = defineStore('user', () => {
     saveFreeReadingData();
   };
 
-  // 프리미엄 상태 확인 (현재 로그인한 사용자만 가능)
-  const checkPremiumStatus = async (userId: string): Promise<boolean> => {
+  // 프리미엄 상태 확인 (특정 사용자의 프리미엄 상태 확인)
+  const checkPremiumStatus = async (userId?: string): Promise<boolean> => {
     try {
-      // 현재 로그인한 사용자만 프리미엄 상태 확인 가능
-      const currentAuthUser = await authService.getCurrentUser();
-      if (!currentAuthUser || currentAuthUser.id !== userId) {
-        console.log('현재 사용자가 아닌 경우 프리미엄 상태 확인 불가');
+      const targetUserId = userId || currentUser.value?.id;
+      if (!targetUserId) {
+        console.log('확인할 사용자 ID가 없음');
         return false;
       }
 
-      // 직접 쿼리 대신 auth 메타데이터에서 확인
-      const { data: { user } } = await authService.supabase.auth.getUser();
-      if (user?.user_metadata?.is_premium !== undefined) {
-        return user.user_metadata.is_premium;
-      }
-
-      // 메타데이터에 없으면 프로필 테이블 조회 시도
+      // 프로필 테이블에서 프리미엄 상태 조회
       const { data: profile, error } = await authService.supabase
         .from('profiles')
         .select('is_premium')
-        .eq('id', userId)
+        .eq('id', targetUserId)
         .maybeSingle();
       
       if (error) {
-        console.log('프로필 조회 실패 (정상적인 상황일 수 있음):', error.message);
+        console.log('프로필 조회 실패:', error.message);
         return false;
       }
       
-      return profile?.is_premium || false;
+      const isPremiumUser = profile?.is_premium || false;
+      
+      // 현재 로그인 사용자의 경우 로컬 상태 업데이트
+      if (!userId || targetUserId === currentUser.value?.id) {
+        if (currentUser.value) {
+          currentUser.value.isPremium = isPremiumUser;
+        }
+      }
+      
+      return isPremiumUser;
     } catch (error) {
-      console.log('프리미엄 상태 확인 중 예외:', error.message);
+      console.log('프리미엄 상태 확인 중 예외:', error);
       return false;
     }
   };
@@ -525,12 +527,20 @@ export const useUserStore = defineStore('user', () => {
           }
         }, 100);
         
-        // 즉시 사용자 정보 설정 (프리미엄 상태는 나중에 업데이트)
+        // 즉시 사용자 정보 설정 (프리미엄 상태는 DB에서 확인)
         let isPremiumUser = false;
         
-        // premium@example.com은 테스트용 프리미엄 계정
-        if (email === 'premium@example.com') {
-          isPremiumUser = true;
+        // DB에서 프리미엄 상태 확인
+        try {
+          const { data: profile } = await authService.supabase
+            .from('profiles')
+            .select('is_premium')
+            .eq('id', user.id)
+            .maybeSingle();
+          
+          isPremiumUser = profile?.is_premium || false;
+        } catch (error) {
+          console.warn('로그인 시 프리미엄 상태 확인 실패:', error);
         }
         
         currentUser.value = {

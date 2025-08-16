@@ -1131,6 +1131,11 @@ const generateAIInterpretation = async () => {
       reading.value.aiInterpretationId = interpretationResult.interpretationId || null;
       tarotStore.updateReading(reading.value);
       console.log('🅰️ AI 해석 저장 완료');
+      
+      // DB에도 업데이트
+      if (userStore.isPremium) {
+        await saveReadingToDB();
+      }
     } else {
       throw new Error('AI 해석 생성 실패');
     }
@@ -1359,6 +1364,11 @@ const generatePremiumAIInterpretation = async () => {
       reading.value.aiInterpretationId = interpretationResult.interpretationId || null;
       tarotStore.updateReading(reading.value);
       console.log('🔮 AI 해석 저장 완료');
+      
+      // DB에도 업데이트
+      if (userStore.isPremium) {
+        await saveReadingToDB();
+      }
     } else {
       throw new Error('AI 해석 생성 실패');
     }
@@ -1381,6 +1391,73 @@ const generatePremiumAIInterpretation = async () => {
   }
 };
 
+// DB에 점괘 저장 함수
+const saveReadingToDB = async () => {
+  if (!reading.value || !userStore.isLoggedIn || !userStore.isPremium) {
+    console.log('💾 점괘 저장 건너뛰기:', {
+      hasReading: !!reading.value,
+      isLoggedIn: userStore.isLoggedIn,
+      isPremium: userStore.isPremium
+    });
+    return;
+  }
+  
+  try {
+    console.log('💾 DB에 점괘 저장 시작');
+    
+    // UUID 생성 함수
+    const generateUUID = () => {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    };
+    
+    // reading.id가 UUID 형식이 아니면 새로운 UUID 생성
+    let readingId = reading.value.id;
+    if (readingId && !readingId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      readingId = generateUUID();
+    } else if (!readingId) {
+      readingId = generateUUID();
+    }
+    
+    // 저장할 데이터 준비
+    const readingData = {
+      id: readingId,
+      user_id: userStore.currentUser?.id,
+      spread_id: reading.value.spreadId,
+      topic: selectedTheme.value,
+      question: customQuestion.value || displayQuestion.value,
+      cards: reading.value.cards,  // JSONB 필드이므로 그대로 저장
+      overall_message: reading.value.overallMessage || null,
+      is_premium: reading.value.isPremium || false,
+      shared: false,
+      tags: [],  // 태그 배열 (스키마에 정의됨)
+      created_at: reading.value.createdAt || new Date().toISOString()
+    };
+    
+    console.log('💾 저장할 데이터:', readingData);
+    
+    // Supabase에 저장
+    const { data, error } = await supabase
+      .from('readings')
+      .upsert(readingData, {
+        onConflict: 'id'
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('💾 DB 저장 실패:', error);
+    } else {
+      console.log('💾 DB 저장 성공:', data);
+    }
+  } catch (error) {
+    console.error('💾 점괘 저장 중 오류:', error);
+  }
+};
+
 onMounted(async () => {
   // 공유 기능 초기화 - shareReading 함수 내에서 동적으로 import하므로 여기서는 제거
   
@@ -1393,6 +1470,11 @@ onMounted(async () => {
   if (!reading.value && !readingId.value) {
     router.push('/app');
     return;
+  }
+  
+  // 프리미엄 사용자이면 DB에 저장
+  if (userStore.isPremium && reading.value) {
+    await saveReadingToDB();
   }
   
   // 프리미엄 배열법(seven_star, cup_of_relationship, celtic_cross)은 

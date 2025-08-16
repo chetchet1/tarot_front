@@ -30,6 +30,11 @@
           <router-link to="/reading-select" class="btn btn-primary">
             타로 점보기
           </router-link>
+          <div style="margin-top: 20px; font-size: 12px; color: rgba(255,255,255,0.5);">
+            디버그: User ID={{ userStore.currentUser?.id }}<br>
+            Premium={{ userStore.isPremium }}<br>
+            Logged In={{ userStore.isLoggedIn }}
+          </div>
         </div>
       </div>
 
@@ -173,9 +178,9 @@
               </div>
             </div>
             
-            <div v-if="selectedReading.ai_interpretation" class="interpretation-section">
+            <div v-if="selectedReading.ai_interpretation_text" class="interpretation-section">
               <h4>AI 종합 해석</h4>
-              <p class="full-interpretation">{{ selectedReading.ai_interpretation }}</p>
+              <p class="full-interpretation">{{ selectedReading.ai_interpretation_text }}</p>
             </div>
           </div>
         </div>
@@ -266,16 +271,28 @@ const formatDateTime = (date: string) => {
 
 const getMiniCardImage = (card: any): string => {
   // 카드가 객체인 경우와 ID인 경우 처리
-  if (typeof card === 'object' && card.card_id) {
-    // card_id로 이미지 경로 생성 필요
-    return `/assets/tarot-cards/default.png`; // 기본 이미지
+  if (typeof card === 'object') {
+    if (card.imageUrl) {
+      return card.imageUrl;
+    }
+    // card_id로 이미지 경로 생성
+    if (card.id !== undefined) {
+      const cardNumber = String(card.id).padStart(2, '0');
+      if (card.id <= 21) {
+        // 메이저 아르카나
+        return `/assets/tarot-cards/major/${cardNumber}-${card.name?.toLowerCase().replace(/\s+/g, '-') || 'card'}.png`;
+      } else {
+        // 마이너 아르카나 - 예시
+        return `/assets/tarot-cards/minor/${cardNumber}-${card.name?.toLowerCase().replace(/\s+/g, '-') || 'card'}.png`;
+      }
+    }
   }
-  return getCardImagePath(card);
+  return '/assets/tarot-cards/back.jpg'; // 기본 이미지
 };
 
 const getCardName = (card: any): string => {
   if (typeof card === 'object') {
-    return card.card_name || card.name_kr || card.name || '카드';
+    return card.nameKr || card.name_kr || card.card_name || card.name || '카드';
   }
   return '카드';
 };
@@ -298,9 +315,9 @@ const getSummary = (reading: ReadingHistory): string => {
     return reading.question || '오늘 하루의 운세를 보았습니다.';
   }
   
-  if (reading.ai_interpretation) {
+  if (reading.ai_interpretation_text) {
     // AI 해석의 첫 100자 정도를 요약으로 사용
-    return reading.ai_interpretation.substring(0, 100) + '...';
+    return reading.ai_interpretation_text.substring(0, 100) + '...';
   }
   return '카드 해석이 저장되어 있습니다.';
 };
@@ -318,7 +335,13 @@ const changePage = (page: number) => {
 };
 
 const fetchReadings = async () => {
-  if (!userStore.user?.id) return;
+  if (!userStore.currentUser?.id) {
+    console.log('사용자 ID가 없습니다');
+    return;
+  }
+  
+  console.log('현재 사용자:', userStore.currentUser);
+  console.log('프리미엄 상태:', userStore.isPremium);
   
   // 프리미엄 사용자가 아니면 읽기 차단
   if (!userStore.isPremium) {
@@ -336,9 +359,11 @@ const fetchReadings = async () => {
     const { data, error } = await supabase
       .from('readings')
       .select('*')
-      .eq('user_id', userStore.user.id)
+      .eq('user_id', userStore.currentUser.id)
       .gte('created_at', oneYearAgo.toISOString()) // 1년 이내 기록만
       .order('created_at', { ascending: false });
+    
+    console.log('조회 결과:', { data, error });
 
     if (error) throw error;
     
@@ -354,10 +379,18 @@ const fetchReadings = async () => {
         };
       }
       
+      // spread_id를 인간 친화적인 이름으로 변환
+      const spreadNames: Record<string, string> = {
+        'one_card': '한 장 리딩',
+        'three_card_timeline': '세 장 타임라인',
+        'celtic_cross': '켈틱 크로스',
+        'seven_star': '세븐스타'  // 또는 '일곱 별의 운명'
+      };
+      
       // 일반 점괘 처리
       return {
         ...reading,
-        spread_name: reading.spread_id || reading.spread_type,
+        spread_name: spreadNames[reading.spread_id] || reading.spread_id || reading.spread_type || '일반 점괘',
         cards: reading.cards || []
       };
     });
@@ -380,7 +413,7 @@ const cleanupOldReadings = async () => {
     const { error } = await supabase
       .from('readings')
       .delete()
-      .eq('user_id', userStore.user?.id)
+      .eq('user_id', userStore.currentUser?.id)
       .lt('created_at', oneYearAgo.toISOString());
     
     if (error) {
@@ -394,6 +427,16 @@ const cleanupOldReadings = async () => {
 };
 
 onMounted(async () => {
+  // 로그인 체크
+  if (!userStore.isLoggedIn) {
+    console.log('로그인 필요');
+    return;
+  }
+  
+  // 사용자 정보 확인
+  console.log('마운트 시 사용자:', userStore.currentUser);
+  console.log('마운트 시 프리미엄 상태:', userStore.isPremium);
+  
   // 프리미엄 사용자 체크
   if (!userStore.isPremium) {
     await showAlert({
@@ -411,9 +454,8 @@ onMounted(async () => {
     return;
   }
   
-  if (userStore.isAuthenticated) {
-    fetchReadings();
-  }
+  // 프리미엄 사용자만 기록 불러오기
+  fetchReadings();
 });
 
 // 프리미엄 상태 변경 감지
