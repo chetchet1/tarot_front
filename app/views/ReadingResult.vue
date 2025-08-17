@@ -894,7 +894,7 @@ const shareReading = async () => {
     // Reading 객체에 userId 추가
     const readingWithUser = {
       ...reading.value,
-      userId: userStore.user?.id || null,
+      userId: userStore.currentUser?.id || null,
       customQuestion: customQuestion.value || null
     };
 
@@ -1116,7 +1116,7 @@ const generateAIInterpretation = async () => {
       customQuestion: tarotStore.getCustomQuestion(),
       isPremium: isPremiumSpread || userStore.isPremium, // 프리미엄 배열법은 항상 프리미엄 취급
       getPositionName,
-      userId: userStore.user?.id
+      userId: userStore.currentUser?.id
     });
     
     console.log('🅰️ AI 해석 결과:', interpretationResult);
@@ -1221,7 +1221,7 @@ const showAIInterpretationWithAd = async () => {
       customQuestion: currentCustomQuestion,
       isPremium: false,
       getPositionName,
-      userId: userStore.user?.id
+      userId: userStore.currentUser?.id
     });
     
     // 프로그레스 완료
@@ -1283,7 +1283,7 @@ const regenerateAIInterpretation = async () => {
       customQuestion: tarotStore.getCustomQuestion(),
       isPremium: true, // 이미 위에서 검증했으므로 여기서는 true로 설정
       getPositionName,
-      userId: userStore.user?.id
+      userId: userStore.currentUser?.id
     });
     
     if (interpretationResult.success && interpretationResult.interpretation) {
@@ -1349,7 +1349,7 @@ const generatePremiumAIInterpretation = async () => {
       customQuestion: customQuestion.value,
       isPremium: true, // 프리미엄 배열법은 항상 프리미엄 모드
       getPositionName,
-      userId: userStore.user?.id
+      userId: userStore.currentUser?.id
     });
     
     console.log('🔮 AI 해석 결과:', interpretationResult);

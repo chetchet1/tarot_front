@@ -47,16 +47,16 @@ export const useBoardStore = defineStore('board', () => {
    */
   async function checkProfile() {
     const userStore = useUserStore();
-    console.log('[boardStore] checkProfile 시작', { user: userStore.user });
+    console.log('[boardStore] checkProfile 시작', { user: userStore.currentUser });
     
-    if (!userStore.user) {
+    if (!userStore.currentUser) {
       console.log('[boardStore] 사용자 없음');
       return null;
     }
 
     try {
       console.log('[boardStore] nicknameService.getProfile 호출');
-      const profileData = await nicknameService.getProfile(userStore.user.id);
+      const profileData = await nicknameService.getProfile(userStore.currentUser.id);
       console.log('[boardStore] nicknameService.getProfile 결과:', profileData);
       
       if (profileData) {
@@ -75,10 +75,10 @@ export const useBoardStore = defineStore('board', () => {
    */
   async function initializeNickname() {
     const userStore = useUserStore();
-    if (!userStore.user) return;
+    if (!userStore.currentUser) return;
 
     try {
-      const nickname = await nicknameService.getCurrentNickname(userStore.user.id);
+      const nickname = await nicknameService.getCurrentNickname(userStore.currentUser.id);
       currentNickname.value = nickname;
       return nickname;
     } catch (error) {
@@ -92,7 +92,7 @@ export const useBoardStore = defineStore('board', () => {
    */
   async function setNickname(nickname: string) {
     const userStore = useUserStore();
-    if (!userStore.user) throw new Error('로그인이 필요합니다.');
+    if (!userStore.currentUser) throw new Error('로그인이 필요합니다.');
 
     // 유효성 검사
     if (!nicknameService.validateNickname(nickname)) {
@@ -100,7 +100,7 @@ export const useBoardStore = defineStore('board', () => {
     }
 
     try {
-      await nicknameService.saveOrUpdateNickname(userStore.user.id, nickname);
+      await nicknameService.saveOrUpdateNickname(userStore.currentUser.id, nickname);
       currentNickname.value = nickname;
       return true;
     } catch (error) {
@@ -242,7 +242,7 @@ export const useBoardStore = defineStore('board', () => {
    */
   async function createPost(title: string, content: string, category: string = 'general', sharedReadingId?: string) {
     const userStore = useUserStore();
-    if (!userStore.user) throw new Error('로그인이 필요합니다.');
+    if (!userStore.currentUser) throw new Error('로그인이 필요합니다.');
 
     // 닉네임 확인
     if (!currentNickname.value) {
@@ -251,7 +251,7 @@ export const useBoardStore = defineStore('board', () => {
 
     try {
       const newPost = await postService.createPost(
-        userStore.user.id,
+        userStore.currentUser.id,
         title,
         content,
         category,
@@ -274,10 +274,10 @@ export const useBoardStore = defineStore('board', () => {
    */
   async function updatePost(postId: string, updates: { title?: string; content?: string }) {
     const userStore = useUserStore();
-    if (!userStore.user) throw new Error('로그인이 필요합니다.');
+    if (!userStore.currentUser) throw new Error('로그인이 필요합니다.');
 
     try {
-      await postService.updatePost(postId, userStore.user.id, updates);
+      await postService.updatePost(postId, userStore.currentUser.id, updates);
       
       // 로컬 상태 업데이트
       const index = posts.value.findIndex(p => p.id === postId);
@@ -309,10 +309,10 @@ export const useBoardStore = defineStore('board', () => {
    */
   async function deletePost(postId: string) {
     const userStore = useUserStore();
-    if (!userStore.user) throw new Error('로그인이 필요합니다.');
+    if (!userStore.currentUser) throw new Error('로그인이 필요합니다.');
 
     try {
-      await postService.deletePost(postId, userStore.user.id);
+      await postService.deletePost(postId, userStore.currentUser.id);
       
       // 로컬 상태에서 제거
       posts.value = posts.value.filter(p => p.id !== postId);
@@ -362,7 +362,7 @@ export const useBoardStore = defineStore('board', () => {
    */
   async function createComment(postId: string, content: string, parentId?: string) {
     const userStore = useUserStore();
-    if (!userStore.user) throw new Error('로그인이 필요합니다.');
+    if (!userStore.currentUser) throw new Error('로그인이 필요합니다.');
 
     if (!currentNickname.value) {
       throw new Error('닉네임을 먼저 설정해주세요.');
@@ -371,7 +371,7 @@ export const useBoardStore = defineStore('board', () => {
     try {
       const newComment = await commentService.createComment(
         postId,
-        userStore.user.id,
+        userStore.currentUser.id,
         content,
         parentId
       );
@@ -401,10 +401,10 @@ export const useBoardStore = defineStore('board', () => {
    */
   async function deleteComment(commentId: string, postId: string) {
     const userStore = useUserStore();
-    if (!userStore.user) throw new Error('로그인이 필요합니다.');
+    if (!userStore.currentUser) throw new Error('로그인이 필요합니다.');
 
     try {
-      await commentService.deleteComment(commentId, userStore.user.id);
+      await commentService.deleteComment(commentId, userStore.currentUser.id);
       
       // 댓글 목록 새로고침
       await loadComments(postId);
@@ -431,10 +431,10 @@ export const useBoardStore = defineStore('board', () => {
    */
   async function toggleLike(targetId: string, targetType: 'post' | 'comment') {
     const userStore = useUserStore();
-    if (!userStore.user) throw new Error('로그인이 필요합니다.');
+    if (!userStore.currentUser) throw new Error('로그인이 필요합니다.');
 
     try {
-      const liked = await likeService.toggleLike(userStore.user.id, targetId, targetType);
+      const liked = await likeService.toggleLike(userStore.currentUser.id, targetId, targetType);
       
       // 로컬 상태 업데이트
       if (targetType === 'post') {
@@ -485,11 +485,11 @@ export const useBoardStore = defineStore('board', () => {
    */
   async function loadUserLikes(targetIds: string[], targetType: 'post' | 'comment') {
     const userStore = useUserStore();
-    if (!userStore.user || targetIds.length === 0) return;
+    if (!userStore.currentUser || targetIds.length === 0) return;
 
     try {
       const likedSet = await likeService.checkUserLiked(
-        userStore.user.id,
+        userStore.currentUser.id,
         targetIds,
         targetType
       );

@@ -158,7 +158,7 @@ const isSubmitting = ref(false);
 const hasLiked = ref(false);
 
 const postId = computed(() => route.params.id as string);
-const currentUserId = computed(() => userStore.user?.id || '');
+const currentUserId = computed(() => userStore.currentUser?.id || '');
 const isAuthor = computed(() => post.value?.user_id === currentUserId.value);
 const showAd = computed(() => !userStore.isPremium);
 

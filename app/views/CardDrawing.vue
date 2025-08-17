@@ -447,7 +447,7 @@ onMounted(async () => {
   });
   
   // 테스트 계정일 때 디버그 모드 활성화
-  if (userStore.user?.email === 'test@example.com') {
+  if (userStore.currentUser?.email === 'test@example.com') {
     console.error('🔴🔴🔴 테스트 계정 감지 - 디버그 모드 활성화');
     console.error('🔴 현재 시간:', new Date().toISOString());
     console.error('🔴 spreadId:', tarotStore.selectedSpread?.spreadId);
@@ -633,7 +633,7 @@ const proceedWithManualSelection = async () => {
   
   // 테스트: startReading 호출 전 DB 확인
   let usageBefore;
-  if (userStore.user?.email === 'test@example.com' && spreadId === 'celtic_cross') {
+  if (userStore.currentUser?.email === 'test@example.com' && spreadId === 'celtic_cross') {
     console.log('🧪 [테스트] confirmManual - startReading 호출 전 DB 체크');
     usageBefore = await adManager.checkPremiumSpreadUsage('celtic_cross');
     console.log('🧪 [테스트] 호출 전 사용 횟수:', usageBefore.usedToday);
@@ -644,7 +644,7 @@ const proceedWithManualSelection = async () => {
     console.log('🎯 [confirmManualSelection] canStart:', canStart);
     
     // 테스트: startReading 호출 후 DB 확인
-    if (userStore.user?.email === 'test@example.com' && spreadId === 'celtic_cross') {
+    if (userStore.currentUser?.email === 'test@example.com' && spreadId === 'celtic_cross') {
       console.log('🧪 [테스트] confirmManual - startReading 호출 후 DB 체크');
       const usageAfter = await adManager.checkPremiumSpreadUsage('celtic_cross');
       console.log('🧪 [테스트] 호출 후 사용 횟수:', usageAfter.usedToday);
@@ -690,7 +690,7 @@ const processManualSelection = async () => {
 const startDrawing = async () => {
   console.log('🎯 [startDrawing] 시작');
   console.log('🎯 [startDrawing] 현재 시간:', new Date().toISOString());
-  console.log('🎯 [startDrawing] 현재 user:', userStore.user);
+  console.log('🎯 [startDrawing] 현재 user:', userStore.currentUser);
   console.log('🎯 [startDrawing] isProcessingResult:', isProcessingResult.value);
   
   // 버튼 클릭 햇틱 피드백
@@ -707,11 +707,11 @@ const proceedWithDrawing = async () => {
   const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
   console.log('🎯 [startDrawing] spreadId:', spreadId);
   console.log('🎯 [startDrawing] isPremium:', userStore.isPremium);
-  console.log('🎯 [startDrawing] userEmail:', userStore.user?.email);
+  console.log('🎯 [startDrawing] userEmail:', userStore.currentUser?.email);
   
   // 테스트: startReading 호출 전 DB 확인
   let usageBefore: any = null;
-  if (userStore.user?.email === 'test@example.com' && spreadId === 'celtic_cross') {
+  if (userStore.currentUser?.email === 'test@example.com' && spreadId === 'celtic_cross') {
     console.log('🧪 [테스트] startReading 호출 전 DB 체크');
     usageBefore = await adManager.checkPremiumSpreadUsage('celtic_cross');
     console.log('🧪 [테스트] 호출 전 사용 횟수:', usageBefore.usedToday);
@@ -722,7 +722,7 @@ const proceedWithDrawing = async () => {
     console.log('🎯 [startDrawing] canStart:', canStart);
     
     // 테스트: startReading 호출 후 DB 확인
-    if (userStore.user?.email === 'test@example.com' && spreadId === 'celtic_cross' && usageBefore) {
+    if (userStore.currentUser?.email === 'test@example.com' && spreadId === 'celtic_cross' && usageBefore) {
       console.log('🧪 [테스트] startReading 호출 후 DB 체크');
       const usageAfter = await adManager.checkPremiumSpreadUsage('celtic_cross');
       console.log('🧪 [테스트] 호출 후 사용 횟수:', usageAfter.usedToday);
@@ -795,7 +795,7 @@ const drawCards = async () => {
   console.log('🎲 [drawCards] 카드 뽑기 완료, isComplete:', isComplete.value);
 
   // 테스트를 위한 자동 카드 공개 (개발 환경에서만)
-  if (userStore.user?.email === 'test@example.com') {
+  if (userStore.currentUser?.email === 'test@example.com') {
     console.log('🧪 [테스트] 2초 후 모든 카드 자동 공개');
     setTimeout(async () => {
       console.log('🧪 [테스트] 자동 카드 공개 실행');
@@ -881,7 +881,7 @@ const goToResult = async () => {
   // 디버그용 변수 선언
   let usageBeforeGoToResult: any = null;
   const testEmails = ['test@example.com', 'test@test.com'];
-  const currentUserEmail = userStore.user?.email?.toLowerCase() || '';
+  const currentUserEmail = userStore.currentUser?.email?.toLowerCase() || '';
   const isTestUser = testEmails.includes(currentUserEmail) || currentUserEmail.includes('test');
   
   console.log('🎯 [goToResult] 함수 호출됨!');
@@ -890,7 +890,7 @@ const goToResult = async () => {
   console.log('🎯 [goToResult] drawnCards:', drawnCards.value);
   console.log('🎯 [goToResult] 현재 시간:', new Date().toISOString());
   console.log('🎯 [goToResult] spreadId:', tarotStore.selectedSpread?.spreadId);
-  console.log('🎯 [goToResult] 사용자 이메일:', userStore.user?.email);
+  console.log('🎯 [goToResult] 사용자 이메일:', userStore.currentUser?.email);
   
   // 켈틱 크로스인 경우 디버그 정보 수집
   if (tarotStore.selectedSpread?.spreadId === 'celtic_cross') {
@@ -935,7 +935,7 @@ const goToResult = async () => {
   
   // 테스트 계정과 임시 프리미엄 확인 - testEmails은 이미 상단에서 선언됨
   // TODO: 실제 테스트할 구글 계정 이메일을 여기에 추가하세요
-  const currentEmail = userStore.user?.email?.toLowerCase() || '';
+  const currentEmail = userStore.currentUser?.email?.toLowerCase() || '';
   const isTestAccount = testEmails.includes(currentEmail) || currentEmail.includes('test');
   const hasTempPremium = adStatus.value.isTemporaryPremium;
   
@@ -1022,7 +1022,7 @@ const goToResult = async () => {
   // 유료 배열 사용 기록 (결과 보기 시점에만 기록)
   
   // 테스트: 기록 전 DB 확인
-  if (userStore.user?.email === 'test@example.com' && tarotStore.selectedSpread?.spreadId === 'celtic_cross') {
+  if (userStore.currentUser?.email === 'test@example.com' && tarotStore.selectedSpread?.spreadId === 'celtic_cross') {
     console.log('🧪 [테스트] recordPremiumSpreadUsage 호출 전 DB 체크');
     const usageBeforeRecord = await adManager.checkPremiumSpreadUsage('celtic_cross');
     console.log('🧪 [테스트] 기록 전 사용 횟수:', usageBeforeRecord.usedToday);
@@ -1035,7 +1035,7 @@ const goToResult = async () => {
   if (!userStore.isPremium && !hasTempPremium && isPremiumSpread && shouldRecordUsage) {
     // 테스트 계정은 기록하지 않음 - 삼중 체크
     const testEmails = ['test@example.com', 'test@test.com'];
-    const currentEmail = userStore.user?.email?.toLowerCase() || '';
+    const currentEmail = userStore.currentUser?.email?.toLowerCase() || '';
     const isDefinitelyTestAccount = testEmails.includes(currentEmail) || currentEmail.includes('test');
     
     console.log('📋 [goToResult] 유료 배열 사용 기록 체크');
@@ -1064,7 +1064,7 @@ const goToResult = async () => {
       hasTempPremium: hasTempPremium,
       isPremiumSpread: isPremiumSpread,
       spreadId: spreadId,
-      email: userStore.user?.email
+      email: userStore.currentUser?.email
     });
   }
   
@@ -1218,7 +1218,7 @@ const goToResult = async () => {
             spreadId: spreadId,
             topic: topic,
             customQuestion: customQuestion,
-            userId: userStore.user?.id,
+            userId: userStore.currentUser?.id,
             relationshipStatus: (topic === 'love') ? tarotStore.relationshipStatus : undefined
           };
 
@@ -1423,7 +1423,7 @@ const showPremiumSpreadLimit = async () => {
   console.log('💵 [showPremiumSpreadLimit] spreadName:', spreadName);
   
   // 테스트 계정인지 확인
-  const isTestAccount = userStore.user?.email === 'test@example.com';
+  const isTestAccount = userStore.currentUser?.email === 'test@example.com';
   console.log('💵 [showPremiumSpreadLimit] isTestAccount:', isTestAccount);
   
   if (isTestAccount) {
