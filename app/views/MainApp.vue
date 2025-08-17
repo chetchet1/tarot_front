@@ -90,6 +90,14 @@
             </div>
           </div>
 
+          <router-link to="/board" class="menu-card">
+            <div class="menu-icon">🌿</div>
+            <div class="menu-content">
+              <h3>비밀의 정원</h3>
+              <p>익명으로 소통하는 커뮤니티</p>
+            </div>
+          </router-link>
+
           <router-link v-if="!userStore.isPremium" to="/premium" class="menu-card premium-card">
             <div class="menu-icon">👑</div>
             <div class="menu-content">

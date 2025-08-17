@@ -68,11 +68,25 @@ export default defineConfig({
   
   // 최적화 설정
   optimizeDeps: {
-    include: ['vue', 'vue-router', 'pinia', '@capacitor/core'],
-    exclude: ['@/services/ai/customInterpretationService'],
+    include: [
+      'vue', 
+      'vue-router', 
+      'pinia', 
+      '@capacitor/core',
+      '@supabase/supabase-js'
+    ],
+    exclude: [
+      '@/services/ai/customInterpretationService'
+    ],
     esbuildOptions: {
       target: 'esnext'
-    }
+    },
+    // 게시판 관련 컴포넌트들을 미리 처리
+    entries: [
+      'app/views/BoardMain.vue',
+      'app/views/BoardPostDetail.vue',
+      'app/views/BoardPostEditor.vue'
+    ]
   },
   
   // 경로 별칭 설정

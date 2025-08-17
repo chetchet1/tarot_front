@@ -15,6 +15,11 @@ import AuthCallback from '../views/AuthCallback.vue';
 import SharedReading from '../views/SharedReading.vue';
 import AppDownload from '../views/AppDownload.vue';
 
+// 게시판 관련 컴포넌트는 lazy loading으로 처리
+// import BoardMain from '../views/BoardMain.vue';
+// import BoardPostDetail from '../views/BoardPostDetail.vue';
+// import BoardPostEditor from '../views/BoardPostEditor.vue';
+
 // 플랫폼 감지
 import { detectPlatform, shouldRedirectToAppStore } from '../utils/platformDetector';
 
@@ -112,6 +117,31 @@ const routes = [
     path: '/daily-card',
     name: 'DailyCard',
     component: () => import('../views/DailyCard.vue'),
+    meta: { requiresAuth: true }
+  },
+  // 게시판 라우트 (lazy loading)
+  {
+    path: '/board',
+    name: 'Board',
+    component: () => import('../views/BoardMain.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/board/post/:id',
+    name: 'BoardPostDetail',
+    component: () => import('../views/BoardPostDetail.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/board/write',
+    name: 'BoardPostWrite',
+    component: () => import('../views/BoardPostEditor.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/board/edit/:id',
+    name: 'BoardPostEdit',
+    component: () => import('../views/BoardPostEditor.vue'),
     meta: { requiresAuth: true }
   },
 ];
