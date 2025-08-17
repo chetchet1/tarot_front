@@ -756,68 +756,68 @@ const onImageError = (event: Event) => {
 
 /* 각 위치별 좌표 - 이미지에 맞게 수정 */
 .position-1 { /* 나 - 왼쪽 아래 */
-  top: 80%;
-  left: 20%;
+  top: 140%;
+  left: 50%;
   transform: translate(-50%, -50%);
 }
 
 .position-2 { /* 상대 - 오른쪽 아래 */
-  top: 80%;
-  left: 80%;
+  top: 140%;
+  left: 20%;
   transform: translate(-50%, -50%);
 }
 
 .position-3 { /* 관계 기본 - 하단 중앙 */
-  top: 75%;
-  left: 50%;
+  top: 140%;
+  left: 80%;
   transform: translate(-50%, -50%);
 }
 
 .position-4 { /* 관계 과거 - 왼쪽 중간 */
-  top: 60%;
-  left: 35%;
+  top: 110%;
+  left: 50%;
   transform: translate(-50%, -50%);
 }
 
-.position-5 { /* 현재 느 상태 - 중앙 */
-  top: 50%;
-  left: 50%;
+.position-5 { /* 현재 상태 - 중앙 */
+  top: 80%;
+  left: 40%;
   transform: translate(-50%, -50%);
   z-index: 10;
 }
 
 .position-6 { /* 현재 외부 상황 - 오른쪽 중간 */
+  top: 75%;
+  left: 60%;
+  transform: translate(-50%, -50%);
+}
+
+.position-7 { /* 현재 나는 어떻게 생각? - 왼쪽 나란 */
+  top: 68%;
+  left: 10%;
+  transform: translate(-50%, -50%);
+}
+
+.position-8 { /* 현재 상대는 어떻게 생각? - 오른쪽 나란 */
+  top: 68%;
+  left: 90%;
+  transform: translate(-50%, -50%);
+}
+
+.position-9 { /* 미래 나는 어떻게 생각? - 왼쪽 세번째 */
   top: 60%;
-  left: 65%;
+  left: -20%;
   transform: translate(-50%, -50%);
 }
 
-.position-7 { /* 현재 나는 어떻게 생각? - 왼쫍먼저 나란 */
-  top: 40%;
-  left: 25%;
-  transform: translate(-50%, -50%);
-}
-
-.position-8 { /* 현재 상대는 어떻게 생각? - 오른쫍먼저 나란 */
-  top: 40%;
-  left: 75%;
-  transform: translate(-50%, -50%);
-}
-
-.position-9 { /* 미래 나는 어떻게 생각? - 왼쫍먼저세번째 */
-  top: 20%;
-  left: 35%;
-  transform: translate(-50%, -50%);
-}
-
-.position-10 { /* 미래 상대는 어떻게 생각? - 오른쫍세번째 */
-  top: 20%;
-  left: 65%;
+.position-10 { /* 미래 상대는 어떻게 생각? - 오른쪽 세번째 */
+  top: 60%;
+  left: 120%;
   transform: translate(-50%, -50%);
 }
 
 .position-11 { /* 결과 - 상단 중앙 */
-  top: 5%;
+  top: 45%;
   left: 50%;
   transform: translate(-50%, -50%);
 }
@@ -1091,7 +1091,7 @@ const onImageError = (event: Event) => {
 
 @media (max-width: 480px) {
   .cards-container {
-    transform: scale(0.6);
+    transform: scale(0.5);
   }
 }
 

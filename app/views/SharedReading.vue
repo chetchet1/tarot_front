@@ -1004,70 +1004,70 @@ onMounted(async () => {
   font-weight: bold;
 }
 
-/* 컵 오브 릴레이션십 카드 위치 - 원본과 동일하게 */
+/* 컵 오브 릴레이션십 카드 위치 - 최종 버전과 동일하게 */
 .cup-relationship-layout .position-1 { /* 나 - 왼쪽 아래 */
-  top: 80%;
-  left: 20%;
+  top: 140%;
+  left: 50%;
   transform: translate(-50%, -50%);
 }
 
 .cup-relationship-layout .position-2 { /* 상대 - 오른쪽 아래 */
-  top: 80%;
-  left: 80%;
+  top: 140%;
+  left: 20%;
   transform: translate(-50%, -50%);
 }
 
 .cup-relationship-layout .position-3 { /* 관계 기본 - 하단 중앙 */
-  top: 75%;
-  left: 50%;
+  top: 140%;
+  left: 80%;
   transform: translate(-50%, -50%);
 }
 
 .cup-relationship-layout .position-4 { /* 관계 과거 - 왼쪽 중간 */
-  top: 60%;
-  left: 35%;
+  top: 110%;
+  left: 50%;
   transform: translate(-50%, -50%);
 }
 
-.cup-relationship-layout .position-5 { /* 현재 느 상태 - 중앙 */
-  top: 50%;
-  left: 50%;
+.cup-relationship-layout .position-5 { /* 현재 상태 - 중앙 */
+  top: 80%;
+  left: 40%;
   transform: translate(-50%, -50%);
   z-index: 10;
 }
 
 .cup-relationship-layout .position-6 { /* 현재 외부 상황 - 오른쪽 중간 */
-  top: 60%;
-  left: 65%;
+  top: 75%;
+  left: 60%;
   transform: translate(-50%, -50%);
 }
 
 .cup-relationship-layout .position-7 { /* 현재 나는 어떻게 생각? - 왼쪽 중상 */
-  top: 40%;
-  left: 25%;
+  top: 68%;
+  left: 10%;
   transform: translate(-50%, -50%);
 }
 
 .cup-relationship-layout .position-8 { /* 현재 상대는 어떻게 생각? - 오른쪽 중상 */
-  top: 40%;
-  left: 75%;
+  top: 68%;
+  left: 90%;
   transform: translate(-50%, -50%);
 }
 
 .cup-relationship-layout .position-9 { /* 미래 나는 어떻게 생각? - 왼쪽 상단 */
-  top: 20%;
-  left: 35%;
+  top: 60%;
+  left: -20%;
   transform: translate(-50%, -50%);
 }
 
 .cup-relationship-layout .position-10 { /* 미래 상대는 어떻게 생각? - 오른쪽 상단 */
-  top: 20%;
-  left: 65%;
+  top: 60%;
+  left: 120%;
   transform: translate(-50%, -50%);
 }
 
 .cup-relationship-layout .position-11 { /* 결과 - 상단 중앙 */
-  top: 5%;
+  top: 45%;
   left: 50%;
   transform: translate(-50%, -50%);
 }

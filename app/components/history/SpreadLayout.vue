@@ -401,70 +401,72 @@ const getPositionName = (index: number): string => {
   position: relative;
   width: 100%;
   min-height: 550px;
+  scale: 0.75;
 }
 
-.cup-relationship-layout .cup-position-1 {
-  bottom: 20%;
+/* 컵 오브 릴레이션십 카드 위치 - top 값 모두 40% 내려서 조정 */
+.cup-relationship-layout .cup-position-1 { /* 나 - 왼쪽 아래 */
+  top: 100%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-2 { /* 상대 - 오른쪽 아래 */
+  top: 100%;
   left: 20%;
-  transform: translate(-50%, 50%);
+  transform: translate(-50%, -50%);
 }
 
-.cup-relationship-layout .cup-position-2 {
-  bottom: 20%;
-  right: 20%;
-  transform: translate(50%, 50%);
+.cup-relationship-layout .cup-position-3 { /* 관계 기본 - 하단 중앙 */
+  top: 100%;
+  left: 80%;
+  transform: translate(-50%, -50%);
 }
 
-.cup-relationship-layout .cup-position-3 {
-  bottom: 20%;
+.cup-relationship-layout .cup-position-4 { /* 관계 과거 - 왼쪽 중간 */
+  top: 70%;
   left: 50%;
-  transform: translate(-50%, 50%);
+  transform: translate(-50%, -50%);
 }
 
-.cup-relationship-layout .cup-position-4 {
-  bottom: 40%;
-  left: 35%;
-  transform: translate(-50%, 50%);
-}
-
-.cup-relationship-layout .cup-position-5 {
-  top: 50%;
-  left: 50%;
+.cup-relationship-layout .cup-position-5 { /* 현재 상태 - 중앙 */
+  top: 40%;
+  left: 40%;
   transform: translate(-50%, -50%);
   z-index: 2;
 }
 
-.cup-relationship-layout .cup-position-6 {
-  bottom: 40%;
-  right: 35%;
-  transform: translate(50%, 50%);
-}
-
-.cup-relationship-layout .cup-position-7 {
-  top: 30%;
-  left: 20%;
+.cup-relationship-layout .cup-position-6 { /* 현재 외부 상황 - 오른쪽 중간 */
+  top: 35%;
+  left: 60%;
   transform: translate(-50%, -50%);
 }
 
-.cup-relationship-layout .cup-position-8 {
-  top: 30%;
-  right: 20%;
-  transform: translate(50%, -50%);
-}
-
-.cup-relationship-layout .cup-position-9 {
-  top: 10%;
-  left: 30%;
+.cup-relationship-layout .cup-position-7 { /* 현재 나는 어떻게 생각? - 왼쪽 */
+  top: 28%;
+  left: 10%;
   transform: translate(-50%, -50%);
 }
 
-.cup-relationship-layout .cup-position-10 {
-  top: 10%;
-  right: 30%;
-  transform: translate(50%, -50%);
+.cup-relationship-layout .cup-position-8 { /* 현재 상대는 어떻게 생각? - 오른쪽 */
+  top: 28%;
+  left: 90%;
+  transform: translate(-50%, -50%);
 }
 
-.cup-relationship-layout .cup-position-11 {
+.cup-relationship-layout .cup-position-9 { /* 미래 나는 어떻게 생각? - 왼쪽 상단 */
+  top: 20%;
+  left: -20%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-10 { /* 미래 상대는 어떻게 생각? - 오른쪽 상단 */
+  top: 20%;
+  left: 120%;
+  transform: translate(-50%, -50%);
+}
+
+.cup-relationship-layout .cup-position-11 { /* 결과 - 상단 중앙 */
   top: 5%;
   left: 50%;
   transform: translate(-50%, -50%);
