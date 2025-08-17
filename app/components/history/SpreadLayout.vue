@@ -281,69 +281,71 @@ const getPositionName = (index: number): string => {
   position: relative;
   width: 100%;
   min-height: 500px;
+  scale: 0.7;
 }
 
-.celtic-cross-layout .position-1 {
-  top: 50%;
-  left: 35%;
-  transform: translate(-50%, -50%);
-  z-index: 2;
+/* 켈틱 크로스 카드 위치 - top -45% 적용 */
+.celtic-cross-layout .position-1 { /* 현재상황 - 중앙 왼쪽 */
+  top: 18%; /* 58% - 45% */
+  left: calc(40% - 40px);
+  transform: translate(-80%, 75%);
+  z-index: 10;
 }
 
-.celtic-cross-layout .position-2 {
-  top: 50%;
-  left: 35%;
-  transform: translate(-50%, -50%) rotate(90deg);
-  z-index: 3;
+.celtic-cross-layout .position-2 { /* 도전/십자가 - 중앙 오른쪽 */
+  top: 12%; /* 52% - 45% */
+  left: calc(40% + 40px);
+  transform: translate(-105%, 50%);
+  z-index: 10;
 }
 
-.celtic-cross-layout .position-3 {
-  top: 73%;
-  left: 35%;
-  transform: translate(-50%, -50%);
-  z-index: 1;
+.celtic-cross-layout .position-3 { /* 근본 - 아래 */
+  top: 38%; /* 78% - 45% */
+  left: 40%;
+  transform: translate(-90%, 115%);
 }
 
-.celtic-cross-layout .position-4 {
-  top: 50%;
-  left: 15%;
-  transform: translate(-50%, -50%);
+.celtic-cross-layout .position-4 { /* 과거 - 왼쪽 */
+  top: 13%; /* 53% - 45% */
+  left: 10%;
+  transform: translate(-140%, 65%);
 }
 
-.celtic-cross-layout .position-5 {
-  top: 27%;
-  left: 35%;
-  transform: translate(-50%, -50%);
+.celtic-cross-layout .position-5 { /* 드러나는 모습 - 위 */
+  top: -15%; /* 25% - 45% */
+  left: 40%;
+  transform: translate(-90%, 35%);
 }
 
-.celtic-cross-layout .position-6 {
-  top: 50%;
-  left: 55%;
-  transform: translate(-50%, -50%);
+.celtic-cross-layout .position-6 { /* 미래 - 오른쪽 */
+  top: 13%; /* 53% - 45% */
+  left: 70%;
+  transform: translate(-40%, 65%);
 }
 
-.celtic-cross-layout .position-7 {
-  bottom: 5%;
-  right: 15%;
-  transform: translateX(50%);
+/* 오른쪽 기둥 */
+.celtic-cross-layout .position-7 { /* 내가보는나 - 맨 아래 */
+  top: 30%; /* 70% - 45% */
+  left: 95%;
+  transform: translate(0%, 175%);
 }
 
-.celtic-cross-layout .position-8 {
-  bottom: 30%;
-  right: 15%;
-  transform: translateX(50%);
+.celtic-cross-layout .position-8 { /* 남이보는나 */
+  top: 15%; /* 55% - 45% */
+  left: 95%;
+  transform: translate(30%, 110%);
 }
 
-.celtic-cross-layout .position-9 {
-  bottom: 55%;
-  right: 15%;
-  transform: translateX(50%);
+.celtic-cross-layout .position-9 { /* 예상하는 결과 */
+  top: -2%; /* 38% - 45% */
+  left: 95%;
+  transform: translate(0%, 50%);
 }
 
-.celtic-cross-layout .position-10 {
-  top: 5%;
-  right: 15%;
-  transform: translateX(50%);
+.celtic-cross-layout .position-10 { /* 실제 결과 - 맨 위 */
+  top: -15%; /* 25% - 45% */
+  left: 95%;
+  transform: translate(30%, -15%);
 }
 
 /* 세븐 스타 레이아웃 - 유료배열과 동일하게 */

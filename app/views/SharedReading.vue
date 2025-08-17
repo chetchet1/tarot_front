@@ -1123,61 +1123,67 @@ onMounted(async () => {
 }
 
 /* 켈틱 크로스 카드 위치 - 원본과 동일하게 */
-.celtic-cross-layout .position-1 { 
-  left: calc(40% - 40px); 
-  top: calc(50% - 60px); 
+.celtic-cross-layout .position-1 { /* 현재상황 - 중앙 왼쪽 */
+  top: 58%; /* 60% -> 80% 추가로 20% 아래로 이동 */
+  left: calc(40% - 50px);
+  transform: translate(-80%, 75%);
+  z-index: 10;
 }
 
-.celtic-cross-layout .position-2 { 
-  left: calc(40% - 40px); 
-  top: calc(50% - 60px); 
-  transform: rotate(90deg); 
-  z-index: 2;
+.celtic-cross-layout .position-2 { /* 도전/십자가 - 중앙 오른쪽 */
+  top: 52%; /* 56% -> 76% 추가로 20% 아래로 이동 */
+  left: calc(40% + 50px);
+  transform: translate(-105%, 50%);
+  z-index: 10;
 }
 
-/* position-2의 역방향 처리 */
-.celtic-cross-layout .position-2 .card-image-wrapper.is-reversed img {
-  transform: rotate(180deg);
+.celtic-cross-layout .position-3 { /* 근본 - 아래 */
+  top: 78%;
+  left: 40%;
+  transform: translate(-90%, 115%);
 }
 
-.celtic-cross-layout .position-3 { 
-  left: calc(40% - 40px); 
-  top: calc(50% + 80px); 
+.celtic-cross-layout .position-4 { /* 과거 - 왼쪽 */
+  top: 53%;
+  left: 10%;
+  transform: translate(-140%, 65%);
 }
 
-.celtic-cross-layout .position-4 { 
-  left: calc(40% - 180px); 
-  top: calc(50% - 60px); 
+.celtic-cross-layout .position-5 { /* 드러나는 모습 - 위 */
+  top: 25%;
+  left: 40%;
+  transform: translate(-90%, 35%);
 }
 
-.celtic-cross-layout .position-5 { 
-  left: calc(40% - 40px); 
-  top: calc(50% - 200px); 
+.celtic-cross-layout .position-6 { /* 미래 - 오른쪽 */
+  top: 53%;
+  left: 70%;
+  transform: translate(-40%, 65%);
 }
 
-.celtic-cross-layout .position-6 { 
-  left: calc(40% + 100px); 
-  top: calc(50% - 60px); 
+/* 오른쪽 기둥 */
+.celtic-cross-layout .position-7 { /* 내가보는나 - 맨 아래 */
+  top: 85%;
+  left: 95%;
+  transform: translate(0%, 175%);
 }
 
-.celtic-cross-layout .position-7 { 
-  right: 80px; 
-  bottom: 40px; 
+.celtic-cross-layout .position-8 { /* 남이보는나 */
+  top: 62%;
+  left: 95%;
+  transform: translate(30%, 110%);
 }
 
-.celtic-cross-layout .position-8 { 
-  right: 80px; 
-  bottom: calc(40px + 140px); 
+.celtic-cross-layout .position-9 { /* 예상하는 결과 */
+  top: 38%;
+  left: 95%;
+  transform: translate(0%, 50%);
 }
 
-.celtic-cross-layout .position-9 { 
-  right: 80px; 
-  bottom: calc(40px + 280px); 
-}
-
-.celtic-cross-layout .position-10 { 
-  right: 80px; 
-  bottom: calc(40px + 420px); 
+.celtic-cross-layout .position-10 { /* 실제 결과 - 맨 위 */
+  top: 15%;
+  left: 95%;
+  transform: translate(30%, -15%);
 }
 
 /* 해석 섹션 */
