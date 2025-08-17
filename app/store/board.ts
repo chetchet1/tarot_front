@@ -240,7 +240,7 @@ export const useBoardStore = defineStore('board', () => {
   /**
    * 게시글 작성
    */
-  async function createPost(title: string, content: string, category: string = 'general', sharedReadingId?: string) {
+  async function createPost(postData: { title: string; content: string; category: string; shared_reading_id?: string | null }) {
     const userStore = useUserStore();
     if (!userStore.currentUser) throw new Error('로그인이 필요합니다.');
 
@@ -249,13 +249,18 @@ export const useBoardStore = defineStore('board', () => {
       throw new Error('닉네임을 먼저 설정해주세요.');
     }
 
+    console.log('[board.ts] createPost 호출, postData:', postData);
+    console.log('[board.ts] content 값:', postData.content);
+    console.log('[board.ts] content 타입:', typeof postData.content);
+    console.log('[board.ts] content 길이:', postData.content?.length);
+
     try {
       const newPost = await postService.createPost(
         userStore.currentUser.id,
-        title,
-        content,
-        category,
-        sharedReadingId
+        postData.title,
+        postData.content,
+        postData.category,
+        postData.shared_reading_id || undefined
       );
       
       // 목록 맨 앞에 추가
@@ -272,7 +277,7 @@ export const useBoardStore = defineStore('board', () => {
   /**
    * 게시글 수정
    */
-  async function updatePost(postId: string, updates: { title?: string; content?: string }) {
+  async function updatePost(postId: string, updates: { title?: string; content?: string; category?: string; shared_reading_id?: string | null }) {
     const userStore = useUserStore();
     if (!userStore.currentUser) throw new Error('로그인이 필요합니다.');
 
@@ -557,6 +562,7 @@ export const useBoardStore = defineStore('board', () => {
     initializeNickname,
     setNickname,
     fetchPosts: loadPosts,
+    fetchPost: loadPost,
     loadPosts,
     loadNextPage,
     refreshPosts,

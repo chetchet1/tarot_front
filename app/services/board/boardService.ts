@@ -158,7 +158,7 @@ export const postService = {
         .eq('is_deleted', false);
 
       // 카테고리 필터 추가
-      if (category && category !== 'general') {
+      if (category && category !== 'all') {
         console.log('[postService] 카테고리 필터 추가:', category);
         query = query.eq('category', category);
       }
@@ -227,6 +227,16 @@ export const postService = {
     category: string = 'general',
     sharedReadingId?: string
   ): Promise<BoardPost> {
+    console.log('[boardService.createPost] 호출 매개변수:', {
+      userId,
+      title,
+      content,
+      contentType: typeof content,
+      contentLength: content?.length,
+      category,
+      sharedReadingId
+    });
+    
     try {
       // 현재 닉네임 가져오기
       const nickname = await nicknameService.getCurrentNickname(userId);
@@ -234,16 +244,20 @@ export const postService = {
         throw new Error('닉네임을 먼저 설정해주세요.');
       }
 
+      const insertData = {
+        user_id: userId,
+        nickname,
+        title,
+        content,
+        category,
+        shared_reading_id: sharedReadingId || null
+      };
+      
+      console.log('[boardService.createPost] DB에 삽입할 데이터:', JSON.stringify(insertData));
+
       const { data, error } = await supabase
         .from('board_posts')
-        .insert({
-          user_id: userId,
-          nickname,
-          title,
-          content,
-          category,
-          shared_reading_id: sharedReadingId || null
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -309,20 +323,30 @@ export const postService = {
    */
   async incrementViewCount(postId: string): Promise<void> {
     try {
-      const { error } = await supabase.rpc('increment', {
-        row_id: postId,
-        table_name: 'board_posts',
-        column_name: 'view_count'
-      });
+      // 현재 조회수를 먼저 가져오기
+      const { data: currentData, error: fetchError } = await supabase
+        .from('board_posts')
+        .select('view_count')
+        .eq('id', postId)
+        .single();
 
-      // RPC가 없는 경우 직접 업데이트
-      if (error) {
-        await supabase
-          .from('board_posts')
-          .update({ 
-            view_count: supabase.sql`view_count + 1` 
-          })
-          .eq('id', postId);
+      if (fetchError) {
+        console.error('현재 조회수 조회 실패:', fetchError);
+        return;
+      }
+
+      const currentCount = currentData?.view_count || 0;
+
+      // 조회수 업데이트
+      const { error: updateError } = await supabase
+        .from('board_posts')
+        .update({ 
+          view_count: currentCount + 1
+        })
+        .eq('id', postId);
+
+      if (updateError) {
+        console.error('조회수 업데이트 실패:', updateError);
       }
     } catch (error) {
       console.error('조회수 증가 실패:', error);

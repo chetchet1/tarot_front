@@ -51,36 +51,35 @@
 
       <div v-else class="posts-list">
         <article
-          v-for="post in posts"
+          v-for="(post, index) in posts"
           :key="post.id"
           class="post-item"
           @click="viewPost(post.id)"
         >
-          <div class="post-header">
-            <span class="post-category">{{ getCategoryLabel(post.category) }}</span>
-            <span class="post-date">{{ formatDate(post.created_at) }}</span>
-          </div>
+          <span class="post-number">{{ getPostNumber(index) }}</span>
           
-          <h3 class="post-title">{{ post.title }}</h3>
-          
-          <p class="post-preview">{{ getPreview(post.content) }}</p>
-          
-          <div class="post-footer">
-            <div class="post-author">
-              <span class="author-icon">👤</span>
-              <span class="author-name">{{ post.nickname || '익명' }}</span>
+          <div class="post-left">
+            <div class="post-header">
+              <span class="post-category">{{ getCategoryLabel(post.category) }}</span>
+              <h3 class="post-title">{{ post.title }}</h3>
             </div>
             
-            <div class="post-stats">
-              <span class="stat-item">
-                <span class="stat-icon">👁️</span>
-                {{ post.view_count || 0 }}
-              </span>
-              <span class="stat-item">
-                <span class="stat-icon">💬</span>
-                {{ post.comment_count || 0 }}
-              </span>
+            <div class="post-info">
+              <span class="author-name">{{ post.nickname || '익명' }}</span>
+              <span class="info-separator">·</span>
+              <span class="post-date">{{ formatDate(post.created_at) }}</span>
             </div>
+          </div>
+          
+          <div class="post-right">
+            <span class="stat-item">
+              <span class="stat-icon">👁️</span>
+              {{ post.view_count || 0 }}
+            </span>
+            <span class="stat-item">
+              <span class="stat-icon">💬</span>
+              {{ post.comment_count || 0 }}
+            </span>
           </div>
         </article>
       </div>
@@ -124,11 +123,12 @@ const boardStore = useBoardStore();
 
 const showNicknameModal = ref(false);
 const isLoading = ref(false);
-const selectedCategory = ref<BoardCategory>('general');
+const selectedCategory = ref<string>('all');
 const currentPage = ref(1);
 const postsPerPage = 10;
 
 const categories = [
+  { value: 'all', label: '📋 전체' },
   { value: 'general' as BoardCategory, label: '💬 일반' },
   { value: 'love' as BoardCategory, label: '💝 연애' },
   { value: 'career' as BoardCategory, label: '💼 직업' },
@@ -143,6 +143,15 @@ const totalPages = computed(() => Math.ceil(boardStore.totalCount / postsPerPage
 const getCategoryLabel = (category: BoardCategory) => {
   const cat = categories.find(c => c.value === category);
   return cat ? cat.label : '일반';
+};
+
+// 게시글 번호 계산
+const getPostNumber = (index: number) => {
+  // 전체 게시글 수에서 현재 페이지와 인덱스를 고려하여 번호 계산
+  // 최신글이 높은 번호를 가지도록 역순으로 계산
+  const totalCount = boardStore.totalCount;
+  const startNumber = totalCount - ((currentPage.value - 1) * postsPerPage);
+  return startNumber - index;
 };
 
 // 날짜 포맷
@@ -163,13 +172,13 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString('ko-KR');
 };
 
-// 미리보기 텍스트 생성
-const getPreview = (content: string) => {
-  const maxLength = 100;
-  const plainText = content.replace(/<[^>]*>/g, '');
-  if (plainText.length <= maxLength) return plainText;
-  return plainText.substring(0, maxLength) + '...';
-};
+// 미리보기 텍스트 생성 (더 이상 사용하지 않음)
+// const getPreview = (content: string) => {
+//   const maxLength = 100;
+//   const plainText = content.replace(/<[^>]*>/g, '');
+//   if (plainText.length <= maxLength) return plainText;
+//   return plainText.substring(0, maxLength) + '...';
+// };
 
 // 게시글 목록 불러오기
 const loadPosts = async () => {
@@ -182,7 +191,7 @@ const loadPosts = async () => {
   try {
     // boardStore에 현재 페이지와 카테고리 설정
     boardStore.currentPage = currentPage.value;
-    boardStore.currentCategory = selectedCategory.value;
+    boardStore.currentCategory = selectedCategory.value === 'all' ? '' : selectedCategory.value;
     
     console.log('[BoardMain] boardStore.loadPosts 호출 전');
     await boardStore.loadPosts(true); // forceRefresh를 true로 설정
@@ -204,11 +213,11 @@ const loadPosts = async () => {
 };
 
 // 카테고리 선택
-const selectCategory = (category: BoardCategory) => {
+const selectCategory = (category: string) => {
   selectedCategory.value = category;
   currentPage.value = 1;
   boardStore.currentPage = 1;
-  boardStore.currentCategory = category;
+  boardStore.currentCategory = category === 'all' ? '' : category;
   loadPosts();
 };
 
@@ -450,92 +459,109 @@ watch(selectedCategory, () => {
 .posts-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .post-item {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px 16px;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 게시글 번호 */
+.post-number {
+  min-width: 40px;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+}
+
+.post-item:last-child {
+  border-bottom: none;
 }
 
 .post-item:hover {
   background: rgba(255, 255, 255, 0.08);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* 게시글 왼쪽 영역 (카테고리, 제목, 작성자) */
+.post-left {
+  flex: 1;
+  min-width: 0;
 }
 
 .post-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 4px;
 }
 
 .post-category {
-  font-size: 14px;
+  font-size: 12px;
   color: #A855F7;
   font-weight: 500;
-}
-
-.post-date {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.5);
+  padding: 2px 6px;
+  background: rgba(168, 85, 247, 0.15);
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
 .post-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
-  color: white;
-}
-
-.post-preview {
-  color: rgba(255, 255, 255, 0.7);
   font-size: 15px;
-  line-height: 1.5;
-  margin: 0 0 16px 0;
+  font-weight: 500;
+  margin: 0;
+  color: white;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.post-footer {
+/* 게시글 하단 정보 */
+.post-info {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-}
-
-.post-author {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.author-icon {
-  font-size: 14px;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .author-name {
-  font-size: 14px;
   color: rgba(255, 255, 255, 0.6);
 }
 
-.post-stats {
+.info-separator {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* 게시글 오른쪽 영역 (통계) */
+.post-right {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 16px;
 }
 
 .stat-item {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
 }
 
 .stat-icon {
-  font-size: 14px;
+  font-size: 13px;
 }
 
 /* 페이지네이션 */
@@ -588,11 +614,24 @@ watch(selectedCategory, () => {
   }
   
   .post-item {
-    padding: 16px;
+    padding: 10px 12px;
+  }
+  
+  .post-number {
+    min-width: 32px;
+    font-size: 13px;
   }
   
   .post-title {
-    font-size: 16px;
+    font-size: 14px;
+  }
+  
+  .post-right {
+    gap: 12px;
+  }
+  
+  .stat-item {
+    font-size: 12px;
   }
 }
 </style>

@@ -57,6 +57,7 @@
           placeholder="내용을 입력하세요 (최대 1000자)"
           maxlength="1000"
           rows="12"
+          @input="onContentInput"
         ></textarea>
         <div class="input-info">
           <span class="char-count">{{ form.content.length }}/1000</span>
@@ -70,25 +71,31 @@
           <span class="label-sub">(선택사항)</span>
         </label>
         
-        <div v-if="sharedReadings.length > 0" class="reading-select">
+        <div v-if="userReadings.length > 0" class="reading-select">
           <select 
             v-model="form.shared_reading_id"
             class="form-select"
           >
-            <option value="">선택 안함</option>
+            <option :value="null">선택 안함</option>
             <option 
-              v-for="reading in sharedReadings" 
+              v-for="reading in userReadings" 
               :key="reading.id"
               :value="reading.id"
             >
-              {{ reading.spread_type }} - {{ formatDate(reading.created_at) }}
+              {{ getSpreadLabel(reading.spread_type) }} - {{ formatDate(reading.created_at) }}
+              {{ reading.question ? `(${reading.question.substring(0, 20)}...)` : '' }}
             </option>
           </select>
+          <p class="select-help">내 점괘 기록에서 선택하여 함께 공유할 수 있습니다.</p>
+        </div>
+        
+        <div v-else-if="loadingReadings" class="loading-readings">
+          <p>점괘 기록을 불러오는 중...</p>
         </div>
         
         <div v-else class="no-readings">
-          <p>공유 가능한 점괘가 없습니다.</p>
-          <p class="sub-text">타로 점을 본 후 공유 설정을 하면 여기에 표시됩니다.</p>
+          <p>첨부할 수 있는 점괘가 없습니다.</p>
+          <p class="sub-text">타로 점을 본 후에 첨부할 수 있습니다.</p>
         </div>
       </div>
 
@@ -127,10 +134,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useBoardStore } from '../store/board';
-// import { useReadingStore } from '../store/reading'; // reading store가 없음
+import { useUserStore } from '../store/user';
+import { supabase } from '../services/supabase';
 import { showAlert, showConfirm } from '../utils/alerts';
 // BoardNicknameModal 컴포넌트는 동적으로 import
 import { defineAsyncComponent } from 'vue';
@@ -141,23 +149,24 @@ import type { BoardCategory } from '../types/board';
 const route = useRoute();
 const router = useRouter();
 const boardStore = useBoardStore();
-// const readingStore = useReadingStore();
+const userStore = useUserStore();
 
 // 욕설 필터 - 임시로 비활성화
 // const filter = new BadWordsFilter();
 
 const showNicknameModal = ref(false);
 const isSubmitting = ref(false);
-const sharedReadings = ref<any[]>([]);
+const userReadings = ref<any[]>([]);
+const loadingReadings = ref(false);
 
 const isEditMode = computed(() => !!route.params.id);
 const postId = computed(() => route.params.id as string);
 
-const form = ref({
+const form = reactive({
   category: 'general' as BoardCategory,
   title: '',
   content: '',
-  shared_reading_id: ''
+  shared_reading_id: null as string | null
 });
 
 const categories = [
@@ -169,8 +178,13 @@ const categories = [
 ];
 
 const canSubmit = computed(() => {
-  return form.value.title.trim().length >= 2 &&
-         form.value.content.trim().length >= 10;
+  const titleLength = form.title?.trim().length || 0;
+  const contentLength = form.content?.trim().length || 0;
+  
+  console.log('[canSubmit] 제목 길이:', titleLength, '내용 길이:', contentLength);
+  console.log('[canSubmit] 제출 가능:', titleLength >= 1 && contentLength >= 1);
+  
+  return titleLength >= 1 && contentLength >= 1;
 });
 
 // 날짜 포맷
@@ -183,6 +197,21 @@ const formatDate = (dateString: string) => {
     hour: '2-digit',
     minute: '2-digit'
   });
+};
+
+// 스프레드 타입 라벨
+const getSpreadLabel = (spreadType: string) => {
+  const labels: Record<string, string> = {
+    'single': '1장 카드',
+    'three-cards': '3장 카드',
+    'celtic-cross': '켈틱 크로스',
+    'horseshoe': '호스슈',
+    'hexagram': '헥사그램',
+    'relationship': '관계의 컵',
+    'year-ahead': '한 해 전망',
+    'daily': '오늘의 카드'
+  };
+  return labels[spreadType] || spreadType;
 };
 
 // 욕설 검사 - 간단한 필터로 대체
@@ -198,8 +227,8 @@ const checkSpam = async (): Promise<boolean> => {
   // 임시로 비활성화 - 나중에 boardService에 메소드 추가 필요
   // const recentPosts = await boardStore.fetchUserRecentPosts(5); // 5분 이내
   // return recentPosts.some(post => 
-  //   post.title === form.value.title || 
-  //   post.content === form.value.content
+  //   post.title === form.title || 
+  //   post.content === form.content
   // );
   return false; // 임시로 항상 false 반환
 };
@@ -215,7 +244,7 @@ const submitPost = async () => {
   }
   
   // 욕설 검사
-  if (checkBadWords(form.value.title) || checkBadWords(form.value.content)) {
+  if (checkBadWords(form.title) || checkBadWords(form.content)) {
     await showAlert({
       title: '⚠️ 부적절한 내용',
       message: '욕설이나 비속어가 포함되어 있습니다. 수정해주세요.',
@@ -240,12 +269,20 @@ const submitPost = async () => {
   isSubmitting.value = true;
   
   try {
+    // 입력값 확인
+    console.log('[게시글 제출] form:', form);
+    console.log('[게시글 제출] form.content:', form.content);
+    console.log('[게시글 제출] form.content.trim():', form.content.trim());
+    
     const postData = {
-      category: form.value.category,
-      title: form.value.title.trim(),
-      content: form.value.content.trim(),
-      shared_reading_id: form.value.shared_reading_id || null
+      category: form.category,
+      title: form.title.trim(),
+      content: form.content.trim(),
+      shared_reading_id: form.shared_reading_id || null
     };
+    
+    console.log('[게시글 제출] postData:', JSON.stringify(postData));
+    console.log('[게시글 제출] content 길이:', postData.content.length);
     
     if (isEditMode.value) {
       // 수정
@@ -280,7 +317,7 @@ const submitPost = async () => {
 
 // 작성 취소
 const cancelEdit = async () => {
-  if (form.value.title.trim() || form.value.content.trim()) {
+  if (form.title.trim() || form.content.trim()) {
     const confirmed = await showConfirm({
       title: '작성 취소',
       message: '작성 중인 내용이 사라집니다. 정말 취소하시겠습니까?',
@@ -303,16 +340,36 @@ const onNicknameSaved = () => {
   showNicknameModal.value = false;
 };
 
-// 공유 가능한 점괘 불러오기
-const loadSharedReadings = async () => {
-  // 임시로 비활성화 - reading store 구현 필요
-  // try {
-  //   const readings = await readingStore.fetchSharedReadings();
-  //   sharedReadings.value = readings;
-  // } catch (error) {
-  //   console.error('점괘 목록 로드 실패:', error);
-  // }
-  sharedReadings.value = []; // 임시로 빈 배열
+// 내용 입력 시 디버깅
+const onContentInput = (e: Event) => {
+  const target = e.target as HTMLTextAreaElement;
+  console.log('[내용 입력] 현재 값:', target.value);
+  console.log('[내용 입력] form.content:', form.content);
+};
+
+// 사용자의 점괘 기록 불러오기
+const loadUserReadings = async () => {
+  if (!userStore.currentUser) return;
+  
+  loadingReadings.value = true;
+  try {
+    const { data, error } = await supabase
+      .from('readings_history')
+      .select('*')
+      .eq('user_id', userStore.currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(20); // 최근 20개만
+    
+    if (error) throw error;
+    
+    userReadings.value = data || [];
+    console.log('[loadUserReadings] 불러온 점괘:', userReadings.value.length);
+  } catch (error) {
+    console.error('점괘 기록 로드 실패:', error);
+    userReadings.value = [];
+  } finally {
+    loadingReadings.value = false;
+  }
 };
 
 // 수정 모드일 때 기존 데이터 불러오기
@@ -320,7 +377,7 @@ const loadExistingPost = async () => {
   if (!isEditMode.value) return;
   
   try {
-    const post = await boardStore.fetchPost(postId.value);
+    const post = await boardStore.loadPost(postId.value);
     
     // 작성자 확인
     const currentUser = boardStore.profile?.user_id;
@@ -335,12 +392,12 @@ const loadExistingPost = async () => {
     }
     
     // 폼 데이터 설정
-    form.value = {
+    Object.assign(form, {
       category: post.category,
       title: post.title,
       content: post.content,
-      shared_reading_id: post.shared_reading_id || ''
-    };
+      shared_reading_id: post.shared_reading_id || null
+    });
   } catch (error) {
     console.error('게시글 로드 실패:', error);
     await showAlert({
@@ -361,8 +418,8 @@ onMounted(async () => {
     showNicknameModal.value = true;
   }
   
-  // 공유 가능한 점괘 불러오기
-  await loadSharedReadings();
+  // 사용자의 점괘 기록 불러오기
+  await loadUserReadings();
   
   // 수정 모드면 기존 데이터 불러오기
   await loadExistingPost();
@@ -555,6 +612,13 @@ onMounted(async () => {
   margin-top: 8px;
 }
 
+.select-help {
+  margin-top: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.loading-readings,
 .no-readings {
   padding: 20px;
   background: rgba(255, 255, 255, 0.03);
@@ -563,6 +627,7 @@ onMounted(async () => {
   text-align: center;
 }
 
+.loading-readings p,
 .no-readings p {
   margin: 0 0 8px 0;
   color: rgba(255, 255, 255, 0.8);

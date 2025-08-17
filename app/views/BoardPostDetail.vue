@@ -56,10 +56,26 @@
         <div class="post-text" v-html="sanitizedContent"></div>
         
         <!-- 점괘 공유 (있는 경우) -->
-        <div v-if="post.shared_reading_id" class="shared-reading">
-          <button class="reading-btn" @click="viewSharedReading">
-            🔮 이 글과 관련된 타로 점괘 보기
-          </button>
+        <div v-if="sharedReading" class="shared-reading">
+          <h3 class="reading-title">🔮 첨부된 타로 점괘</h3>
+          <div class="reading-preview">
+            <div class="reading-info">
+              <span class="reading-spread">{{ getSpreadLabel(sharedReading.spread_type) }}</span>
+              <span class="reading-date">{{ formatDate(sharedReading.created_at) }}</span>
+            </div>
+            <div v-if="sharedReading.question" class="reading-question">
+              <strong>질문:</strong> {{ sharedReading.question }}
+            </div>
+            <div class="reading-cards">
+              <div v-for="(card, index) in getCardPreview(sharedReading)" :key="index" class="card-preview">
+                <span class="card-emoji">🃏</span>
+                <span class="card-name">{{ card }}</span>
+              </div>
+            </div>
+            <button class="reading-detail-btn" @click="viewSharedReading">
+              점괘 자세히 보기 →
+            </button>
+          </div>
         </div>
       </div>
 
@@ -138,6 +154,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useBoardStore } from '../store/board';
 import { useUserStore } from '../store/user';
+import { supabase } from '../services/supabase';
 import { showAlert, showConfirm } from '../utils/alerts';
 // BoardComment 컴포넌트는 동적으로 import
 import { defineAsyncComponent } from 'vue';
@@ -156,6 +173,7 @@ const newComment = ref('');
 const isLoading = ref(true);
 const isSubmitting = ref(false);
 const hasLiked = ref(false);
+const sharedReading = ref<any>(null);
 
 const postId = computed(() => route.params.id as string);
 const currentUserId = computed(() => userStore.currentUser?.id || '');
@@ -206,18 +224,56 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString('ko-KR');
 };
 
+// 스프레드 타입 라벨
+const getSpreadLabel = (spreadType: string) => {
+  const labels: Record<string, string> = {
+    'single': '1장 카드',
+    'three-cards': '3장 카드',
+    'celtic-cross': '켈틱 크로스',
+    'horseshoe': '호스슈',
+    'hexagram': '헥사그램',
+    'relationship': '관계의 컵',
+    'year-ahead': '한 해 전망',
+    'daily': '오늘의 카드'
+  };
+  return labels[spreadType] || spreadType;
+};
+
+// 카드 미리보기 (최대 3장)
+const getCardPreview = (reading: any) => {
+  if (!reading || !reading.cards) return [];
+  
+  const cards = JSON.parse(reading.cards);
+  const preview = [];
+  const maxCards = 3;
+  
+  for (let i = 0; i < Math.min(cards.length, maxCards); i++) {
+    preview.push(cards[i].name || '카드 ' + (i + 1));
+  }
+  
+  if (cards.length > maxCards) {
+    preview.push(`외 ${cards.length - maxCards}장...`);
+  }
+  
+  return preview;
+};
+
 // 게시글 불러오기
 const loadPost = async () => {
   isLoading.value = true;
   try {
-    const data = await boardStore.fetchPost(postId.value);
+    const data = await boardStore.loadPost(postId.value);
     post.value = data;
     
-    // 조회수 증가
-    await boardStore.incrementViewCount(postId.value);
+    // 조회수 증가는 loadPost 내부에서 처리됨
     
     // 좋아요 상태 확인
-    hasLiked.value = await boardStore.checkPostLike(postId.value);
+    hasLiked.value = boardStore.userLikedPosts.has(postId.value);
+    
+    // 첨부된 점괘 불러오기
+    if (data.shared_reading_id) {
+      await loadSharedReading(data.shared_reading_id);
+    }
     
     // 댓글 불러오기
     await loadComments();
@@ -234,10 +290,30 @@ const loadPost = async () => {
   }
 };
 
+// 공유된 점괘 불러오기
+const loadSharedReading = async (readingId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('readings_history')
+      .select('*')
+      .eq('id', readingId)
+      .single();
+    
+    if (error) throw error;
+    
+    sharedReading.value = data;
+    console.log('[공유 점괘] 불러온 데이터:', data);
+  } catch (error) {
+    console.error('공유 점괘 로드 실패:', error);
+    sharedReading.value = null;
+  }
+};
+
 // 댓글 불러오기
 const loadComments = async () => {
   try {
-    comments.value = await boardStore.fetchComments(postId.value);
+    await boardStore.loadComments(postId.value);
+    comments.value = boardStore.currentComments;
   } catch (error) {
     console.error('댓글 로드 실패:', error);
   }
@@ -248,7 +324,7 @@ const submitComment = async () => {
   if (!newComment.value.trim() || isSubmitting.value) return;
   
   // 닉네임 확인
-  if (!boardStore.profile?.nickname) {
+  if (!boardStore.currentNickname) {
     await showAlert({
       title: '⚠️ 닉네임 설정 필요',
       message: '댓글을 작성하려면 먼저 닉네임을 설정해주세요.',
@@ -260,11 +336,11 @@ const submitComment = async () => {
   
   isSubmitting.value = true;
   try {
-    await boardStore.createComment({
-      post_id: postId.value,
-      content: newComment.value.trim(),
-      parent_id: null
-    });
+    await boardStore.createComment(
+      postId.value,
+      newComment.value.trim()
+      // parent_id는 없으므로 전달하지 않음
+    );
     
     newComment.value = '';
     await loadComments();
@@ -288,11 +364,11 @@ const submitComment = async () => {
 // 대댓글 작성
 const onReply = async (parentComment: BoardCommentType, content: string) => {
   try {
-    await boardStore.createComment({
-      post_id: postId.value,
-      content: content,
-      parent_id: parentComment.id
-    });
+    await boardStore.createComment(
+      postId.value,
+      content,
+      parentComment.id  // parent_id로 전달
+    );
     
     await loadComments();
     
@@ -322,7 +398,7 @@ const onDeleteComment = async (commentId: string) => {
   if (!confirmed) return;
   
   try {
-    await boardStore.deleteComment(commentId);
+    await boardStore.deleteComment(commentId, postId.value);
     await loadComments();
     
     // 댓글 수 업데이트
@@ -342,7 +418,7 @@ const onDeleteComment = async (commentId: string) => {
 // 댓글 좋아요
 const onLikeComment = async (commentId: string) => {
   try {
-    await boardStore.toggleCommentLike(commentId);
+    await boardStore.toggleLike(commentId, 'comment');
     await loadComments();
   } catch (error) {
     console.error('댓글 좋아요 실패:', error);
@@ -361,8 +437,8 @@ const onReportComment = async (commentId: string) => {
 // 게시글 좋아요
 const toggleLike = async () => {
   try {
-    await boardStore.togglePostLike(postId.value);
-    hasLiked.value = !hasLiked.value;
+    const liked = await boardStore.toggleLike(postId.value, 'post');
+    hasLiked.value = liked;
     
     if (post.value) {
       post.value.like_count = (post.value.like_count || 0) + (hasLiked.value ? 1 : -1);
@@ -417,8 +493,9 @@ const reportPost = async () => {
 
 // 공유 점괘 보기
 const viewSharedReading = () => {
-  if (post.value?.shared_reading_id) {
-    router.push(`/reading/${post.value.shared_reading_id}`);
+  if (sharedReading.value) {
+    // SharedReading 컴포넌트로 이동하거나 모달로 표시
+    router.push(`/shared-reading/${sharedReading.value.id}`);
   }
 };
 
@@ -427,8 +504,11 @@ const goBack = () => {
   router.push('/board');
 };
 
-onMounted(() => {
-  loadPost();
+onMounted(async () => {
+  // 프로필 초기화
+  await boardStore.checkProfile();
+  // 게시글 로드
+  await loadPost();
 });
 </script>
 
@@ -587,10 +667,8 @@ onMounted(() => {
 
 /* 게시글 본문 */
 .post-body {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 24px;
+  /* 박스 스타일 제거 - 배경에 직접 표시 */
+  padding: 20px 0;
   margin-bottom: 24px;
 }
 
@@ -602,12 +680,73 @@ onMounted(() => {
 }
 
 .shared-reading {
-  margin-top: 24px;
-  padding-top: 24px;
+  margin-top: 32px;
+  padding-top: 32px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.reading-btn {
+.reading-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #A855F7;
+}
+
+.reading-preview {
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.reading-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.reading-spread {
+  font-weight: 600;
+  color: white;
+}
+
+.reading-date {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.reading-question {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.reading-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.card-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.card-emoji {
+  font-size: 16px;
+}
+
+.reading-detail-btn {
   width: 100%;
   padding: 12px 20px;
   background: linear-gradient(135deg, #A855F7 0%, #7C3AED 100%);
@@ -620,7 +759,7 @@ onMounted(() => {
   transition: all 0.2s ease;
 }
 
-.reading-btn:hover {
+.reading-detail-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 20px rgba(168, 85, 247, 0.4);
 }
@@ -790,8 +929,7 @@ onMounted(() => {
   }
   
   .post-body {
-    padding: 20px;
+    padding: 16px 0;
   }
 }
 </style>
-</template>

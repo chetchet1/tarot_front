@@ -156,7 +156,7 @@ const submitReply = async () => {
   if (!replyContent.value.trim() || isSubmitting.value) return;
   
   // 닉네임 확인
-  if (!boardStore.profile?.nickname) {
+  if (!boardStore.currentNickname) {
     alert('답글을 작성하려면 먼저 닉네임을 설정해주세요.');
     return;
   }
@@ -190,22 +190,25 @@ const reportComment = () => {
 
 <style scoped>
 .comment-item {
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   transition: all 0.2s ease;
 }
 
-.comment-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+.comment-item:last-child {
+  border-bottom: none;
 }
 
-/* 대댓글 스타일 */
+/* 대댓글 스타일 - 왼쪽 선과 들여쓰기 */
 .comment-item.is-reply {
-  margin-left: 32px;
-  background: rgba(168, 85, 247, 0.05);
-  border-color: rgba(168, 85, 247, 0.15);
+  margin-left: 24px;
+  padding-left: 20px;
+  border-left: 2px solid rgba(168, 85, 247, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.comment-item.is-reply:last-child {
+  border-bottom: none;
 }
 
 .comment-main {
@@ -295,10 +298,8 @@ const reportComment = () => {
 /* 답글 작성 폼 */
 .reply-form {
   margin-top: 16px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .reply-input {
@@ -381,19 +382,20 @@ const reportComment = () => {
 
 /* 대댓글 목록 */
 .replies-list {
-  margin-top: 12px;
+  margin-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
 }
 
 @media (max-width: 768px) {
   .comment-item {
-    padding: 12px;
+    padding: 12px 0;
   }
   
   .comment-item.is-reply {
-    margin-left: 20px;
+    margin-left: 16px;
+    padding-left: 12px;
   }
   
   .comment-content {
@@ -410,4 +412,3 @@ const reportComment = () => {
   }
 }
 </style>
-</template>
