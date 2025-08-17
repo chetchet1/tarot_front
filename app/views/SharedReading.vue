@@ -468,6 +468,15 @@ onMounted(async () => {
       
       sharedData.value = reading;
       console.log('✅ Data loaded successfully');
+      console.log('📑 [SharedReading] 불러온 데이터:', {
+        id: reading.id,
+        spread_type: reading.spread_type,
+        has_basic_interpretation: !!reading.basic_interpretation,
+        has_ai_interpretation: !!reading.ai_interpretation,
+        basic_length: reading.basic_interpretation?.length || 0,
+        ai_length: reading.ai_interpretation?.length || 0,
+        cards_count: reading.cards?.length || 0
+      });
     } else {
       error.value = '점괘를 찾을 수 없습니다';
     }

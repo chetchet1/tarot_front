@@ -71,31 +71,33 @@
           <span class="label-sub">(선택사항)</span>
         </label>
         
-        <div v-if="userReadings.length > 0" class="reading-select">
-          <select 
-            v-model="form.shared_reading_id"
-            class="form-select"
+        <div class="reading-attach-section">
+          <!-- 선택된 점괘 표시 -->
+          <div v-if="selectedReading" class="selected-reading">
+            <div class="selected-reading-info">
+              <span class="selected-badge">{{ getSpreadLabel(selectedReading.spread_type) }}</span>
+              <span class="selected-date">{{ formatDate(selectedReading.created_at) }}</span>
+              <button class="remove-btn" @click="removeSelectedReading">
+                <span>✕</span>
+              </button>
+            </div>
+            <div v-if="selectedReading.question" class="selected-question">
+              <span class="question-icon">❓</span>
+              <span class="question-text">{{ selectedReading.question }}</span>
+            </div>
+          </div>
+
+          <!-- 선택 버튼 -->
+          <button 
+            v-else
+            class="select-reading-btn"
+            @click="showReadingModal = true"
           >
-            <option :value="null">선택 안함</option>
-            <option 
-              v-for="reading in userReadings" 
-              :key="reading.id"
-              :value="reading.id"
-            >
-              {{ getSpreadLabel(reading.spread_type) }} - {{ formatDate(reading.created_at) }}
-              {{ reading.question ? `(${reading.question.substring(0, 20)}...)` : '' }}
-            </option>
-          </select>
+            <span class="btn-icon">📖</span>
+            <span class="btn-text">내 점괘 기록에서 선택</span>
+          </button>
+          
           <p class="select-help">내 점괘 기록에서 선택하여 함께 공유할 수 있습니다.</p>
-        </div>
-        
-        <div v-else-if="loadingReadings" class="loading-readings">
-          <p>점괘 기록을 불러오는 중...</p>
-        </div>
-        
-        <div v-else class="no-readings">
-          <p>첨부할 수 있는 점괘가 없습니다.</p>
-          <p class="sub-text">타로 점을 본 후에 첨부할 수 있습니다.</p>
         </div>
       </div>
 
@@ -130,6 +132,13 @@
       @close="showNicknameModal = false"
       @saved="onNicknameSaved"
     />
+
+    <!-- 점괘 선택 모달 -->
+    <ReadingSelectModal
+      :visible="showReadingModal"
+      @close="showReadingModal = false"
+      @select="onReadingModalSelected"
+    />
   </div>
 </template>
 
@@ -140,9 +149,10 @@ import { useBoardStore } from '../store/board';
 import { useUserStore } from '../store/user';
 import { supabase } from '../services/supabase';
 import { showAlert, showConfirm } from '../utils/alerts';
-// BoardNicknameModal 컴포넌트는 동적으로 import
+// 컴포넌트는 동적으로 import
 import { defineAsyncComponent } from 'vue';
 const BoardNicknameModal = defineAsyncComponent(() => import('../components/BoardNicknameModal.vue'));
+const ReadingSelectModal = defineAsyncComponent(() => import('../components/ReadingSelectModal.vue'));
 import type { BoardCategory } from '../types/board';
 // import BadWordsFilter from 'bad-words'; // 임시로 비활성화
 
@@ -155,9 +165,9 @@ const userStore = useUserStore();
 // const filter = new BadWordsFilter();
 
 const showNicknameModal = ref(false);
+const showReadingModal = ref(false);
 const isSubmitting = ref(false);
-const userReadings = ref<any[]>([]);
-const loadingReadings = ref(false);
+const selectedReading = ref<any>(null);
 
 const isEditMode = computed(() => !!route.params.id);
 const postId = computed(() => route.params.id as string);
@@ -202,12 +212,18 @@ const formatDate = (dateString: string) => {
 // 스프레드 타입 라벨
 const getSpreadLabel = (spreadType: string) => {
   const labels: Record<string, string> = {
+    // 기본 스프레드
+    'one_card': '1장 카드',
     'single': '1장 카드',
+    'three_card_timeline': '3장 타임라인',
     'three-cards': '3장 카드',
+    'celtic_cross': '켈틱 크로스',
     'celtic-cross': '켈틱 크로스',
+    'seven_star': '세븐 스타',
+    'cup_of_relationship': '관계의 컵',
+    'relationship': '관계의 컵',
     'horseshoe': '호스슈',
     'hexagram': '헥사그램',
-    'relationship': '관계의 컵',
     'year-ahead': '한 해 전망',
     'daily': '오늘의 카드'
   };
@@ -340,6 +356,245 @@ const onNicknameSaved = () => {
   showNicknameModal.value = false;
 };
 
+// 선택된 점괘 제거
+const removeSelectedReading = () => {
+  selectedReading.value = null;
+  form.shared_reading_id = null;
+};
+
+// 모달에서 점괘 선택
+const onReadingModalSelected = async (reading: any) => {
+  selectedReading.value = reading;
+  await processSelectedReading(reading);
+};
+
+// 점괘 선택 처리
+const processSelectedReading = async (reading: any) => {
+  if (!reading) {
+    form.shared_reading_id = null;
+    return;
+  }
+  
+  // 이미 공유된 점괘인 경우 그대로 사용
+  if (reading.is_from_shared) {
+    form.shared_reading_id = reading.id;
+    return;
+  }
+  
+  // readings 테이블에서 온 데이터인 경우 shared_readings에 생성해야 함
+  if (reading.is_from_readings) {
+    try {
+      // 먼저 readings 테이블에서 전체 데이터 가져오기
+      const { data: fullReading, error: readingError } = await supabase
+        .from('readings')
+        .select('*')
+        .eq('id', reading.id)
+        .single();
+      
+      if (readingError) throw readingError;
+      
+      // AI 해석 데이터 가져오기
+      let aiInterpretation = null;
+      let basicInterpretation = fullReading.overall_message || '';
+      
+      console.log('[점괘 공유] 해석 데이터 조회 시작');
+      console.log('[점괘 공유] reading_id:', reading.id);
+      console.log('[점괘 공유] user_id:', userStore.currentUser?.id);
+      
+      // 1. ai_interpretations 테이블에서 AI 해석 조회
+      const { data: aiData, error: aiError } = await supabase
+        .from('ai_interpretations')
+        .select('interpretation_text, created_at')
+        .eq('reading_id', reading.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      console.log('[점괘 공유] AI 해석 쿼리 결과:', {
+        found: aiData && aiData.length > 0,
+        error: aiError
+      });
+      
+      if (!aiError && aiData && aiData.length > 0 && aiData[0].interpretation_text) {
+        aiInterpretation = aiData[0].interpretation_text;
+        console.log('[점괘 공유] AI 해석 발견 - 길이:', aiInterpretation.length);
+      }
+      
+      // 2. AI 해석이 없고 기본 해석도 충분하지 않은 경우, 상세 정보 생성
+      if (!aiInterpretation) {
+        console.log('[점괘 공유] AI 해석 없음 - 상세 해석 생성 시작');
+        
+        const cards = fullReading.cards || [];
+        let detailedInterpretation = '';
+        
+        // 질문 추가
+        if (fullReading.question) {
+          detailedInterpretation += `📌 **질문**\n${fullReading.question}\n\n`;
+        }
+        
+        // 기본 해석 추가
+        if (basicInterpretation) {
+          detailedInterpretation += `✨ **전체 해석**\n${basicInterpretation}\n\n`;
+        }
+        
+        // 카드 정보 추가
+        if (cards.length > 0) {
+          // 카드 상세 정보 가져오기
+          const cardIds = cards.map((c: any) => c.cardNumber || c.id || c.card_id).filter(Boolean);
+          console.log('[점괘 공유] 카드 ID 목록:', cardIds);
+          
+          let cardDetails: any[] = [];
+          if (cardIds.length > 0) {
+            const { data: cardData, error: cardError } = await supabase
+              .from('tarot_cards')
+              .select('id, name, name_kr, keywords, meanings, element, astrology')
+              .in('id', cardIds);
+            
+            if (!cardError && cardData) {
+              cardDetails = cardData;
+              console.log('[점괘 공유] 카드 상세 정보 조회 성공:', cardDetails.length);
+            }
+          }
+          
+          detailedInterpretation += `🎴 **뽑은 카드 (${cards.length}장)**\n\n`;
+          
+          cards.forEach((card: any, index: number) => {
+            const cardId = card.cardNumber || card.id || card.card_id;
+            const cardDetail = cardDetails.find((cd: any) => cd.id === cardId);
+            const cardName = card.nameKr || card.name_kr || card.name || 
+                            cardDetail?.name_kr || cardDetail?.name || `카드 ${index + 1}`;
+            const orientation = card.orientation === 'reversed' ? '역방향' : '정방향';
+            const positionName = card.position?.name || card.positionName || '';
+            
+            // 카드 제목
+            detailedInterpretation += `**${index + 1}. ${cardName}**`;
+            if (positionName) {
+              detailedInterpretation += ` - ${positionName}`;
+            }
+            detailedInterpretation += ` (${orientation})\n`;
+            
+            // 키워드 추가
+            if (cardDetail?.keywords) {
+              const keywordKey = orientation === '정방향' ? 'upright' : 'reversed';
+              const keywords = cardDetail.keywords[keywordKey] || [];
+              if (keywords.length > 0) {
+                detailedInterpretation += `• 키워드: ${keywords.slice(0, 5).join(', ')}\n`;
+              }
+            }
+            
+            // 기본 의미 추가 (짧게)
+            if (cardDetail?.meanings) {
+              const meaningKey = orientation === '정방향' ? 'upright' : 'reversed';
+              const meaning = cardDetail.meanings[meaningKey];
+              if (meaning) {
+                const shortMeaning = meaning.length > 150 ? 
+                  meaning.substring(0, 150) + '...' : meaning;
+                detailedInterpretation += `• ${shortMeaning}\n`;
+              }
+            }
+            
+            // 원소/점성술 정보 (있는 경우)
+            if (cardDetail?.element || cardDetail?.astrology) {
+              const additionalInfo = [];
+              if (cardDetail.element) additionalInfo.push(`원소: ${cardDetail.element}`);
+              if (cardDetail.astrology) additionalInfo.push(`점성술: ${cardDetail.astrology}`);
+              if (additionalInfo.length > 0) {
+                detailedInterpretation += `• ${additionalInfo.join(', ')}\n`;
+              }
+            }
+            
+            detailedInterpretation += '\n';
+          });
+        }
+        
+        // 생성된 상세 해석 사용
+        if (detailedInterpretation.trim()) {
+          // AI 해석이 없으면 상세 정보를 AI 해석란에 저장
+          aiInterpretation = detailedInterpretation;
+          console.log('[점괘 공유] 상세 해석 생성 완료 - 길이:', aiInterpretation.length);
+        } else if (basicInterpretation) {
+          // 상세 정보도 생성 실패하면 기본 해석이라도 사용
+          aiInterpretation = basicInterpretation;
+          console.log('[점괘 공유] 기본 해석 사용');
+        }
+      }
+      
+      // spread_type 변환 (spread_id를 shared_readings 형식으로)
+      const convertSpreadType = (spreadId: string): string => {
+        const spreadMap: Record<string, string> = {
+          'three-cards': 'three_card_timeline',
+          'celtic-cross': 'celtic_cross',
+          'seven-star': 'seven_star',
+          'cup-of-relationship': 'cup_of_relationship',
+          'relationship': 'cup_of_relationship',
+          'horseshoe': 'horseshoe',
+          'hexagram': 'hexagram',
+          'year-ahead': 'year_ahead',
+          'daily': 'daily_card',
+          'single': 'one_card',
+          'one-card': 'one_card'
+        };
+        return spreadMap[spreadId] || spreadId.replace(/-/g, '_');
+      };
+      
+      // shared_readings에 생성
+      const sharedId = Math.random().toString(36).substring(2, 10); // 8자리 랜덤 ID
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24); // 24시간 후 만료
+      
+      // 저장할 데이터 준비
+      const sharedData = {
+        id: sharedId,
+        spread_type: convertSpreadType(fullReading.spread_id || 'three-cards'),
+        cards: fullReading.cards,
+        custom_question: fullReading.question || null,
+        basic_interpretation: basicInterpretation || null,
+        ai_interpretation: aiInterpretation || null,
+        shared_by: userStore.currentUser?.id,
+        is_active: true,
+        expires_at: expiresAt.toISOString()
+      };
+      
+      console.log('[점괘 공유] 저장할 데이터:', {
+        id: sharedData.id,
+        spread_type: sharedData.spread_type,
+        cards_count: sharedData.cards?.length || 0,
+        has_question: !!sharedData.custom_question,
+        has_basic: !!sharedData.basic_interpretation,
+        has_ai: !!sharedData.ai_interpretation,
+        basic_length: sharedData.basic_interpretation?.length || 0,
+        ai_length: sharedData.ai_interpretation?.length || 0
+      });
+      
+      const { data: sharedReading, error: sharedError } = await supabase
+        .from('shared_readings')
+        .insert(sharedData)
+        .select()
+        .single();
+      
+      if (sharedError) {
+        console.error('[점괘 공유] 저장 실패:', sharedError);
+        throw sharedError;
+      }
+      
+      form.shared_reading_id = sharedId;
+      console.log('[점괘 공유] 공유 점괘 생성 성공:', {
+        id: sharedId,
+        basic_saved: !!sharedReading.basic_interpretation,
+        ai_saved: !!sharedReading.ai_interpretation
+      });
+    } catch (error) {
+      console.error('점괘 공유 생성 실패:', error);
+      await showAlert({
+        title: '⚠️ 오류',
+        message: '점괘 공유에 실패했습니다. 다시 시도해주세요.',
+        confirmText: '확인'
+      });
+      selectedReading.value = null;
+      form.shared_reading_id = null;
+    }
+  }
+};
+
 // 내용 입력 시 디버깅
 const onContentInput = (e: Event) => {
   const target = e.target as HTMLTextAreaElement;
@@ -347,30 +602,7 @@ const onContentInput = (e: Event) => {
   console.log('[내용 입력] form.content:', form.content);
 };
 
-// 사용자의 점괘 기록 불러오기
-const loadUserReadings = async () => {
-  if (!userStore.currentUser) return;
-  
-  loadingReadings.value = true;
-  try {
-    const { data, error } = await supabase
-      .from('readings_history')
-      .select('*')
-      .eq('user_id', userStore.currentUser.id)
-      .order('created_at', { ascending: false })
-      .limit(20); // 최근 20개만
-    
-    if (error) throw error;
-    
-    userReadings.value = data || [];
-    console.log('[loadUserReadings] 불러온 점괘:', userReadings.value.length);
-  } catch (error) {
-    console.error('점괘 기록 로드 실패:', error);
-    userReadings.value = [];
-  } finally {
-    loadingReadings.value = false;
-  }
-};
+
 
 // 수정 모드일 때 기존 데이터 불러오기
 const loadExistingPost = async () => {
@@ -398,6 +630,27 @@ const loadExistingPost = async () => {
       content: post.content,
       shared_reading_id: post.shared_reading_id || null
     });
+    
+    // 공유 점괘가 있는 경우 로드
+    if (post.shared_reading_id) {
+      // shared_readings에서 점괘 정보 가져오기
+      const { data: sharedReading } = await supabase
+        .from('shared_readings')
+        .select('*')
+        .eq('id', post.shared_reading_id)
+        .single();
+      
+      if (sharedReading) {
+        selectedReading.value = {
+          id: sharedReading.id,
+          spread_type: sharedReading.spread_type,
+          created_at: sharedReading.created_at,
+          question: sharedReading.custom_question,
+          cards: sharedReading.cards,
+          is_from_shared: true
+        };
+      }
+    }
   } catch (error) {
     console.error('게시글 로드 실패:', error);
     await showAlert({
@@ -417,9 +670,7 @@ onMounted(async () => {
   if (!boardStore.profile?.nickname) {
     showNicknameModal.value = true;
   }
-  
-  // 사용자의 점괘 기록 불러오기
-  await loadUserReadings();
+
   
   // 수정 모드면 기존 데이터 불러오기
   await loadExistingPost();
@@ -607,36 +858,116 @@ onMounted(async () => {
   color: rgba(255, 255, 255, 0.5);
 }
 
-/* 점괘 선택 */
-.reading-select {
+/* 점괘 첨부 섹션 */
+.reading-attach-section {
   margin-top: 8px;
+}
+
+/* 선택된 점괘 표시 */
+.selected-reading {
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.selected-reading-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.selected-badge {
+  padding: 4px 10px;
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  border-radius: 8px;
+  color: #A855F7;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.selected-date {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  flex: 1;
+}
+
+.remove-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.remove-btn:hover {
+  background: rgba(255, 0, 0, 0.2);
+  color: white;
+}
+
+.selected-question {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.question-icon {
+  font-size: 14px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.question-text {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* 점괘 선택 버튼 */
+.select-reading-btn {
+  width: 100%;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.select-reading-btn:hover {
+  background: rgba(168, 85, 247, 0.1);
+  border-color: rgba(168, 85, 247, 0.4);
+  color: white;
+}
+
+.btn-icon {
+  font-size: 20px;
+}
+
+.btn-text {
+  font-weight: 500;
 }
 
 .select-help {
   margin-top: 8px;
   font-size: 14px;
   color: rgba(255, 255, 255, 0.6);
-}
-
-.loading-readings,
-.no-readings {
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  text-align: center;
-}
-
-.loading-readings p,
-.no-readings p {
-  margin: 0 0 8px 0;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.sub-text {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.5);
-  margin: 0;
 }
 
 /* 작성자 정보 */

@@ -63,8 +63,8 @@
               <span class="reading-spread">{{ getSpreadLabel(sharedReading.spread_type) }}</span>
               <span class="reading-date">{{ formatDate(sharedReading.created_at) }}</span>
             </div>
-            <div v-if="sharedReading.question" class="reading-question">
-              <strong>질문:</strong> {{ sharedReading.question }}
+            <div v-if="sharedReading.custom_question" class="reading-question">
+              <strong>질문:</strong> {{ sharedReading.custom_question }}
             </div>
             <div class="reading-cards">
               <div v-for="(card, index) in getCardPreview(sharedReading)" :key="index" class="card-preview">
@@ -243,12 +243,29 @@ const getSpreadLabel = (spreadType: string) => {
 const getCardPreview = (reading: any) => {
   if (!reading || !reading.cards) return [];
   
-  const cards = JSON.parse(reading.cards);
+  // cards가 이미 객체 배열인 경우와 JSON 문자열인 경우 처리
+  let cards = reading.cards;
+  if (typeof cards === 'string') {
+    try {
+      cards = JSON.parse(cards);
+    } catch (e) {
+      console.error('카드 데이터 파싱 실패:', e);
+      return [];
+    }
+  }
+  
   const preview = [];
   const maxCards = 3;
   
   for (let i = 0; i < Math.min(cards.length, maxCards); i++) {
-    preview.push(cards[i].name || '카드 ' + (i + 1));
+    // cards 배열의 각 항목이 객체인지 ID인지 확인
+    if (typeof cards[i] === 'object' && cards[i].name) {
+      preview.push(cards[i].name);
+    } else if (typeof cards[i] === 'object' && cards[i].nameKr) {
+      preview.push(cards[i].nameKr);
+    } else {
+      preview.push(`카드 ${i + 1}`);
+    }
   }
   
   if (cards.length > maxCards) {
@@ -290,21 +307,59 @@ const loadPost = async () => {
   }
 };
 
+// 공유된 점괘 보기로 이동
+const viewSharedReading = () => {
+  if (!sharedReading.value) {
+    console.error('[BoardPostDetail] sharedReading 데이터 없음');
+    return;
+  }
+  
+  console.log('[BoardPostDetail] 공유 점괘 보기 이동:', {
+    sharedReadingId: sharedReading.value.id,
+    fullData: sharedReading.value
+  });
+  
+  // SharedReading 페이지로 이동 - 공유 페이지 형식으로
+  // 명시적으로 name을 사용하여 라우터 이동
+  router.push({
+    name: 'SharedReading',
+    params: { id: sharedReading.value.id }
+  });
+};
+
 // 공유된 점괘 불러오기
 const loadSharedReading = async (readingId: string) => {
   try {
+    console.log('[BoardPostDetail] 공유 점괘 로드 시작:', readingId);
+    
+    // shared_readings 테이블에서 데이터 가져오기
     const { data, error } = await supabase
-      .from('readings_history')
+      .from('shared_readings')
       .select('*')
       .eq('id', readingId)
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('[BoardPostDetail] Supabase 에러:', error);
+      throw error;
+    }
+    
+    if (!data) {
+      console.warn('[BoardPostDetail] 공유 점괘 데이터 없음');
+      sharedReading.value = null;
+      return;
+    }
     
     sharedReading.value = data;
-    console.log('[공유 점괘] 불러온 데이터:', data);
+    console.log('[BoardPostDetail] 공유 점괘 로드 성공:', {
+      id: data.id,
+      ai_interpretation: data.ai_interpretation,
+      spread_type: data.spread_type,
+      created_at: data.created_at,
+      hasCards: !!data.cards
+    });
   } catch (error) {
-    console.error('공유 점괘 로드 실패:', error);
+    console.error('[BoardPostDetail] 공유 점괘 로드 실패:', error);
     sharedReading.value = null;
   }
 };
@@ -489,14 +544,6 @@ const reportPost = async () => {
     message: '신고가 접수되었습니다. 검토 후 조치하겠습니다.',
     confirmText: '확인'
   });
-};
-
-// 공유 점괘 보기
-const viewSharedReading = () => {
-  if (sharedReading.value) {
-    // SharedReading 컴포넌트로 이동하거나 모달로 표시
-    router.push(`/shared-reading/${sharedReading.value.id}`);
-  }
 };
 
 // 뒤로가기
