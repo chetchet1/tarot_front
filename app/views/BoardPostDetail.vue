@@ -66,13 +66,16 @@
             <div v-if="sharedReading.custom_question" class="reading-question">
               <strong>질문:</strong> {{ sharedReading.custom_question }}
             </div>
-            <div class="reading-cards">
-              <div v-for="(card, index) in getCardPreview(sharedReading)" :key="index" class="card-preview">
-                <span class="card-emoji">🃏</span>
-                <span class="card-name">{{ card }}</span>
+            <div class="reading-cards-images">
+              <div v-for="(card, index) in getCardImages(sharedReading)" :key="index" class="card-image-preview">
+                <img :src="card.image" 
+                     :alt="card.name" 
+                     :class="{ 'is-reversed': card.orientation === 'reversed' }"
+                     @error="onCardImageError" />
+                <span class="card-name-mini">{{ card.name }}</span>
               </div>
             </div>
-            <button class="reading-detail-btn" @click="viewSharedReading">
+            <button class="reading-detail-btn" @click="openReadingModal">
               점괘 자세히 보기 →
             </button>
           </div>
@@ -146,6 +149,13 @@
       <!-- AdMob 배너 광고 영역 -->
       <div id="board-detail-ad" class="ad-container"></div>
     </div>
+    
+    <!-- 점괘 상세보기 모달 -->
+    <SharedReadingModal
+      :isOpen="showReadingModal"
+      :readingId="sharedReading?.id || null"
+      @close="closeReadingModal"
+    />
   </div>
 </template>
 
@@ -156,9 +166,11 @@ import { useBoardStore } from '../store/board';
 import { useUserStore } from '../store/user';
 import { supabase } from '../services/supabase';
 import { showAlert, showConfirm } from '../utils/alerts';
+import { getCardImageFromObject } from '../utils/cardImageUtils';
 // BoardComment 컴포넌트는 동적으로 import
 import { defineAsyncComponent } from 'vue';
 const BoardComment = defineAsyncComponent(() => import('../components/BoardComment.vue'));
+const SharedReadingModal = defineAsyncComponent(() => import('../components/SharedReadingModal.vue'));
 // import DOMPurify from 'dompurify'; // 임시로 비활성화
 import type { BoardPost, BoardComment as BoardCommentType } from '../types/board';
 
@@ -174,6 +186,7 @@ const isLoading = ref(true);
 const isSubmitting = ref(false);
 const hasLiked = ref(false);
 const sharedReading = ref<any>(null);
+const showReadingModal = ref(false);
 
 const postId = computed(() => route.params.id as string);
 const currentUserId = computed(() => userStore.currentUser?.id || '');
@@ -239,8 +252,8 @@ const getSpreadLabel = (spreadType: string) => {
   return labels[spreadType] || spreadType;
 };
 
-// 카드 미리보기 (최대 3장)
-const getCardPreview = (reading: any) => {
+// 카드 이미지 미리보기 (최대 4장)
+const getCardImages = (reading: any) => {
   if (!reading || !reading.cards) return [];
   
   // cards가 이미 객체 배열인 경우와 JSON 문자열인 경우 처리
@@ -255,24 +268,26 @@ const getCardPreview = (reading: any) => {
   }
   
   const preview = [];
-  const maxCards = 3;
+  const maxCards = 4; // 최대 4장까지 표시
   
   for (let i = 0; i < Math.min(cards.length, maxCards); i++) {
-    // cards 배열의 각 항목이 객체인지 ID인지 확인
-    if (typeof cards[i] === 'object' && cards[i].name) {
-      preview.push(cards[i].name);
-    } else if (typeof cards[i] === 'object' && cards[i].nameKr) {
-      preview.push(cards[i].nameKr);
-    } else {
-      preview.push(`카드 ${i + 1}`);
+    const card = cards[i];
+    if (typeof card === 'object') {
+      preview.push({
+        image: getCardImageFromObject(card),
+        name: card.nameKr || card.name || `카드 ${i + 1}`,
+        orientation: card.orientation || 'upright'
+      });
     }
   }
   
-  if (cards.length > maxCards) {
-    preview.push(`외 ${cards.length - maxCards}장...`);
-  }
-  
   return preview;
+};
+
+// 카드 이미지 에러 처리
+const onCardImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement;
+  img.src = '/assets/tarot-cards/major/00-the-Fool.png';
 };
 
 // 게시글 불러오기
@@ -307,24 +322,23 @@ const loadPost = async () => {
   }
 };
 
-// 공유된 점괘 보기로 이동
-const viewSharedReading = () => {
+// 점괘 상세보기 모달 열기
+const openReadingModal = () => {
   if (!sharedReading.value) {
     console.error('[BoardPostDetail] sharedReading 데이터 없음');
     return;
   }
-  
-  console.log('[BoardPostDetail] 공유 점괘 보기 이동:', {
-    sharedReadingId: sharedReading.value.id,
-    fullData: sharedReading.value
+  console.log('[BoardPostDetail] Opening modal with reading:', {
+    id: sharedReading.value.id,
+    spread_type: sharedReading.value.spread_type,
+    has_cards: !!sharedReading.value.cards
   });
-  
-  // SharedReading 페이지로 이동 - 공유 페이지 형식으로
-  // 명시적으로 name을 사용하여 라우터 이동
-  router.push({
-    name: 'SharedReading',
-    params: { id: sharedReading.value.id }
-  });
+  showReadingModal.value = true;
+};
+
+// 점괘 상세보기 모달 닫기
+const closeReadingModal = () => {
+  showReadingModal.value = false;
 };
 
 // 공유된 점괘 불러오기
@@ -771,26 +785,52 @@ onMounted(async () => {
   line-height: 1.5;
 }
 
-.reading-cards {
+.reading-cards-images {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 16px;
+  overflow-x: auto;
+  padding: 8px 0;
 }
 
-.card-preview {
+.card-image-preview {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  font-size: 14px;
+  min-width: 60px;
 }
 
-.card-emoji {
-  font-size: 16px;
+.card-image-preview img {
+  width: 60px;
+  height: 85px;
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.card-image-preview img.is-reversed {
+  transform: rotate(180deg);
+}
+
+.card-image-preview:hover img {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+}
+
+.card-image-preview img.is-reversed:hover {
+  transform: rotate(180deg) translateY(-2px) scale(1.05);
+}
+
+.card-name-mini {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: center;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .reading-detail-btn {
