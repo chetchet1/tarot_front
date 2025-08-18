@@ -454,6 +454,7 @@ h4 {
   overflow: hidden;
   border-radius: 8px;
   margin-bottom: 8px;
+  scale: 0.6;
 }
 
 .card-image img {

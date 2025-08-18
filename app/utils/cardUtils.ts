@@ -4,6 +4,12 @@
  */
 export const getCardImagePath = (card: any): string => {
   try {
+    // card가 없는 경우 기본 이미지 반환
+    if (!card) {
+      console.warn('카드 데이터가 없습니다');
+      return '/assets/tarot-cards/back.jpg';
+    }
+    
     // cardNumber가 있는 경우 (History에서 사용)
     if (card.cardNumber !== undefined && card.cardNumber !== null) {
       const dbId = Number(card.cardNumber);
@@ -425,6 +431,7 @@ export const getCardImagePath = (card: any): string => {
  * 카드가 역방향인지 확인하는 유틸리티 함수
  */
 export const isReversedCard = (card: any): boolean => {
+  if (!card) return false;
   return card.is_reversed || card.orientation === 'reversed' || false;
 };
 

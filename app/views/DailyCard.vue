@@ -661,20 +661,30 @@ const drawCard = async () => {
         }
       }
       
+      // 카드 데이터를 올바른 형식으로 준비
+      const cardData = {
+        id: card.id,
+        cardNumber: card.id,
+        name: card.name,
+        nameKr: card.name_kr,
+        orientation: 'upright',
+        is_reversed: false,
+        arcana: card.arcana,
+        suit: card.suit,
+        number: card.number,
+        element: card.element,
+        keywords: card.keywords,
+        meanings: card.meanings,
+        imageUrl: card.image_url
+      };
+      
       const readingData = {
         user_id: userId,
         spread_id: 'daily_card',  // spread_type이 아니라 spread_id
+        spread_type: 'daily_card',  // spread_type도 설정
         topic: 'general',  // 기본 주제
         question: `${today} 오늘의 카드`,
-        cards: {
-          positions: [{
-            position: 'daily',
-            card_id: card.id,
-            card_name: card.name,
-            card_name_kr: card.name_kr,
-            orientation: 'upright'
-          }]
-        },
+        cards: [cardData],  // 직접 배열로 저장
         overall_message: `오늘의 카드: ${card.name_kr}`,
         is_premium: false,
         shared: false,

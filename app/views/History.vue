@@ -361,27 +361,17 @@ const formatDateTime = (date: string) => {
 };
 
 const getMiniCardImage = (card: any): string => {
-  // 카드가 객체인 경우와 ID인 경우 처리
-  if (typeof card === 'object') {
-    if (card.imageUrl) {
-      return card.imageUrl;
-    }
-    // card_id로 이미지 경로 생성
-    if (card.id !== undefined) {
-      const cardNumber = String(card.id).padStart(2, '0');
-      if (card.id <= 21) {
-        // 메이저 아르카나
-        return `/assets/tarot-cards/major/${cardNumber}-${card.name?.toLowerCase().replace(/\s+/g, '-') || 'card'}.png`;
-      } else {
-        // 마이너 아르카나 - 예시
-        return `/assets/tarot-cards/minor/${cardNumber}-${card.name?.toLowerCase().replace(/\s+/g, '-') || 'card'}.png`;
-      }
-    }
+  // 카드가 없으면 기본 이미지
+  if (!card) {
+    return '/assets/tarot-cards/back.jpg';
   }
-  return '/assets/tarot-cards/back.jpg'; // 기본 이미지
+  
+  // getCardImagePath 함수 사용
+  return getCardImagePath(card);
 };
 
 const getCardName = (card: any): string => {
+  if (!card) return '카드';
   if (typeof card === 'object') {
     return card.nameKr || card.name_kr || card.card_name || card.name || '카드';
   }
@@ -509,7 +499,11 @@ const fetchReadings = async () => {
     if (error) throw error;
     
     // 데이터 구조 변환
-    readings.value = (data || []).map(reading => {
+    console.log('원본 readings 데이터:', data);
+    readings.value = (data || []).map((reading, index) => {
+      console.log(`Reading ${index} 원본:`, reading);
+      console.log(`Reading ${index} cards 타입:`, typeof reading.cards);
+      console.log(`Reading ${index} cards 내용:`, reading.cards);
       // AI 해석 병합
       let aiInterpretationText = null;
       if (reading.ai_interpretations && reading.ai_interpretations.length > 0) {
@@ -517,15 +511,47 @@ const fetchReadings = async () => {
         aiInterpretationText = reading.ai_interpretations[0].interpretation_text;
       }
       
+      // cards 데이터 처리 - JSON 형태일 수 있음
+      let processedCards = [];
+      if (reading.cards) {
+        if (Array.isArray(reading.cards)) {
+          processedCards = reading.cards.map(card => {
+            // card 데이터 정규화
+            if (typeof card === 'object' && card !== null) {
+              return {
+                ...card,
+                cardNumber: card.cardNumber || card.card_id || card.id,
+                is_reversed: card.is_reversed || card.orientation === 'reversed' || false,
+                name: card.name || card.card_name || '',
+                nameKr: card.nameKr || card.name_kr || card.card_name_kr || ''
+              };
+            }
+            return card;
+          });
+        } else if (typeof reading.cards === 'object') {
+          // 단일 카드 객체인 경우 배열로 변환
+          const card = reading.cards;
+          processedCards = [{
+            ...card,
+            cardNumber: card.cardNumber || card.card_id || card.id,
+            is_reversed: card.is_reversed || card.orientation === 'reversed' || false,
+            name: card.name || card.card_name || '',
+            nameKr: card.nameKr || card.name_kr || card.card_name_kr || ''
+          }];
+        }
+      }
+      
       // spread_type이 'daily_card'인 경우 특별 처리
       if (reading.spread_type === 'daily_card' || reading.spread_id === 'daily_card') {
+        console.log(`Reading ${index} 오늘의 카드 원본:`, reading.cards);
+        console.log(`Reading ${index} 처리된 카드:`, processedCards);
         return {
           ...reading,
           spread_id: 'daily_card',  // spread_id 통일
           spread_type: 'daily_card',  // spread_type도 유지
           spread_name: '오늘의 카드',
           topic: reading.topic || 'general',
-          cards: reading.cards || [],
+          cards: processedCards,
           ai_interpretation_text: aiInterpretationText
         };
       }
@@ -543,10 +569,12 @@ const fetchReadings = async () => {
       return {
         ...reading,
         spread_name: spreadNames[reading.spread_id] || reading.spread_id || reading.spread_type || '일반 점괘',
-        cards: reading.cards || [],
+        cards: processedCards,
         ai_interpretation_text: aiInterpretationText
       };
     });
+    
+    console.log('최종 변환된 readings 데이터:', readings.value);
     
     // 1년 지난 기록 자동 삭제 (백그라운드에서 실행)
     cleanupOldReadings();

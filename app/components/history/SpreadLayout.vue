@@ -105,7 +105,7 @@
     </div>
     
     <!-- 1장 레이아웃 -->
-    <div v-else-if="spreadId === 'one_card' || spreadType === 'daily_card'" class="single-layout">
+    <div v-else-if="(spreadId === 'one_card' || spreadType === 'daily_card') && cards && cards.length > 0" class="single-layout">
       <div class="card-position single-position">
         <div class="card-wrapper">
           <img 
@@ -174,6 +174,7 @@ const spreadClass = computed(() => {
 });
 
 const getCardName = (card: any): string => {
+  if (!card) return '카드';
   return card?.nameKr || card?.name_kr || card?.card_name || card?.name || '카드';
 };
 
@@ -497,6 +498,8 @@ const getPositionName = (index: number): string => {
 
 .single-layout .card-position {
   position: relative;
+  top: 60px;
+  scale: 1.8;
 }
 
 .single-layout .card-image {
