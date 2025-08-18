@@ -20,7 +20,139 @@
         <p>{{ error }}</p>
       </div>
 
-      <!-- 정상 표시 -->
+      <!-- 오늘의 카드 전용 레이아웃 -->
+      <div v-else-if="sharedData && sharedData.spread_type === 'daily_card'" class="modal-content daily-card-content">
+        <!-- 날짜 표시 -->
+        <div class="date-display">
+          {{ formatDate(sharedData.created_at) }}
+        </div>
+        
+        <!-- 카드 표시 -->
+        <div class="card-display">
+          <img 
+            :src="getCardImageUrl(parsedCards[0])" 
+            :alt="parsedCards[0]?.nameKr || parsedCards[0]?.name"
+            class="card-image"
+            :class="{ reversed: parsedCards[0]?.orientation === 'reversed' }"
+            @error="onImageError"
+          />
+          <h3 class="card-name">{{ parsedCards[0]?.nameKr || parsedCards[0]?.name }}</h3>
+          <p class="card-subtitle">{{ parsedCards[0]?.name }}</p>
+          <div class="card-orientation" :class="{ reversed: parsedCards[0]?.orientation === 'reversed' }">
+            {{ parsedCards[0]?.orientation === 'reversed' ? '역방향' : '정방향' }}
+          </div>
+        </div>
+        
+        <!-- 오늘의 카드 해석 -->
+        <div v-if="dailyInterpretationData" class="interpretation-area">
+          <!-- 운세 지수 -->
+          <div class="fortune-section">
+            <h3 class="section-title">📊 오늘의 운세 지수</h3>
+            <div class="fortune-grid">
+              <div v-for="(value, key) in dailyInterpretationData.fortuneIndex" :key="key" class="fortune-item">
+                <span class="fortune-label">{{ getFortuneLabel(key) }}</span>
+                <div class="star-rating">
+                  <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= value }">⭐</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 시간대별 조언 -->
+          <div class="time-section">
+            <h3 class="section-title">⏰ 시간대별 조언</h3>
+            <div class="time-advice">
+              <div class="time-item">
+                <span class="time-label">오전 (06:00-12:00)</span>
+                <p class="time-text">{{ dailyInterpretationData.timeAdvice.morning }}</p>
+              </div>
+              <div class="time-item">
+                <span class="time-label">오후 (12:00-18:00)</span>
+                <p class="time-text">{{ dailyInterpretationData.timeAdvice.afternoon }}</p>
+              </div>
+              <div class="time-item">
+                <span class="time-label">저녁 (18:00-24:00)</span>
+                <p class="time-text">{{ dailyInterpretationData.timeAdvice.evening }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 행운 아이템 -->
+          <div class="lucky-section">
+            <h3 class="section-title">🍀 오늘의 행운 아이템</h3>
+            <div class="lucky-grid">
+              <div class="lucky-item">
+                <span class="lucky-label">색상</span>
+                <span class="lucky-value">{{ dailyInterpretationData.luckyItems.color }}</span>
+              </div>
+              <div class="lucky-item">
+                <span class="lucky-label">숫자</span>
+                <span class="lucky-value">{{ dailyInterpretationData.luckyItems.number }}</span>
+              </div>
+              <div class="lucky-item">
+                <span class="lucky-label">방향</span>
+                <span class="lucky-value">{{ dailyInterpretationData.luckyItems.direction }}</span>
+              </div>
+              <div class="lucky-item">
+                <span class="lucky-label">활동</span>
+                <span class="lucky-value">{{ dailyInterpretationData.luckyItems.activity }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 인간관계 조언 -->
+          <div class="relationship-section">
+            <h3 class="section-title">👥 인간관계 조언</h3>
+            <div class="relationship-content">
+              <p><strong>대인관계 팁:</strong> {{ dailyInterpretationData.relationshipAdvice.tip }}</p>
+              <p><strong>피해야 할 상황:</strong> {{ dailyInterpretationData.relationshipAdvice.avoid }}</p>
+              <p><strong>만나면 좋은 사람:</strong> {{ dailyInterpretationData.relationshipAdvice.goodMeet }}</p>
+            </div>
+          </div>
+
+          <!-- 오늘의 격언 -->
+          <div class="quote-section">
+            <h3 class="section-title">💬 오늘의 격언</h3>
+            <blockquote class="daily-quote">
+              "{{ dailyInterpretationData.dailyQuote }}"
+            </blockquote>
+          </div>
+
+          <!-- 상세 운세 -->
+          <div class="detailed-fortune-section">
+            <h3 class="section-title">🔮 오늘의 상세 운세</h3>
+            <div class="detailed-fortune-content">
+              <p class="fortune-main-text">{{ dailyInterpretationData.detailedFortune?.mainMessage }}</p>
+              <div class="fortune-aspects">
+                <div class="fortune-aspect">
+                  <h4>💫 오늘의 핵심 포인트</h4>
+                  <p>{{ dailyInterpretationData.detailedFortune?.keyPoint }}</p>
+                </div>
+                <div class="fortune-aspect">
+                  <h4>⚡ 주의할 점</h4>
+                  <p>{{ dailyInterpretationData.detailedFortune?.caution }}</p>
+                </div>
+                <div class="fortune-aspect">
+                  <h4>🌟 행운의 순간</h4>
+                  <p>{{ dailyInterpretationData.detailedFortune?.luckyMoment }}</p>
+                </div>
+              </div>
+              <div class="fortune-advice">
+                <p class="advice-text">{{ dailyInterpretationData.detailedFortune?.advice }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 해석이 없는 경우 (오늘의 카드) -->
+        <div v-else-if="!dailyInterpretationData" class="no-interpretation">
+          <p v-if="sharedData.basic_interpretation">{{ sharedData.basic_interpretation }}</p>
+          <p v-else-if="sharedData.ai_interpretation">{{ sharedData.ai_interpretation }}</p>
+          <p v-else>상세 해석 정보가 저장되지 않았습니다.</p>
+        </div>
+      </div>
+      
+      <!-- 일반 점괘 레이아웃 -->
       <div v-else-if="sharedData" class="modal-content">
         <!-- 점괘 정보 -->
         <section class="reading-info-section">
@@ -168,6 +300,7 @@ const emit = defineEmits<{
 const loading = ref(false);
 const error = ref('');
 const sharedData = ref<any>(null);
+const dailyInterpretationData = ref<any>(null);
 
 // 카드 데이터 파싱
 const parsedCards = computed(() => {
@@ -225,6 +358,78 @@ const getSpreadDisplay = () => {
   return getSpreadDisplayName(sharedData.value.spread_type || '');
 };
 
+// 운세 라벨
+const getFortuneLabel = (key: string) => {
+  const labels: Record<string, string> = {
+    overall: '전체운',
+    love: '애정운',
+    money: '금전운',
+    health: '건강운',
+    work: '학업/업무운'
+  };
+  return labels[key] || key;
+};
+
+// 오늘의 카드 해석 데이터 파싱
+const parseDailyInterpretation = () => {
+  if (!sharedData.value || sharedData.value.spread_type !== 'daily_card') {
+    dailyInterpretationData.value = null;
+    return;
+  }
+  
+  // ai_interpretation에서 JSON 데이터 추출 시도
+  if (sharedData.value.ai_interpretation) {
+    try {
+      // AI 해석이 JSON 형태로 저장되어 있는 경우
+      if (sharedData.value.ai_interpretation.startsWith('{')) {
+        dailyInterpretationData.value = JSON.parse(sharedData.value.ai_interpretation);
+        return;
+      }
+      
+      // 텍스트 형태로 저장되어 있는 경우 구조화 시도
+      const interpretation = sharedData.value.ai_interpretation;
+      
+      // 기본 구조 생성
+      dailyInterpretationData.value = {
+        fortuneIndex: {
+          overall: 3,
+          love: 3,
+          money: 3,
+          health: 3,
+          work: 3
+        },
+        timeAdvice: {
+          morning: '오전에는 신중하게 행동하세요.',
+          afternoon: '오후에는 적극적으로 움직이세요.',
+          evening: '저녁에는 휴식을 취하세요.'
+        },
+        luckyItems: {
+          color: '파란색',
+          number: '7',
+          direction: '동쪽',
+          activity: '산책'
+        },
+        relationshipAdvice: {
+          tip: '상대방의 말을 경청하세요.',
+          avoid: '충동적인 결정',
+          goodMeet: '긍정적인 사람'
+        },
+        dailyQuote: '오늘은 새로운 시작의 날입니다.',
+        detailedFortune: {
+          mainMessage: interpretation,
+          keyPoint: '긍정적인 마음가짐을 유지하세요.',
+          caution: '서두르지 마세요.',
+          luckyMoment: '오후 3시경',
+          advice: '차분하게 하루를 보내세요.'
+        }
+      };
+    } catch (err) {
+      console.error('Failed to parse daily interpretation:', err);
+      dailyInterpretationData.value = null;
+    }
+  }
+};
+
 // 모달 닫기
 const onClose = () => {
   emit('close');
@@ -256,6 +461,11 @@ const loadSharedReading = async (readingId: string) => {
       has_cards: !!data.cards,
       has_interpretation: !!data.ai_interpretation || !!data.basic_interpretation
     });
+    
+    // 오늘의 카드인 경우 해석 데이터 파싱
+    if (data.spread_type === 'daily_card') {
+      parseDailyInterpretation();
+    }
   } catch (err: any) {
     console.error('[SharedReadingModal] Failed to load shared reading:', err);
     error.value = err.message || '점괘를 불러오는데 실패했습니다';
@@ -379,6 +589,262 @@ watch(() => props.isOpen, (isOpen) => {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* 오늘의 카드 전용 스타일 */
+.daily-card-content .date-display {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.daily-card-content .card-display {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.daily-card-content .card-image {
+  width: 200px;
+  height: 300px;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  margin: 0 auto 20px;
+  display: block;
+}
+
+.daily-card-content .card-image.reversed {
+  transform: rotate(180deg);
+}
+
+.daily-card-content .card-name {
+  font-size: 24px;
+  color: #A855F7;
+  margin-bottom: 8px;
+}
+
+.daily-card-content .card-subtitle {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 12px;
+}
+
+.daily-card-content .card-orientation {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(34, 197, 94, 0.2);
+  color: #22C55E;
+}
+
+.daily-card-content .card-orientation.reversed {
+  background: rgba(239, 68, 68, 0.2);
+  color: #EF4444;
+}
+
+/* 운세 지수 */
+.fortune-section {
+  margin-bottom: 30px;
+}
+
+.fortune-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.fortune-item {
+  text-align: center;
+}
+
+.fortune-label {
+  display: block;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.star-rating {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.star {
+  font-size: 16px;
+  opacity: 0.3;
+}
+
+.star.filled {
+  opacity: 1;
+}
+
+/* 시간대별 조언 */
+.time-section {
+  margin-bottom: 30px;
+}
+
+.time-advice {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.time-item {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.time-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.time-label {
+  display: block;
+  color: #A855F7;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.time-text {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 행운 아이템 */
+.lucky-section {
+  margin-bottom: 30px;
+}
+
+.lucky-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.lucky-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lucky-label {
+  color: rgba(255, 255, 255, 0.7);
+  min-width: 60px;
+}
+
+.lucky-value {
+  color: #FFD700;
+  font-weight: 600;
+}
+
+/* 인간관계 조언 */
+.relationship-section {
+  margin-bottom: 30px;
+}
+
+.relationship-content {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.relationship-content p {
+  margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+}
+
+.relationship-content p:last-child {
+  margin-bottom: 0;
+}
+
+.relationship-content strong {
+  color: #A855F7;
+}
+
+/* 오늘의 격언 */
+.quote-section {
+  margin-bottom: 30px;
+}
+
+.daily-quote {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(255, 215, 0, 0.1));
+  border-left: 3px solid #FFD700;
+  padding: 20px;
+  border-radius: 8px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.8;
+  margin: 0;
+}
+
+/* 상세 운세 */
+.detailed-fortune-section {
+  margin-bottom: 30px;
+}
+
+.detailed-fortune-content {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.fortune-main-text {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.8;
+  margin-bottom: 20px;
+}
+
+.fortune-aspects {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.fortune-aspect {
+  background: rgba(168, 85, 247, 0.05);
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 3px solid #A855F7;
+}
+
+.fortune-aspect h4 {
+  color: #FFD700;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.fortune-aspect p {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.fortune-advice {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(168, 85, 247, 0.1));
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+.advice-text {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+  margin: 0;
 }
 
 /* 섹션 스타일 */
