@@ -1101,6 +1101,103 @@ const showAdvertisement = async (card: TarotCard) => {
   }
 };
 
+// daily_cards 테이블에 해석 데이터 저장
+const saveDailyCardInterpretation = async (interpretationData: DailyInterpretation) => {
+  const isTestAcc = isTestAccount(userStore.currentUser?.email);
+  
+  // 테스트 계정은 캐싱하지 않음
+  if (isTestAcc) {
+    console.log('테스트 계정: 해석 데이터 캐싱 스킵');
+    return;
+  }
+  
+  if (!todayCard.value?.id || !userStore.currentUser?.id) {
+    console.log('todayCard 또는 사용자 정보 없음: 캐싱 스킵');
+    return;
+  }
+  
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const { error } = await supabase
+      .from('daily_cards')
+      .update({ interpretation_data: interpretationData })
+      .eq('user_id', userStore.currentUser.id)
+      .eq('date', today);
+    
+    if (error) {
+      console.log('interpretation_data 저장 실패:', error);
+    } else {
+      console.log('interpretation_data 저장 성공');
+      // todayCard에도 업데이트
+      if (todayCard.value) {
+        todayCard.value.interpretation_data = interpretationData;
+      }
+    }
+  } catch (error) {
+    console.error('saveDailyCardInterpretation 예외:', error);
+  }
+};
+
+// readings 테이블의 해석 업데이트
+const updateReadingsInterpretation = async (card: TarotCard, interpretationData: DailyInterpretation) => {
+  if (!interpretationData || !userStore.currentUser?.id) {
+    console.log('해석 데이터 또는 사용자 정보 없음: readings 업데이트 스킵');
+    return;
+  }
+  
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // todayCard에 저장된 reading_id가 있으면 사용, 없으면 조회
+    let readingId = (todayCard.value as any)?.reading_id;
+    
+    if (!readingId) {
+      // reading_id가 없으면 DB에서 조회
+      const { data: existingReading } = await supabase
+        .from('readings')
+        .select('id')
+        .eq('user_id', userStore.currentUser.id)
+        .eq('spread_id', 'daily_card')
+        .eq('question', `${today} 오늘의 카드`)
+        .single();
+      
+      readingId = existingReading?.id;
+    }
+    
+    if (readingId) {
+      // AI 해석을 overall_message에 포함
+      const interpretationSummary = interpretationData.detailedFortune?.mainMessage || 
+                                   interpretationData.dailyQuote || 
+                                   `오늘의 카드: ${card.name_kr}`;
+      
+      const { error: updateError } = await supabase
+        .from('readings')
+        .update({ 
+          overall_message: interpretationSummary,
+          // AI 해석 데이터를 tags 필드에 저장 (주요 키워드 추출)
+          tags: [
+            `운세지수: ${interpretationData.fortuneIndex.overall}/5`,
+            `행운색: ${interpretationData.luckyItems.color}`,
+            `행운숫자: ${interpretationData.luckyItems.number}`,
+            card.arcana === 'major' ? '메이저아르카나' : '마이너아르카나',
+            `${today.split('-')[1]}월${today.split('-')[2]}일`
+          ]
+        })
+        .eq('id', readingId);
+      
+      if (updateError) {
+        console.log('readings 테이블 해석 업데이트 실패:', updateError);
+      } else {
+        console.log('readings 테이블 해석 업데이트 성공');
+      }
+    } else {
+      console.log('readings 테이블에 해당 레코드가 없음');
+    }
+  } catch (error) {
+    console.error('updateReadingsInterpretation 예외:', error);
+  }
+};
+
 // AI 해석 생성
 const generateInterpretation = async (card: TarotCard) => {
   try {
@@ -1138,21 +1235,9 @@ const generateInterpretation = async (card: TarotCard) => {
       try {
         interpretation.value = generateDefaultInterpretation(card);
         
-        // 기본 해석을 DB에 캐싱
-        const today = new Date().toISOString().split('T')[0];
-        try {
-          const { error: updateError } = await supabase
-            .from('daily_cards')
-            .update({ interpretation_data: interpretation.value })
-            .eq('user_id', userStore.currentUser?.id)
-            .eq('date', today);
-          
-          if (updateError) {
-            console.log('Fallback 캐싱 스킵:', updateError);
-          }
-        } catch (cacheError) {
-          console.log('interpretation_data 컬럼 없음');
-        }
+        // 기본 해석도 DB에 저장
+        await saveDailyCardInterpretation(interpretation.value);
+        await updateReadingsInterpretation(card, interpretation.value);
       } catch (fallbackError) {
         console.error('기본 해석 생성 실패:', fallbackError);
         await showAlert({
@@ -1179,42 +1264,26 @@ const generateInterpretation = async (card: TarotCard) => {
         detailedFortune: interpretation.value.detailedFortune ? '있음' : '없음'
       });
       
-      // 테스트 계정은 캐싱하지 않음
-      const isTestAccount = userStore.currentUser?.email === 'test@example.com';
+      // DB에 해석 데이터 저장
+      await saveDailyCardInterpretation(interpretation.value);
+      await updateReadingsInterpretation(card, interpretation.value);
       
-      if (!isTestAccount && todayCard.value?.id) {
-        // 일반 계정만 interpretation_data 컬럼에 DB 캐싱 시도
-        try {
-          const today = new Date().toISOString().split('T')[0];
-          const { error: updateError } = await supabase
-            .from('daily_cards')
-            .update({ interpretation_data: data.interpretation })
-            .eq('user_id', userStore.currentUser?.id)
-            .eq('date', today);
-          
-          if (updateError) {
-            console.log('interpretation_data 컬럼 없거나 업데이트 실패:', updateError);
-          } else {
-            console.log('해석 데이터 캐싱 성공');
-            // todayCard에도 업데이트
-            if (todayCard.value) {
-              todayCard.value.interpretation_data = data.interpretation;
-            }
-          }
-        } catch (cacheError) {
-          console.log('DB 캐싱 스킵 (컬럼 없음)');
-        }
-      } else {
-        console.log('테스트 계정 또는 todayCard 없음: 해석 데이터 캐싱 스킵');
-      }
     } else if (data && data.error) {
       // Edge Function이 에러를 반환했지만 기본 해석도 포함한 경우
       console.warn('Edge Function 경고:', data.error);
       interpretation.value = data.interpretation || generateDefaultInterpretation(card);
+      
+      // 해석 데이터 저장
+      await saveDailyCardInterpretation(interpretation.value);
+      await updateReadingsInterpretation(card, interpretation.value);
     } else {
       // 예상치 못한 응답 형식
       console.error('예상치 못한 응답 형식:', data);
       interpretation.value = generateDefaultInterpretation(card);
+      
+      // 기본 해석도 저장
+      await saveDailyCardInterpretation(interpretation.value);
+      await updateReadingsInterpretation(card, interpretation.value);
     }
 
   } catch (error) {
@@ -1222,83 +1291,9 @@ const generateInterpretation = async (card: TarotCard) => {
     // 실패 시 기본 해석 사용
     interpretation.value = generateDefaultInterpretation(card);
     
-    // 테스트 계정 확인
-    const isTestAccount = userStore.currentUser?.email === 'test@example.com';
-    
-    if (!isTestAccount) {
-      // interpretation_data 컬럼이 있는 경우만 기본 해석도 DB에 캐싱
-      try {
-        const today = new Date().toISOString().split('T')[0];
-        const { error: updateError } = await supabase
-          .from('daily_cards')
-          .update({ interpretation_data: interpretation.value })
-          .eq('user_id', userStore.currentUser?.id)
-          .eq('date', today);
-        
-        if (updateError) {
-          console.log('기본 해석 캐싱 스킵:', updateError?.message);
-        }
-      } catch (cacheError) {
-        console.log('interpretation_data 컬럼 없음, 캐싱 스킵');
-      }
-    } else {
-      console.log('테스트 계정: 기본 해석 캐싱 스킵');
-    }
-  }
-  
-  // readings 테이블에도 해석 업데이트 (점괘 기록용) - 모든 사용자 대상
-  if (interpretation.value) {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      
-      // todayCard에 저장된 reading_id가 있으면 사용, 없으면 조회
-      let readingId = (todayCard.value as any)?.reading_id;
-      
-      if (!readingId) {
-        // reading_id가 없으면 DB에서 조회
-        const { data: existingReading } = await supabase
-          .from('readings')
-          .select('id')
-          .eq('user_id', userStore.currentUser?.id)
-          .eq('spread_id', 'daily_card')
-          .eq('question', `${today} 오늘의 카드`)
-          .single();
-        
-        readingId = existingReading?.id;
-      }
-      
-      if (readingId) {
-        // AI 해석을 overall_message에 포함
-        const interpretationSummary = interpretation.value.detailedFortune?.mainMessage || 
-                                     interpretation.value.dailyQuote || 
-                                     `오늘의 카드: ${card.name_kr}`;
-        
-        const { error: updateError } = await supabase
-          .from('readings')
-          .update({ 
-            overall_message: interpretationSummary,
-            // AI 해석 데이터를 tags 필드에 저장 (주요 키워드 추출)
-            tags: [
-              `운세지수: ${interpretation.value.fortuneIndex.overall}/5`,
-              `행운색: ${interpretation.value.luckyItems.color}`,
-              `행운숫자: ${interpretation.value.luckyItems.number}`,
-              card.arcana === 'major' ? '메이저아르카나' : '마이너아르카나',
-              `${today.split('-')[1]}월${today.split('-')[2]}일`
-            ]
-          })
-          .eq('id', readingId);
-        
-        if (updateError) {
-          console.log('readings 테이블 해석 업데이트 실패:', updateError);
-        } else {
-          console.log('readings 테이블 해석 업데이트 성공');
-        }
-      } else {
-        console.log('readings 테이블에 해당 레코드가 없음');
-      }
-    } catch (error) {
-      console.error('readings 테이블 해석 업데이트 중 예외:', error);
-    }
+    // 기본 해석 저장
+    await saveDailyCardInterpretation(interpretation.value);
+    await updateReadingsInterpretation(card, interpretation.value);
   }
 };
 

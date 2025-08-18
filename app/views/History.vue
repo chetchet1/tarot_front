@@ -139,8 +139,8 @@
         </div>
       </div>
 
-      <!-- 점괘 상세 모달 -->
-      <div v-if="selectedReading" class="modal-backdrop" @click="closeModal">
+      <!-- 일반 점괘 상세 모달 -->
+      <div v-if="selectedReading && selectedReading.spread_type !== 'daily_card'" class="modal-backdrop" @click="closeModal">
         <div class="modal-content" @click.stop>
           <div class="modal-header">
             <h2>{{ selectedReading.spread_name }}</h2>
@@ -176,6 +176,13 @@
           </div>
         </div>
       </div>
+      
+      <!-- 오늘의 카드 전용 모달 -->
+      <DailyCardModal 
+        v-if="selectedReading && selectedReading.spread_type === 'daily_card'"
+        :reading="selectedReading"
+        @close="closeModal"
+      />
 
       <!-- 로그인 모달 -->
       <LoginModal v-if="showLogin" @close="showLogin = false" />
@@ -190,6 +197,7 @@ import { useUserStore } from '@/store/user';
 import { supabase } from '@/services/supabase';
 import LoginModal from '@/components/LoginModal.vue';
 import SpreadLayout from '@/components/history/SpreadLayout.vue';
+import DailyCardModal from '@/components/modals/DailyCardModal.vue';
 import { getCardImagePath, isReversedCard, handleImageError } from '@/utils/cardUtils';
 import { showAlert } from '@/utils/alerts';
 import type { ReadingHistory, DrawnCard } from '@/types/history';
