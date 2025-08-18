@@ -106,7 +106,7 @@
             
             <div class="reading-footer">
               <span class="card-count">{{ getReadingCards(reading).length }}장</span>
-              <span v-if="reading.spread_name === '켈틱 크로스'" class="premium-badge">
+              <span v-if="isPremiumSpread(reading)" class="premium-badge">
                 👑 프리미엄
               </span>
               <span v-if="reading.spread_type === 'daily_card'" class="daily-badge">
@@ -463,6 +463,15 @@ const closeModal = () => {
 
 const changePage = (page: number) => {
   currentPage.value = page;
+};
+
+// 프리미엄 스프레드인지 확인하는 함수
+const isPremiumSpread = (reading: ReadingHistory): boolean => {
+  const premiumSpreads = ['celtic_cross', 'seven_star', 'cup_of_relationship'];
+  return premiumSpreads.includes(reading.spread_id) || 
+         reading.spread_name === '켈틱 크로스' || 
+         reading.spread_name === '세븐스타' || 
+         reading.spread_name === '컵 오브 릴레이션십';
 };
 
 const fetchReadings = async () => {
