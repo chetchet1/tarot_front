@@ -170,7 +170,7 @@
             </div>
             
             <div v-if="getFullInterpretation(selectedReading)" class="interpretation-section">
-              <h4>AI 종합 해석</h4>
+              <h4>종합 해석</h4>
               <p class="full-interpretation">{{ getFullInterpretation(selectedReading) }}</p>
             </div>
           </div>
