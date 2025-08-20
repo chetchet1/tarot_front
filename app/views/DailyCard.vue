@@ -217,8 +217,9 @@ const router = useRouter();
 const userStore = useUserStore();
 const tarotStore = useTarotStore();
 
-// 테스트 계정 상태 가져오기
-const { isTestAccount: isTestAcc, isPremiumTestAccount: isPremiumTestAcc } = useTestAccountStatus();
+// 테스트 계정 상태 가져오기 (이메일을 computed로 전달)
+const userEmail = computed(() => userStore.currentUser?.email);
+const { isTest: isTestAcc, isPremiumTest: isPremiumTestAcc } = useTestAccountStatus(userEmail);
 
 // 광고 컴포저블 사용
 const { showAd, adTimeRemaining, showAdvertisement, resetAdState } = useAdvertisement();
@@ -332,7 +333,17 @@ const loadTodayCard = async () => {
       return;
     }
     
-    // daily_cards 조회
+    // 프리미엄 테스트 계정은 캐싱 건너뛰기 (항상 새로운 카드 뽑기 가능)
+    if (isPremiumTestAcc.value) {
+      console.log('프리미엄 테스트 계정 - 캐싱 건너뛰기');
+      todayCard.value = null;
+      isCardRevealed.value = false;
+      selectedCard.value = null;
+      isLoading.value = false;
+      return;
+    }
+    
+    // daily_cards 조회 (일반 사용자만)
     const { data: readingData, error: readingError } = await supabase
       .from('daily_cards')
       .select('*')
@@ -406,6 +417,15 @@ const loadTodayCard = async () => {
 
 // 카드 뽑기
 const drawCard = async () => {
+  // 프리미엄 테스트 계정은 항상 새로운 카드 뽑기 가능
+  if (isPremiumTestAcc.value) {
+    // 상태 초기화하여 새로운 카드 뽑기 준비
+    todayCard.value = null;
+    isCardRevealed.value = false;
+    selectedCard.value = null;
+    interpretation.value = null;
+  }
+  
   // 프리미엄 테스트 계정이 아니고 오늘 이미 카드를 뽑은 경우
   if (!isPremiumTestAcc.value && todayCard.value) {
     
@@ -579,7 +599,7 @@ const drawCard = async () => {
       userId,
       card,
       today,
-      isPremiumTestAcc  // 프리미엄 테스트 계정 여부 전달
+      isPremiumTestAcc.value  // 프리미엄 테스트 계정 여부 전달
     );
     
     if (savedData) {
