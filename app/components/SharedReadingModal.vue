@@ -485,8 +485,59 @@ const loadSharedReading = async (readingId: string) => {
         'null'
     });
     
-    // 오늘의 카드인 경우 해석 데이터 파싱
-    if (data.spread_type === 'daily_card') {
+    // 오늘의 카드인 경우 daily_cards 테이블에서 interpretation_data 가져오기
+    if (data.spread_type === 'daily_card' && data.shared_by) {
+      console.log('🎴 [SharedReadingModal] 오늘의 카드 - daily_cards에서 interpretation_data 조회 시작');
+      
+      // custom_question에서 날짜 추출 (두 가지 형식 지원)
+      let date = null;
+      
+      // ISO 형식: "2025-08-20 오늘의 카드"
+      const isoMatch = data.custom_question?.match(/(\d{4}-\d{2}-\d{2})/);
+      if (isoMatch) {
+        date = isoMatch[1];
+        console.log('📅 ISO 형식 날짜 추출:', date);
+      } else {
+        // 한글 형식: "2025년 8월 20일의 오늘의 카드"
+        const koreanMatch = data.custom_question?.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+        if (koreanMatch) {
+          const year = koreanMatch[1];
+          const month = koreanMatch[2].padStart(2, '0');
+          const day = koreanMatch[3].padStart(2, '0');
+          date = `${year}-${month}-${day}`;
+          console.log('📅 한글 형식 날짜 추출:', date);
+        }
+      }
+      
+      if (date) {
+        try {
+          // daily_cards 테이블에서 interpretation_data 조회
+          const { data: dailyCardData, error: dailyCardError } = await supabase
+            .from('daily_cards')
+            .select('interpretation_data')
+            .eq('user_id', data.shared_by)
+            .eq('date', date)
+            .single();
+          
+          console.log('📊 daily_cards 조회 결과:', dailyCardData);
+          
+          if (dailyCardData?.interpretation_data) {
+            // interpretation_data로 ai_interpretation 교체
+            sharedData.value.ai_interpretation = dailyCardData.interpretation_data;
+            console.log('✅ daily_cards의 interpretation_data로 교체 완료');
+          } else {
+            console.log('⚠️ daily_cards에서 interpretation_data를 찾을 수 없음');
+          }
+        } catch (err) {
+          console.error('❌ daily_cards 조회 실패:', err);
+        }
+      }
+      
+      // 파싱 실행
+      parseDailyInterpretation();
+      console.log('[SharedReadingModal] Parsed daily interpretation:', dailyInterpretationData.value);
+    } else if (data.spread_type === 'daily_card') {
+      // shared_by가 없는 경우 기존 로직 실행
       parseDailyInterpretation();
       console.log('[SharedReadingModal] Parsed daily interpretation:', dailyInterpretationData.value);
     }

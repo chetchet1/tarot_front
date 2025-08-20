@@ -35,12 +35,6 @@ export async function saveDailyCardWithReading(
     return null;
   }
   
-  // 테스트 계정인 경우 기존 데이터 삭제
-  if (isTestAccount) {
-    console.log('🧹 테스트 계정 데이터 정리 시작...');
-    await cleanupTestAccountData(userId, date);
-  }
-  
   const results = {
     dailyCard: null as any,
     reading: null as any,
@@ -48,25 +42,87 @@ export async function saveDailyCardWithReading(
   };
   
   try {
-    // 1. 먼저 중복 체크
-    const { data: existingDaily } = await supabase
-      .from('daily_cards')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('date', date)
-      .maybeSingle();
+    // 테스트 계정인 경우 upsert를 사용하므로 삭제 불필요
+    // if (isTestAccount) {
+    //   console.log('🧹 테스트 계정 데이터 정리 시작...');
+    //   await cleanupTestAccountData(userId, date);
+    // }
     
-    // readings 테이블에 이미 있는지 확인
-    const { data: existingReading } = await supabase
-      .from('readings')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('spread_id', 'daily_card')
-      .eq('question', `${date} 오늘의 카드`)
-      .maybeSingle();
+    // 1. 중복 체크 (테스트 계정이 아닌 경우에만)
+    let existingDaily = null;
+    let existingReading = null;
     
-    // 2. daily_cards 저장 (없을 때만)
-    if (!existingDaily) {
+    if (!isTestAccount) {
+      const { data: dailyData, error: checkDailyError } = await supabase
+        .from('daily_cards')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('date', date)
+        .maybeSingle();
+      
+      if (checkDailyError) {
+        console.error('daily_cards 중복 체크 에러:', checkDailyError);
+      }
+      existingDaily = dailyData;
+      
+      // readings 테이블에 이미 있는지 확인
+      const { data: readingData, error: checkReadingError } = await supabase
+        .from('readings')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('spread_id', 'daily_card')
+        .eq('question', `${date} 오늘의 카드`)
+        .maybeSingle();
+      
+      if (checkReadingError) {
+        console.error('readings 중복 체크 에러:', checkReadingError);
+      }
+      existingReading = readingData;
+      
+      console.log('중복 체크 결과:', {
+        existingDaily: existingDaily ? 'exists' : 'not exists',
+        existingReading: existingReading ? 'exists' : 'not exists'
+      });
+    } else {
+      console.log('테스트 계정이므로 중복 체크 건너뜀');
+    }
+    
+    // 2. daily_cards 저장 (테스트 계정은 upsert, 일반 사용자는 기존 로직)
+    if (isTestAccount) {
+      // 테스트 계정은 upsert 사용 (기존 데이터가 있어도 덮어씀)
+      console.log('💾 daily_cards 테이블에 upsert 중 (테스트 계정)...');
+      console.log('  저장할 데이터:', {
+        user_id: userId,
+        card_id: card.id,
+        date: date,
+        orientation: 'upright'
+      });
+      
+      const { data: savedDaily, error: dailyError } = await supabase
+        .from('daily_cards')
+        .upsert({
+          user_id: userId,
+          card_id: card.id,
+          date: date,
+          orientation: 'upright'
+        }, {
+          onConflict: 'user_id,date'
+        })
+        .select('*')
+        .single();
+      
+      if (dailyError) {
+        console.error('❌ daily_cards upsert 실패!');
+        console.error('  에러 코드:', dailyError.code);
+        console.error('  에러 메시지:', dailyError.message);
+        results.errors.push(`daily_cards: ${dailyError.message}`);
+      } else {
+        console.log('✅ daily_cards upsert 성공!');
+        console.log('  저장된 ID:', savedDaily?.id);
+        results.dailyCard = savedDaily;
+      }
+    } else if (!existingDaily) {
+      // 일반 사용자는 중복이 없을 때만 저장
       console.log('💾 daily_cards 테이블에 새 데이터 저장 중...');
       console.log('  저장할 데이터:', {
         user_id: userId,
@@ -90,8 +146,6 @@ export async function saveDailyCardWithReading(
         console.error('❌ daily_cards 저장 실패!');
         console.error('  에러 코드:', dailyError.code);
         console.error('  에러 메시지:', dailyError.message);
-        console.error('  에러 상세:', dailyError.details);
-        console.error('  에러 힌트:', dailyError.hint);
         results.errors.push(`daily_cards: ${dailyError.message}`);
       } else {
         console.log('✅ daily_cards 저장 성공!');
@@ -104,7 +158,7 @@ export async function saveDailyCardWithReading(
     }
     
     // 3. readings 테이블에도 저장 (점괘 기록 표시를 위해)
-    if (!existingReading) {
+    if (isTestAccount || !existingReading) {
       const cardData = {
         id: card.id,
         cardNumber: card.id,
@@ -136,7 +190,21 @@ export async function saveDailyCardWithReading(
       // spread_type 필드가 있다면 추가 (데이터베이스에 따라)
       // readingData['spread_type'] = 'daily_card';
       
-      console.log('💾 readings 테이블에 새 데이터 저장 중...');
+      // 테스트 계정은 먼저 기존 데이터 삭제 후 새로 생성
+      if (isTestAccount) {
+        console.log('💾 readings 테이블에 테스트 계정 데이터 upsert 중...');
+        
+        // 먼저 기존 데이터 삭제
+        await supabase
+          .from('readings')
+          .delete()
+          .eq('user_id', userId)
+          .eq('spread_id', 'daily_card')
+          .eq('question', `${date} 오늘의 카드`);
+      } else {
+        console.log('💾 readings 테이블에 새 데이터 저장 중...');
+      }
+      
       console.log('  저장할 데이터 (요약):', {
         user_id: readingData.user_id,
         spread_id: readingData.spread_id,
@@ -190,32 +258,39 @@ export async function saveDailyCardWithReading(
  * 테스트 계정의 기존 데이터 삭제
  */
 async function cleanupTestAccountData(userId: string, date: string) {
-  console.log('테스트 계정 데이터 정리 시작');
+  console.log('🧹 테스트 계정 데이터 정리 시작');
+  console.log('  삭제 대상:', { userId, date });
   
   // daily_cards 삭제
-  const { error: dailyDeleteError } = await supabase
+  const { data: deletedDaily, error: dailyDeleteError } = await supabase
     .from('daily_cards')
     .delete()
     .eq('user_id', userId)
-    .eq('date', date);
+    .eq('date', date)
+    .select();
   
   if (dailyDeleteError) {
-    console.log('daily_cards 삭제 실패 (무시):', dailyDeleteError);
+    console.error('❌ daily_cards 삭제 실패:', dailyDeleteError);
+  } else {
+    console.log('✅ daily_cards 삭제 성공:', deletedDaily?.length || 0, '건');
   }
   
   // readings 테이블에서도 삭제
-  const { error: readingDeleteError } = await supabase
+  const { data: deletedReadings, error: readingDeleteError } = await supabase
     .from('readings')
     .delete()
     .eq('user_id', userId)
     .eq('spread_id', 'daily_card')
-    .eq('question', `${date} 오늘의 카드`);
+    .eq('question', `${date} 오늘의 카드`)
+    .select();
   
   if (readingDeleteError) {
-    console.log('readings 삭제 실패 (무시):', readingDeleteError);
+    console.error('❌ readings 삭제 실패:', readingDeleteError);
+  } else {
+    console.log('✅ readings 삭제 성공:', deletedReadings?.length || 0, '건');
   }
   
-  console.log('테스트 계정 데이터 정리 완료');
+  console.log('🧹 테스트 계정 데이터 정리 완료');
 }
 
 /**

@@ -169,20 +169,20 @@
         </section>
 
         <!-- 해석 표시 -->
-        <section v-if="sharedData.basic_interpretation || sharedData.ai_interpretation" class="interpretation-section">
+        <section v-if="sharedData.basic_interpretation || (sharedData.ai_interpretation && sharedData.spread_type !== 'daily_card')" class="interpretation-section">
           <h2>🔮 점괘 해석</h2>
           
-          <!-- 오늘의 카드의 경우 - basic_interpretation 사용 -->
+          <!-- 오늘의 카드의 경우 - basic_interpretation만 사용 (ai_interpretation 무시) -->
           <div v-if="sharedData.spread_type === 'daily_card' && sharedData.basic_interpretation" class="daily-card-interpretation">
             <div class="formatted-content" v-html="formattedDailyInterpretation"></div>
           </div>
           
           <!-- 일반 기본 해석 (오늘의 카드가 아닌 경우) -->
-          <div v-else-if="sharedData.basic_interpretation" class="basic-interpretation-content">
+          <div v-else-if="sharedData.basic_interpretation && sharedData.spread_type !== 'daily_card'" class="basic-interpretation-content">
             <p>{{ sharedData.basic_interpretation }}</p>
           </div>
           
-          <!-- AI 해석 (있는 경우) -->
+          <!-- AI 해석 (오늘의 카드가 아닌 경우에만 표시) -->
           <div v-if="sharedData.ai_interpretation && sharedData.spread_type !== 'daily_card'" class="ai-interpretation-result">
             <h3>✨ 수정구슬의 신비로운 통찰</h3>
             <div class="ai-content">
@@ -251,7 +251,160 @@ const formattedDailyInterpretation = computed(() => {
   const interpretation = sharedData.value?.basic_interpretation;
   if (!interpretation) return '';
   
-  // 줄바꿈을 <br>로 변환하고 섹션 분리
+  // JSON 형식인지 확인 (daily_cards의 interpretation_data)
+  try {
+    // JSON 파싱 시도 - 더 안전한 방식으로
+    let parsedData = interpretation;
+    
+    // 문자열이고 JSON처럼 보이면 파싱 시도
+    if (typeof interpretation === 'string') {
+      // JSON 객체나 배열로 시작하는지 확인
+      const trimmed = interpretation.trim();
+      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
+          (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        try {
+          parsedData = JSON.parse(interpretation);
+        } catch (e) {
+          // JSON 파싱 실패시 원본 사용
+          console.log('JSON 파싱 실패, 텍스트로 처리');
+          parsedData = interpretation;
+        }
+      }
+    }
+    
+    if (typeof parsedData === 'object' && parsedData !== null && !Array.isArray(parsedData)) {
+      // JSON 데이터를 HTML로 변환
+      let html = '';
+      
+      // 메인 메시지
+      if (parsedData.detailedFortune?.mainMessage) {
+        html += `<div class="fortune-section">
+          <h3 class="fortune-subtitle">🔮 오늘의 메시지</h3>
+          <p class="fortune-text">${parsedData.detailedFortune.mainMessage}</p>
+        </div>`;
+      }
+      
+      // 운세 지수
+      if (parsedData.fortuneIndex) {
+        html += `<div class="fortune-section">
+          <h3 class="fortune-subtitle">📊 오늘의 운세</h3>
+          <div class="fortune-index-grid">`;
+        
+        const labels = {
+          overall: '전체운',
+          love: '애정운',
+          money: '금전운',
+          health: '건강운',
+          work: '학업/업무운'
+        };
+        
+        for (const [key, value] of Object.entries(parsedData.fortuneIndex)) {
+          const stars = '⭐'.repeat(value as number);
+          html += `<div class="fortune-item">
+            <span class="item-label">${labels[key] || key}:</span>
+            <span class="star-display">${stars}</span>
+          </div>`;
+        }
+        html += `</div></div>`;
+      }
+      
+      // 시간대별 조언
+      if (parsedData.timeAdvice) {
+        html += `<div class="fortune-section">
+          <h3 class="fortune-subtitle">⏰ 시간대별 조언</h3>`;
+        
+        const timeLabels = {
+          morning: '아침',
+          afternoon: '오후',
+          evening: '저녁'
+        };
+        
+        for (const [time, advice] of Object.entries(parsedData.timeAdvice)) {
+          html += `<div class="fortune-item">
+            <span class="item-label">${timeLabels[time]}:</span>
+            <span class="item-value">${advice}</span>
+          </div>`;
+        }
+        html += `</div>`;
+      }
+      
+      // 행운 아이템
+      if (parsedData.luckyItems) {
+        html += `<div class="fortune-section">
+          <h3 class="fortune-subtitle">🍀 행운 아이템</h3>`;
+        
+        const itemLabels = {
+          color: '색상',
+          number: '숫자',
+          direction: '방향',
+          activity: '활동'
+        };
+        
+        for (const [key, value] of Object.entries(parsedData.luckyItems)) {
+          if (value) {
+            html += `<div class="fortune-item">
+              <span class="item-label">${itemLabels[key] || key}:</span>
+              <span class="item-value">${value}</span>
+            </div>`;
+          }
+        }
+        html += `</div>`;
+      }
+      
+      // 인간관계 조언
+      if (parsedData.relationshipAdvice) {
+        html += `<div class="fortune-section">
+          <h3 class="fortune-subtitle">💬 인간관계 조언</h3>`;
+        
+        if (parsedData.relationshipAdvice.tip) {
+          html += `<p class="fortune-text">💡 ${parsedData.relationshipAdvice.tip}</p>`;
+        }
+        if (parsedData.relationshipAdvice.avoid) {
+          html += `<p class="fortune-text">⚠️ ${parsedData.relationshipAdvice.avoid}</p>`;
+        }
+        if (parsedData.relationshipAdvice.goodMeet) {
+          html += `<p class="fortune-text">✨ 좋은 만남: ${parsedData.relationshipAdvice.goodMeet}</p>`;
+        }
+        html += `</div>`;
+      }
+      
+      // 상세 운세
+      if (parsedData.detailedFortune) {
+        if (parsedData.detailedFortune.keyPoint) {
+          html += `<div class="fortune-section">
+            <h3 class="fortune-subtitle">💎 핵심 포인트</h3>
+            <p class="fortune-text">${parsedData.detailedFortune.keyPoint}</p>
+          </div>`;
+        }
+        
+        if (parsedData.detailedFortune.advice) {
+          html += `<div class="fortune-section">
+            <h3 class="fortune-subtitle">💡 조언</h3>
+            <p class="fortune-text">${parsedData.detailedFortune.advice}</p>
+          </div>`;
+        }
+        
+        if (parsedData.detailedFortune.caution) {
+          html += `<div class="fortune-section">
+            <h3 class="fortune-subtitle">⚠️ 주의사항</h3>
+            <p class="fortune-text">${parsedData.detailedFortune.caution}</p>
+          </div>`;
+        }
+      }
+      
+      // 오늘의 한마디
+      if (parsedData.dailyQuote) {
+        html += `<blockquote class="daily-quote">"${parsedData.dailyQuote}"</blockquote>`;
+      }
+      
+      return html;
+    }
+  } catch (e) {
+    // JSON 파싱 실패 시 기존 방식으로 처리
+    console.log('JSON 파싱 실패, 기존 방식으로 처리');
+  }
+  
+  // 기존 텍스트 형식 처리
   const lines = interpretation.split('\n');
   let html = '';
   
@@ -337,6 +490,28 @@ const getMainCards = () => {
 
 // 짧은 해석 가져오기 (인스타그램용) - 마무리 조언만 추출
 const getShortInterpretation = () => {
+  // 오늘의 카드인 경우 특별 처리
+  if (sharedData.value?.spread_type === 'daily_card') {
+    const interpretation = sharedData.value?.basic_interpretation;
+    if (interpretation) {
+      try {
+        // JSON 파싱 시도
+        const parsed = JSON.parse(interpretation);
+        // 메인 메시지가 있으면 반환
+        if (parsed.detailedFortune?.mainMessage) {
+          return parsed.detailedFortune.mainMessage;
+        }
+        // 또는 오늘의 격언
+        if (parsed.dailyQuote) {
+          return parsed.dailyQuote;
+        }
+      } catch (e) {
+        // JSON 파싱 실패시 기존 텍스트 처리
+        console.log('핵심 메시지 파싱 실패, 텍스트로 처리');
+      }
+    }
+  }
+  
   let interpretation = sharedData.value?.ai_interpretation || sharedData.value?.basic_interpretation;
   if (!interpretation) return '';
   
@@ -1273,6 +1448,17 @@ onMounted(async () => {
   background: rgba(255, 215, 0, 0.05);
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.95);
+}
+
+.daily-card-interpretation .fortune-index-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.daily-card-interpretation .fortune-section {
+  margin: 20px 0;
 }
 
 .ai-interpretation-result {
