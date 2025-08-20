@@ -12,7 +12,7 @@
         <div class="expired-content">
           <div class="expired-icon">⏰</div>
           <h2>공유 기간이 만료되었습니다</h2>
-          <p>공유된 점괘는 24시간 동안만 확인 가능합니다.</p>
+          <p>공유된 점괘는 30일 동안만 확인 가능합니다.</p>
           <button @click="goHome" class="cta-button">
             🔮 직접 점괘 보러 가기
           </button>
