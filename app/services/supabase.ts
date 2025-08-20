@@ -9,23 +9,10 @@ export const supabase = createClient(
   {
     auth: {
       autoRefreshToken: true,
-      // 모바일에서는 세션을 자동으로 저장하지 않음
-      persistSession: !Capacitor.isNativePlatform(),
+      persistSession: true, // 모든 플랫폼에서 세션 유지
       detectSessionInUrl: true,
-      // 모바일에서는 별도의 스토리지 사용
-      storage: Capacitor.isNativePlatform() ? {
-        getItem: async (key: string) => {
-          // 모바일에서는 세션을 자동으로 복원하지 않음
-          return null;
-        },
-        setItem: async (key: string, value: string) => {
-          // 필요한 경우에만 명시적으로 저장
-          return;
-        },
-        removeItem: async (key: string) => {
-          return;
-        }
-      } : undefined
+      // 모바일에서도 localStorage 사용 (Capacitor가 자동으로 처리)
+      storage: undefined // 기본 storage (localStorage) 사용
     },
     global: {
       fetch: (url, options = {}) => {

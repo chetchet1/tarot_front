@@ -215,7 +215,8 @@ import { CARD_BACK_BASE64 } from '../assets/card-back';
 import SimpleTarotLoading from '../components/loading/SimpleTarotLoading.vue';
 import { shareService } from '../services/ShareService';
 import type { TarotCard, DailyReading, DailyInterpretation } from '../types/tarot';
-import { ensureTestAccountLoggedIn, isTestAccount } from '../utils/test-account';
+import { ensureTestAccountLoggedIn, isTestAccount, isPremiumTestAccount } from '../utils/test-account';
+import { saveDailyCardWithReading, syncDailyCardToReadings } from '../services/dailyCardService';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -297,6 +298,13 @@ const loadTodayCard = async () => {
     
     // 로그인 확인 (익명 사용자 차단) - 테스트 계정 예외 처리
     const isTestAcc = isTestAccount(userStore.currentUser?.email);
+    const isPremiumTestAcc = isPremiumTestAccount(userStore.currentUser?.email);
+    
+    console.log('테스트 계정 체크:', {
+      isTestAcc,
+      isPremiumTestAcc,
+      email: userStore.currentUser?.email
+    });
     
     if (!userStore.currentUser || (userStore.currentUser.isAnonymous && !isTestAcc)) {
       console.error('로그인되지 않은 사용자:', userStore.currentUser);
@@ -321,52 +329,13 @@ const loadTodayCard = async () => {
       return;
     }
     
-    // 테스트 계정이면 기존 데이터 삭제 후 새로 뽑기 가능하게 함
-    if (isTestAcc) {
-    console.log('테스트 계정 감지: 오늘의 카드 캐싱 비활성화');
-    console.log('테스트 계정 프리미엄 상태:', userStore.isPremium);
-    
-    // 테스트 계정은 실제 Supabase user_id 사용 (현재 로그인한 사용자의 ID)
-    const testUserId = userStore.currentUser?.id;
-    
-    if (testUserId) {
-    try {
-    // 먼저 조회 후 존재하면 삭제
-    const { data: existingData, error: selectError } = await supabase
-      .from('daily_cards')
-      .select('*')
-        .eq('user_id', testUserId)
-        .eq('date', today)
-      .maybeSingle();
+    // 프리미엄 테스트 계정이면 캐싱 완전 무시하고 바로 리턴
+    if (isPremiumTestAcc) {
+      console.log('🎯 프리미엄 테스트 계정 감지: 캐싱 완전 무시');
+      console.log('프리미엄 상태:', userStore.isPremium);
       
-    if (selectError) {
-        console.log('테스트 계정 데이터 조회 실패:', selectError);
-        } else if (existingData) {
-        // 데이터가 존재하면 삭제
-          const { error: deleteError } = await supabase
-            .from('daily_cards')
-            .delete()
-            .eq('user_id', testUserId)
-            .eq('date', today);
-          
-          if (deleteError) {
-            console.log('기존 데이터 삭제 실패:', deleteError);
-          } else {
-            console.log('테스트 계정 기존 데이터 삭제 완료');
-          }
-        } else {
-          console.log('삭제할 기존 데이터 없음');
-        }
-      } catch (err) {
-        console.log('삭제 중 오류 (무시):', err);
-      }
-    } else {
-      console.log('테스트 계정 user_id가 없음');
-    }
-      
-      // 테스트 계정은 항상 새로 뽑기 가능하도록 설정
+      // DB 조회 없이 바로 초기화 상태로 리턴
       todayCard.value = null;
-      // 카드 뽑기 가능한 상태로 완전 초기화
       isCardRevealed.value = false;
       selectedCard.value = null;
       interpretation.value = null;
@@ -374,13 +343,14 @@ const loadTodayCard = async () => {
       isInterpretationLoading.value = false;
       interpretationProgress.value = 0;
       isLoading.value = false;
-      console.log('테스트 계정 상태 초기화 완료:', {
-        todayCard: todayCard.value,
-        isCardRevealed: isCardRevealed.value,
-        selectedCard: selectedCard.value,
-        isInterpretationLoading: isInterpretationLoading.value
-      });
-      return; // 테스트 계정은 여기서 종료
+      
+      console.log('프리미엄 테스트 계정 - 새로 뽑기 가능 상태로 설정 완료');
+      return; // 여기서 종료 - DB 조회하지 않음
+    }
+    
+    // 무료 테스트 계정 또는 일반 사용자만 아래 코드 실행
+    if (isTestAcc && !isPremiumTestAcc) {
+      console.log('무료 테스트 계정: 일반 사용자처럼 처리');
     }
     
     // 일반 계정만 daily_cards 조회
@@ -473,6 +443,9 @@ const loadTodayCard = async () => {
   }
 };
 
+// dailyCardService import 추가
+import { saveDailyCardWithReading, syncDailyCardToReadings } from '../services/dailyCardService';
+
 // 카드 뽑기
 const drawCard = async () => {
   console.log('drawCard 시작 - 현재 상태:', {
@@ -484,13 +457,25 @@ const drawCard = async () => {
   
   // 이미 오늘 카드를 뽑았는지 체크
   const isTestAcc = isTestAccount(userStore.currentUser?.email);
+  const isPremiumTestAcc = isPremiumTestAccount(userStore.currentUser?.email);
   
-  // 테스트 계정이 아니고 오늘 이미 카드를 뽑은 경우
-  if (!isTestAcc && todayCard.value) {
+  // 프리미엄 테스트 계정이 아니고 오늘 이미 카드를 뽑은 경우
+  if (!isPremiumTestAcc && todayCard.value) {
     console.log('오늘 이미 카드를 뽑음');
     
     // 이미 뽑은 카드 표시
     selectedCard.value = todayCard.value.card;
+    
+    // readings 테이블 동기화 시도
+    if (selectedCard.value && userStore.currentUser?.id) {
+      const today = new Date().toISOString().split('T')[0];
+      try {
+        await syncDailyCardToReadings(userStore.currentUser.id, selectedCard.value, today);
+        console.log('기존 카드의 readings 동기화 완료');
+      } catch (error) {
+        console.log('readings 동기화 실패 (무시):', error);
+      }
+    }
     
     // 해석이 있으면 표시
     if (todayCard.value.interpretation_data) {
@@ -527,8 +512,8 @@ const drawCard = async () => {
     return;
   }
   
-  // 테스트 계정이 아니고 이미 카드가 공개된 경우
-  if (!isTestAcc && isCardRevealed.value && selectedCard.value) {
+  // 프리미엄 테스트 계정이 아니고 이미 카드가 공개된 경우
+  if (!isPremiumTestAcc && isCardRevealed.value && selectedCard.value) {
     console.log('이미 카드가 공개됨');
     return;
   }
@@ -539,9 +524,9 @@ const drawCard = async () => {
     return;
   }
   
-  // 테스트 계정은 매번 상태 초기화하고 진행
-  if (isTestAcc) {
-    console.log('테스트 계정 - 상태 초기화 후 진행');
+  // 프리미엄 테스트 계정은 매번 상태 초기화하고 진행
+  if (isPremiumTestAcc) {
+    console.log('프리미엄 테스트 계정 - 상태 초기화 후 진행');
     isCardRevealed.value = false;
     selectedCard.value = null;
     interpretation.value = null;
@@ -616,6 +601,12 @@ const drawCard = async () => {
     if (!cards || cards.length === 0) throw new Error('카드를 찾을 수 없습니다');
     
     const card = cards[0];
+    
+    // 카드가 정상적으로 선택되었는지 확인
+    if (!card || !card.id) {
+      console.error('카드 선택 실패 - 카드 정보:', card);
+      throw new Error('카드를 선택할 수 없습니다');
+    }
 
     console.log('선택된 카드 상세:', {
       id: card.id,
@@ -637,213 +628,94 @@ const drawCard = async () => {
     // 테스트 계정도 실제 user_id 사용
     const userId = userStore.currentUser?.id;
     
+    console.log('============================================');
+    console.log('👤 사용자 정보 상세 확인');
+    console.log('============================================');
+    console.log('📧 이메일:', userStore.currentUser?.email);
+    console.log('🆔 User ID:', userId);
+    console.log('💎 프리미엄 여부:', userStore.isPremium);
+    console.log('🧪 테스트 계정 여부:', isTestAcc);
+    console.log('🎭 익명 사용자 여부:', userStore.currentUser?.isAnonymous);
+    console.log('🔑 인증 상태:', userStore.currentUser?.emailVerified);
+    console.log('📌 현재 사용자 전체 정보:', JSON.stringify(userStore.currentUser, null, 2));
+    
+    // Supabase 세션 확인
+    const { data: sessionData } = await supabase.auth.getSession();
+    console.log('🔐 Supabase 세션 정보:');
+    console.log('  - 세션 존재:', !!sessionData?.session);
+    console.log('  - 세션 User ID:', sessionData?.session?.user?.id);
+    console.log('  - 세션 이메일:', sessionData?.session?.user?.email);
+    console.log('  - 토큰 만료 시간:', sessionData?.session?.expires_at ? new Date(sessionData.session.expires_at * 1000).toLocaleString() : 'N/A');
+    console.log('============================================');
+    
+    // 세션이 없는 경우 처리
+    if (!sessionData?.session) {
+      console.error('⚠️ Supabase 세션이 없습니다. 재로그인 필요.');
+      
+      // 테스트 계정인 경우 재로그인 시도
+      if (isTestAcc) {
+        console.log('🔄 테스트 계정 재로그인 시도...');
+        const { ensureTestAccountLoggedIn } = await import('../utils/test-account');
+        await ensureTestAccountLoggedIn();
+        
+        // 재로그인 후 다시 세션 확인
+        const { data: newSessionData } = await supabase.auth.getSession();
+        if (!newSessionData?.session) {
+          throw new Error('테스트 계정 재로그인 실패');
+        }
+        console.log('✅ 테스트 계정 재로그인 성공');
+      } else {
+        // 일반 사용자는 로그인 화면으로 이동
+        await showAlert({
+          title: '로그인 필요',
+          message: '세션이 만료되었습니다. 다시 로그인해주세요.'
+        });
+        router.push('/');
+        return;
+      }
+    }
+    
     if (!userId) {
-      console.error('user_id가 없습니다');
+      console.error('user_id가 없습니다:', userStore.currentUser);
       throw new Error('사용자 ID를 찾을 수 없습니다');
     }
     
-    // readings 테이블에도 저장 (점괘 기록용) - 모든 사용자 대상
-    // 테스트 계정도 기록은 남겨야 함
-    try {
-      console.log('readings 테이블에 오늘의 카드 저장 시도');
-      
-      // 테스트 계정인 경우 기존 데이터 삭제 후 새로 삽입
-      if (isTestAcc) {
-        const { error: deleteError } = await supabase
-          .from('readings')
-          .delete()
-          .eq('user_id', userId)
-          .eq('spread_id', 'daily_card')
-          .eq('question', `${today} 오늘의 카드`);
-        
-        if (deleteError) {
-          console.log('테스트 계정 기존 readings 삭제 실패 (무시):', deleteError);
-        }
-      }
-      
-      // 카드 데이터를 올바른 형식으로 준비
-      const cardData = {
-        id: card.id,
-        cardNumber: card.id,
-        name: card.name,
-        nameKr: card.name_kr,
-        orientation: 'upright',
-        is_reversed: false,
-        arcana: card.arcana,
-        suit: card.suit,
-        number: card.number,
-        element: card.element,
-        keywords: card.keywords,
-        meanings: card.meanings,
-        imageUrl: card.image_url
-      };
-      
-      const readingData = {
-        user_id: userId,
-        spread_id: 'daily_card',  // spread_type이 아니라 spread_id
-        spread_type: 'daily_card',  // spread_type도 설정
-        topic: 'general',  // 기본 주제
-        question: `${today} 오늘의 카드`,
-        cards: [cardData],  // 직접 배열로 저장
-        overall_message: `오늘의 카드: ${card.name_kr}`,
-        is_premium: false,
-        shared: false,
-        created_at: new Date().toISOString()
-      };
-      
-      const { data: savedReading, error: readingError } = await supabase
-        .from('readings')
-        .insert(readingData)
-        .select('*')
-        .single();
-      
-      if (readingError) {
-        console.error('readings 테이블 저장 실패:', readingError);
-        console.error('저장 시도한 데이터:', readingData);
-        // 에러가 나도 계속 진행 (daily_cards는 이미 저장됨)
-      } else {
-        console.log('readings 테이블 저장 성공:', savedReading);
-        
-        // 저장된 reading ID를 보관 (나중에 해석 업데이트용)
-        if (savedReading && savedReading.id) {
-          todayCard.value = { ...todayCard.value, reading_id: savedReading.id } as any;
-        }
-      }
-    } catch (error) {
-      console.error('readings 테이블 저장 중 예외:', error);
-      // 에러가 나도 계속 진행
-    }
+    console.log('DB 저장 전 카드 확인:', {
+      cardId: card?.id,
+      cardName: card?.name,
+      cardNameKr: card?.name_kr,
+      card: card
+    });
     
-    // 중복 체크 및 저장 처리
-    if (!isTestAcc) {
-      // 이미 오늘 카드를 뽑았는지 먼저 확인
-      const { data: existingCard, error: checkError } = await supabase
-        .from('daily_cards')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('date', today)
-        .maybeSingle();
-      
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('오늘의 카드 확인 오류:', checkError);
-      }
-      
-      if (existingCard) {
-        console.log('오늘 이미 카드를 뽑았음 - 업데이트는 하지 않음');
-        // 이미 카드가 있으면 저장하지 않고 그 카드 사용
-        todayCard.value = existingCard;
-        
-        // 카드 정보가 없으면 별도 조회
-        if (!existingCard.card && existingCard.card_id) {
-          const { data: cardData, error: cardError } = await supabase
-            .from('tarot_cards')
-            .select('*')
-            .eq('id', existingCard.card_id)
-            .single();
-          
-          if (!cardError && cardData) {
-            todayCard.value.card = cardData;
-            selectedCard.value = cardData; // 현재 선택된 카드도 업데이트
-          }
-        } else {
-          selectedCard.value = existingCard.card || card; // 기존 카드 또는 새로 뽑은 카드 사용
-        }
-      } else {
-        // 새로운 카드 저장
-        console.log('카드 저장 시도:', {
-          user_id: userId,
-          card_id: card.id,
-          cardName: card.name,
-          date: today
-        });
-        
-        const { data: savedReading, error: saveError } = await supabase
-          .from('daily_cards')
-          .insert({
-            user_id: userId,
-            card_id: card.id,
-            date: today,
-            orientation: 'upright'
-          })
-          .select('*')
-          .single();
-        
-        if (saveError) {
-          console.error('카드 저장 오류:', saveError);
-          // 중복 키 오류인 경우 무시하고 진행
-          if (saveError.code === '23505') {
-            console.log('중복 키 오류 - 이미 오늘 카드가 존재함');
-            // 기존 카드 다시 조회
-            const { data: existingData } = await supabase
-              .from('daily_cards')
-              .select('*')
-              .eq('user_id', userId)
-              .eq('date', today)
-              .maybeSingle();
-            
-            if (existingData) {
-              todayCard.value = existingData;
-              todayCard.value.card = card;
-            } else {
-              // 조회도 실패하면 메모리에서만 사용
-              todayCard.value = {
-                id: null,
-                user_id: userId,
-                card_id: card.id,
-                date: today,
-                orientation: 'upright',
-                card: card,
-                created_at: new Date().toISOString()
-              } as any;
-            }
-          } else {
-            // 다른 오류인 경우 메모리에서만 사용
-            todayCard.value = {
-              id: null,
-              user_id: userId,
-              card_id: card.id,
-              date: today,
-              orientation: 'upright',
-              card: card,
-              created_at: new Date().toISOString()
-            } as any;
-          }
-        } else {
-          console.log('카드 저장 성공:', savedReading);
-          savedReading.card = card;
-          todayCard.value = savedReading;
-        }
-      }
+    // saveDailyCardWithReading 함수를 사용하여 daily_cards와 readings에 동시 저장
+    // 이 함수는 테스트 계정 처리와 중복 체크를 모두 처리함
+    
+    // 프리미엄 테스트 계정은 DB에 저장하지 않음
+    if (isPremiumTestAcc) {
+      console.log('프리미엄 테스트 계정: DB 저장 스킵, 메모리에서만 사용');
+      todayCard.value = {
+        id: null,
+        user_id: userId,
+        card_id: card.id,
+        date: today,
+        orientation: 'upright',
+        card: card,
+        created_at: new Date().toISOString()
+      } as any;
     } else {
-      // 테스트 계정은 기존 데이터 삭제 후 새로 저장
-      console.log('테스트 계정: 기존 데이터 삭제 시도');
-      const { error: deleteError } = await supabase
-        .from('daily_cards')
-        .delete()
-        .eq('user_id', userId)
-        .eq('date', today);
+      // 일반 사용자와 무료 테스트 계정만 DB에 저장
+      const savedData = await saveDailyCardWithReading(
+        userId,
+        card,
+        today,
+        false  // 일반 저장 (삭제 없이)
+      );
       
-      if (deleteError) {
-        console.log('기존 데이터 삭제 실패 (무시):', deleteError);
+      if (savedData) {
+        todayCard.value = savedData;
+        console.log('오늘의 카드 저장 완료:', savedData);
       } else {
-        console.log('테스트 계정 기존 데이터 삭제 완료');
-      }
-      
-      // 테스트 계정용 새로운 카드 저장
-      const { data: savedReading, error: saveError } = await supabase
-        .from('daily_cards')
-        .insert({
-          user_id: userId,
-          card_id: card.id,
-          date: today,
-          orientation: 'upright'
-        })
-        .select('*')
-        .single();
-      
-      if (saveError) {
-        console.error('테스트 계정 카드 저장 오류:', saveError);
-        // 저장 실패해도 메모리에서 사용
+        // 저장 실패 시 메모리에서만 사용
         todayCard.value = {
           id: null,
           user_id: userId,
@@ -853,10 +725,7 @@ const drawCard = async () => {
           card: card,
           created_at: new Date().toISOString()
         } as any;
-      } else {
-        console.log('테스트 계정 카드 저장 성공:', savedReading);
-        savedReading.card = card;
-        todayCard.value = savedReading;
+        console.log('저장 실패, 메모리에서만 사용');
       }
     }
 
@@ -865,9 +734,21 @@ const drawCard = async () => {
     console.log('프리미엄 상태:', userStore.isPremium);
     console.log('userStore.currentUser:', userStore.currentUser);
     
-    // 무료 사용자는 광고 표시 (테스트 계정도 무료로 처리)
-    if (!userStore.isPremium || isTestAcc) {
-      console.log('무료 사용자 또는 테스트 계정 - 광고 표시 준비');
+    // 프리미엄 테스트 계정 확인
+    const isPremiumTestAcc = isPremiumTestAccount(userStore.currentUser?.email);
+    console.log('현재 사용자 상태:', {
+      email: userStore.currentUser?.email,
+      isPremium: userStore.isPremium,
+      isPremiumTestAcc,
+      currentUserPremium: userStore.currentUser?.isPremium
+    });
+    
+    // 프리미엄 테스트 계정은 강제로 프리미엄 처리
+    const shouldShowAd = isPremiumTestAcc ? false : !userStore.isPremium;
+    
+    // 무료 사용자는 광고 표시 (무료 테스트 계정도 광고 표시)
+    if (shouldShowAd) {
+      console.log('무료 사용자 - 광고 표시 준비');
       // 광고 표시 전에 모든 UI 숨김
       if (progressInterval) {
         clearInterval(progressInterval);
@@ -1104,11 +985,17 @@ const showAdvertisement = async (card: TarotCard) => {
 // daily_cards 테이블에 해석 데이터 저장
 const saveDailyCardInterpretation = async (interpretationData: DailyInterpretation) => {
   const isTestAcc = isTestAccount(userStore.currentUser?.email);
+  const isPremiumTestAcc = isPremiumTestAccount(userStore.currentUser?.email);
   
-  // 테스트 계정은 캐싱하지 않음
-  if (isTestAcc) {
-    console.log('테스트 계정: 해석 데이터 캐싱 스킵');
+  // 프리미엄 테스트 계정은 캐싱하지 않음
+  if (isPremiumTestAcc) {
+    console.log('프리미엄 테스트 계정: 해석 데이터 캐싱 스킵');
     return;
+  }
+  
+  // 무료 테스트 계정은 일반 사용자처럼 캐싱
+  if (isTestAcc && !isPremiumTestAcc) {
+    console.log('무료 테스트 계정: 일반 사용자처럼 캐싱');
   }
   
   if (!todayCard.value?.id || !userStore.currentUser?.id) {

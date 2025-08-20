@@ -530,17 +530,23 @@ export const useUserStore = defineStore('user', () => {
         // 즉시 사용자 정보 설정 (프리미엄 상태는 DB에서 확인)
         let isPremiumUser = false;
         
-        // DB에서 프리미엄 상태 확인
-        try {
-          const { data: profile } = await authService.supabase
-            .from('profiles')
-            .select('is_premium')
-            .eq('id', user.id)
-            .maybeSingle();
-          
-          isPremiumUser = profile?.is_premium || false;
-        } catch (error) {
-          console.warn('로그인 시 프리미엄 상태 확인 실패:', error);
+        // 프리미엄 테스트 계정 체크
+        if (email === 'premium@example.com') {
+          console.log('🎯 프리미엄 테스트 계정 감지!');
+          isPremiumUser = true; // 프리미엄 테스트 계정은 무조건 프리미엄으로 설정
+        } else {
+          // DB에서 프리미엄 상태 확인 (일반 사용자)
+          try {
+            const { data: profile } = await authService.supabase
+              .from('profiles')
+              .select('is_premium')
+              .eq('id', user.id)
+              .maybeSingle();
+            
+            isPremiumUser = profile?.is_premium || false;
+          } catch (error) {
+            console.warn('로그인 시 프리미엄 상태 확인 실패:', error);
+          }
         }
         
         currentUser.value = {

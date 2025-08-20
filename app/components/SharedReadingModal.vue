@@ -145,10 +145,13 @@
         </div>
         
         <!-- 해석이 없는 경우 (오늘의 카드) -->
-        <div v-else-if="!dailyInterpretationData" class="no-interpretation">
-          <p v-if="sharedData.basic_interpretation">{{ sharedData.basic_interpretation }}</p>
-          <p v-else-if="sharedData.ai_interpretation">{{ sharedData.ai_interpretation }}</p>
-          <p v-else>상세 해석 정보가 저장되지 않았습니다.</p>
+        <div v-else class="no-interpretation">
+          <div class="interpretation-fallback">
+            <h3 class="section-title">🔮 오늘의 카드 해석</h3>
+            <p v-if="sharedData.basic_interpretation">{{ sharedData.basic_interpretation }}</p>
+            <p v-else-if="sharedData.ai_interpretation && typeof sharedData.ai_interpretation === 'string'">{{ sharedData.ai_interpretation }}</p>
+            <p v-else>상세 해석 정보가 저장되지 않았습니다.</p>
+          </div>
         </div>
       </div>
       
@@ -380,53 +383,67 @@ const parseDailyInterpretation = () => {
   // ai_interpretation에서 JSON 데이터 추출 시도
   if (sharedData.value.ai_interpretation) {
     try {
-      // AI 해석이 JSON 형태로 저장되어 있는 경우
-      if (sharedData.value.ai_interpretation.startsWith('{')) {
-        dailyInterpretationData.value = JSON.parse(sharedData.value.ai_interpretation);
+      let interpretationData = sharedData.value.ai_interpretation;
+      
+      // 이미 객체인 경우 (DB에서 JSONB로 저장된 경우)
+      if (typeof interpretationData === 'object' && interpretationData !== null) {
+        dailyInterpretationData.value = interpretationData;
+        console.log('[SharedReadingModal] Interpretation is already an object');
         return;
       }
       
-      // 텍스트 형태로 저장되어 있는 경우 구조화 시도
-      const interpretation = sharedData.value.ai_interpretation;
-      
-      // 기본 구조 생성
-      dailyInterpretationData.value = {
-        fortuneIndex: {
-          overall: 3,
-          love: 3,
-          money: 3,
-          health: 3,
-          work: 3
-        },
-        timeAdvice: {
-          morning: '오전에는 신중하게 행동하세요.',
-          afternoon: '오후에는 적극적으로 움직이세요.',
-          evening: '저녁에는 휴식을 취하세요.'
-        },
-        luckyItems: {
-          color: '파란색',
-          number: '7',
-          direction: '동쪽',
-          activity: '산책'
-        },
-        relationshipAdvice: {
-          tip: '상대방의 말을 경청하세요.',
-          avoid: '충동적인 결정',
-          goodMeet: '긍정적인 사람'
-        },
-        dailyQuote: '오늘은 새로운 시작의 날입니다.',
-        detailedFortune: {
-          mainMessage: interpretation,
-          keyPoint: '긍정적인 마음가짐을 유지하세요.',
-          caution: '서두르지 마세요.',
-          luckyMoment: '오후 3시경',
-          advice: '차분하게 하루를 보내세요.'
+      // 문자열인 경우 JSON 파싱 시도
+      if (typeof interpretationData === 'string') {
+        // JSON 문자열인지 확인
+        if (interpretationData.trim().startsWith('{')) {
+          dailyInterpretationData.value = JSON.parse(interpretationData);
+          console.log('[SharedReadingModal] Successfully parsed JSON string');
+          return;
         }
-      };
+        
+        // 일반 텍스트인 경우 (구버전 호환)
+        console.log('[SharedReadingModal] Plain text interpretation, creating default structure');
+        dailyInterpretationData.value = {
+          fortuneIndex: {
+            overall: 3,
+            love: 3,
+            money: 3,
+            health: 3,
+            work: 3
+          },
+          timeAdvice: {
+            morning: '오전에는 신중하게 행동하세요.',
+            afternoon: '오후에는 적극적으로 움직이세요.',
+            evening: '저녁에는 휴식을 취하세요.'
+          },
+          luckyItems: {
+            color: '파란색',
+            number: '7',
+            direction: '동쪽',
+            activity: '산책'
+          },
+          relationshipAdvice: {
+            tip: '상대방의 말을 경청하세요.',
+            avoid: '충동적인 결정',
+            goodMeet: '긍정적인 사람'
+          },
+          dailyQuote: '오늘은 새로운 시작의 날입니다.',
+          detailedFortune: {
+            mainMessage: interpretationData,
+            keyPoint: '긍정적인 마음가짐을 유지하세요.',
+            caution: '서두르지 마세요.',
+            luckyMoment: '오후 3시경',
+            advice: '차분하게 하루를 보내세요.'
+          }
+        };
+      }
     } catch (err) {
-      console.error('Failed to parse daily interpretation:', err);
+      console.error('[SharedReadingModal] Failed to parse daily interpretation:', err);
       dailyInterpretationData.value = null;
     }
+  } else {
+    console.log('[SharedReadingModal] No ai_interpretation data');
+    dailyInterpretationData.value = null;
   }
 };
 
@@ -459,12 +476,19 @@ const loadSharedReading = async (readingId: string) => {
       id: data.id,
       spread_type: data.spread_type,
       has_cards: !!data.cards,
-      has_interpretation: !!data.ai_interpretation || !!data.basic_interpretation
+      has_interpretation: !!data.ai_interpretation || !!data.basic_interpretation,
+      ai_interpretation_type: typeof data.ai_interpretation,
+      ai_interpretation_preview: data.ai_interpretation ? 
+        (typeof data.ai_interpretation === 'string' ? 
+          data.ai_interpretation.substring(0, 100) + '...' : 
+          'Object with keys: ' + Object.keys(data.ai_interpretation).join(', ')) : 
+        'null'
     });
     
     // 오늘의 카드인 경우 해석 데이터 파싱
     if (data.spread_type === 'daily_card') {
       parseDailyInterpretation();
+      console.log('[SharedReadingModal] Parsed daily interpretation:', dailyInterpretationData.value);
     }
   } catch (err: any) {
     console.error('[SharedReadingModal] Failed to load shared reading:', err);
@@ -646,6 +670,13 @@ watch(() => props.isOpen, (isOpen) => {
 }
 
 /* 운세 지수 */
+.section-title {
+  color: #A855F7;
+  font-size: 18px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
 .fortune-section {
   margin-bottom: 30px;
 }
@@ -845,6 +876,19 @@ watch(() => props.isOpen, (isOpen) => {
   color: rgba(255, 255, 255, 0.9);
   line-height: 1.6;
   margin: 0;
+}
+
+/* 해석이 없는 경우 */
+.no-interpretation {
+  margin-top: 20px;
+}
+
+.interpretation-fallback {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.8;
 }
 
 /* 섹션 스타일 */
