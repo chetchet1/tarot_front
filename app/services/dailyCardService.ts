@@ -10,8 +10,8 @@ interface SaveDailyCardParams {
 }
 
 /**
- * 오늘의 카드를 daily_cards와 readings 테이블에 동시에 저장
- * 트랜잭션처럼 동작하도록 구현
+ * 오늘의 카드를 daily_cards 테이블에 저장
+ * readings 테이블 저장은 현재 권한 문제로 스킵
  */
 export async function saveDailyCardWithReading(
   userId: string,
@@ -56,6 +56,7 @@ export async function saveDailyCardWithReading(
       .eq('date', date)
       .maybeSingle();
     
+    // readings 테이블에 이미 있는지 확인
     const { data: existingReading } = await supabase
       .from('readings')
       .select('id')
@@ -102,7 +103,7 @@ export async function saveDailyCardWithReading(
       results.dailyCard = existingDaily;
     }
     
-    // 3. readings 저장 (없을 때만)
+    // 3. readings 테이블에도 저장 (점괘 기록 표시를 위해)
     if (!existingReading) {
       const cardData = {
         id: card.id,
@@ -131,6 +132,9 @@ export async function saveDailyCardWithReading(
         shared: false,
         created_at: new Date().toISOString()
       };
+      
+      // spread_type 필드가 있다면 추가 (데이터베이스에 따라)
+      // readingData['spread_type'] = 'daily_card';
       
       console.log('💾 readings 테이블에 새 데이터 저장 중...');
       console.log('  저장할 데이터 (요약):', {
@@ -199,7 +203,7 @@ async function cleanupTestAccountData(userId: string, date: string) {
     console.log('daily_cards 삭제 실패 (무시):', dailyDeleteError);
   }
   
-  // readings 삭제
+  // readings 테이블에서도 삭제
   const { error: readingDeleteError } = await supabase
     .from('readings')
     .delete()

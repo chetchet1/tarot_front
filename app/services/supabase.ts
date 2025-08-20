@@ -16,9 +16,17 @@ export const supabase = createClient(
     },
     global: {
       fetch: (url, options = {}) => {
-        // 타임아웃 설정 (15초)
+        // Edge Function 호출인 경우 타임아웃을 60초로 설정
+        const isEdgeFunction = url.includes('/functions/v1/');
+        const timeout = isEdgeFunction ? 60000 : 15000; // Edge Function: 60초, 일반: 15초
+        
+        // 타임아웃 설정
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        if (isEdgeFunction) {
+          console.log('🔵 Edge Function 호출 감지, 타임아웃 60초로 설정');
+        }
         
         return fetch(url, {
           ...options,
@@ -29,7 +37,10 @@ export const supabase = createClient(
         }).catch(error => {
           clearTimeout(timeoutId);
           if (error.name === 'AbortError') {
-            console.error('⏰ Supabase API 요청 타임아웃');
+            console.error(`⏰ Supabase API 요청 타임아웃 (${timeout/1000}초 초과)`);
+            if (isEdgeFunction) {
+              throw new Error('AI 해석 생성이 지연되고 있습니다. 잠시 후 다시 시도해주세요.');
+            }
             throw new Error('네트워크 연결 시간이 초과되었습니다.');
           }
           throw error;

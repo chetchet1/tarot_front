@@ -109,7 +109,7 @@
               <span v-if="isPremiumSpread(reading)" class="premium-badge">
                 👑 프리미엄
               </span>
-              <span v-if="reading.spread_type === 'daily_card'" class="daily-badge">
+              <span v-if="reading.spread_id === 'daily_card'" class="daily-badge">
                 ☀️ 오늘의 카드
               </span>
             </div>
@@ -140,7 +140,7 @@
       </div>
 
       <!-- 일반 점괘 상세 모달 -->
-      <div v-if="selectedReading && selectedReading.spread_type !== 'daily_card'" class="modal-backdrop" @click="closeModal">
+      <div v-if="selectedReading && selectedReading.spread_id !== 'daily_card'" class="modal-backdrop" @click="closeModal">
         <div class="modal-content" @click.stop>
           <div class="modal-header">
             <h2>{{ selectedReading.spread_name }}</h2>
@@ -164,7 +164,7 @@
               <h4>뽑힌 카드들</h4>
               <SpreadLayout
                 :spread-id="selectedReading.spread_id"
-                :spread-type="selectedReading.spread_type"
+                :spread-type="selectedReading.spread_id"
                 :cards="selectedReading.cards"
               />
             </div>
@@ -179,7 +179,7 @@
       
       <!-- 오늘의 카드 전용 모달 -->
       <DailyCardModal 
-        v-if="selectedReading && selectedReading.spread_type === 'daily_card'"
+        v-if="selectedReading && selectedReading.spread_id === 'daily_card'"
         :reading="selectedReading"
         @close="closeModal"
       />
@@ -260,9 +260,9 @@ const filteredReadings = computed(() => {
   // 배열 필터 적용
   if (selectedSpreadFilter.value !== 'all') {
     filtered = filtered.filter(reading => {
-      // spread_type이 daily_card인 경우 처리
+      // daily_card인 경우 처리
       if (selectedSpreadFilter.value === 'daily_card') {
-        return reading.spread_type === 'daily_card' || reading.spread_id === 'daily_card';
+        return reading.spread_id === 'daily_card';
       }
       // 일반 spread_id 비교
       return reading.spread_id === selectedSpreadFilter.value;
@@ -326,7 +326,7 @@ const totalPages = computed(() => {
   if (selectedSpreadFilter.value !== 'all') {
     filtered = filtered.filter(reading => {
       if (selectedSpreadFilter.value === 'daily_card') {
-        return reading.spread_type === 'daily_card' || reading.spread_id === 'daily_card';
+        return reading.spread_id === 'daily_card';
       }
       return reading.spread_id === selectedSpreadFilter.value;
     });
@@ -549,14 +549,21 @@ const fetchReadings = async () => {
         }
       }
       
-      // spread_type이 'daily_card'인 경우 특별 처리
-      if (reading.spread_type === 'daily_card' || reading.spread_id === 'daily_card') {
-        console.log(`Reading ${index} 오늘의 카드 원본:`, reading.cards);
-        console.log(`Reading ${index} 처리된 카드:`, processedCards);
+      // daily_card인 경우 특별 처리
+      // spread_type이 daily_card이거나, spread_id가 daily_card이거나, 질문에 '오늘의 카드'가 포함된 경우
+      if (reading.spread_type === 'daily_card' || 
+          reading.spread_id === 'daily_card' || 
+          (reading.question && reading.question.includes('오늘의 카드'))) {
+        console.log(`Reading ${index} 오늘의 카드 발견:`, {
+          spread_id: reading.spread_id,
+          spread_type: reading.spread_type,
+          question: reading.question,
+          cards: processedCards.length
+        });
         return {
           ...reading,
           spread_id: 'daily_card',  // spread_id 통일
-          spread_type: 'daily_card',  // spread_type도 유지
+          spread_type: 'daily_card',  // spread_type 통일
           spread_name: '오늘의 카드',
           topic: reading.topic || 'general',
           cards: processedCards,
@@ -576,7 +583,8 @@ const fetchReadings = async () => {
       // 일반 점괘 처리
       return {
         ...reading,
-        spread_name: spreadNames[reading.spread_id] || reading.spread_id || reading.spread_type || '일반 점괘',
+        spread_type: reading.spread_id,  // spread_id를 spread_type으로도 사용
+        spread_name: spreadNames[reading.spread_id] || reading.spread_id || '일반 점괘',
         cards: processedCards,
         ai_interpretation_text: aiInterpretationText
       };
@@ -619,8 +627,14 @@ onMounted(async () => {
     return;
   }
   
+  // 프리미엄 상태 새로고침 (DB에서 최신 상태 확인)
+  await userStore.refreshPremiumStatus();
+  
   // 프리미엄 사용자 체크
   if (!userStore.isPremium) {
+    console.log('프리미엄 상태:', userStore.isPremium);
+    console.log('현재 사용자:', userStore.currentUser);
+    
     await showAlert({
       title: '프리미엄 전용 기능',
       message: '점괘 기록 보관은 프리미엄 구독자만 이용 가능합니다.\n\n프리미엄 구독 시 1년간 점괘를 안전하게 보관할 수 있습니다.',

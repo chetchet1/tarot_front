@@ -89,22 +89,22 @@
         </div>
       </div>
 
-      <div class="current-status" v-if="userStore.isAuthenticated">
+      <div class="current-status" v-if="userStore.isLoggedIn">
         <div class="status-card card">
           <h3>현재 상태</h3>
           <div v-if="userStore.isPremium" class="premium-status">
             <div class="status-icon">👑</div>
             <p><strong>프리미엄 회원</strong></p>
             <p>모든 기능을 무제한으로 이용하고 계십니다!</p>
-            <div class="subscription-info" v-if="userStore.currentSubscription">
-              <p>구독 만료일: {{ formatDate(userStore.currentSubscription.endDate) }}</p>
+            <div class="subscription-info">
+              <p>프리미엄 기능을 모두 이용할 수 있습니다.</p>
               <button class="btn btn-outline" @click="manageSub">구독 관리</button>
             </div>
           </div>
           <div v-else class="free-status">
             <div class="status-icon">🆓</div>
             <p><strong>무료 회원</strong></p>
-            <p>오늘 무료 점괘: {{ userStore.freeReadingsToday }}/{{ userStore.maxFreeReadingsPerDay }}</p>
+            <p>광고 시청으로 무한 점괘를 볼 수 있습니다.</p>
           </div>
         </div>
       </div>

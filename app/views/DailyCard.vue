@@ -17,14 +17,6 @@
     <!-- 날짜 표시 -->
     <div class="date-display">
       {{ formatDate(currentDate) }}
-      <!-- 디버그 버튼 (개발용) -->
-      <button 
-        v-if="false" 
-        @click="testLoading" 
-        style="margin-left: 20px; padding: 5px 10px; background: white; color: black; border-radius: 4px;"
-      >
-        로딩 테스트
-      </button>
     </div>
 
     <!-- 메인 콘텐츠 -->
@@ -61,7 +53,7 @@
         </div>
       </div>
 
-      <!-- 이미 뽑은 경우 (광고/로딩 중이 아닐 때만 표시) -->
+      <!-- 이미 뽑은 경우 (광고와 로딩 중이 아닐 때만 표시) -->
       <div v-else-if="hasDrawnToday && !showAd && !isInterpretationLoading" class="card-area">
         <div class="card-front">
           <img 
@@ -88,7 +80,7 @@
       </div>
 
       <!-- 해석 표시 영역 -->
-      <div v-if="showInterpretation && interpretation" class="interpretation-area">
+      <div v-if="showInterpretation" class="interpretation-area">
         <!-- 운세 지수 -->
         <div class="fortune-section">
           <h3 class="section-title">📊 오늘의 운세 지수</h3>
@@ -241,13 +233,23 @@ const hasDrawnToday = computed(() => {
 });
 
 const showInterpretation = computed(() => {
+  console.log('showInterpretation 계산:', {
+    hasDrawnToday: hasDrawnToday.value,
+    isCardRevealed: isCardRevealed.value,
+    showAd: showAd.value,
+    interpretationExists: interpretation.value !== null,
+    isInterpretationLoading: isInterpretationLoading.value
+  });
   return (hasDrawnToday.value || isCardRevealed.value) && 
          !showAd.value && 
+         !isInterpretationLoading.value &&
          interpretation.value !== null;
 });
 
 // 메서드
-const goBack = () => {
+const goBack = async () => {
+  // 프리미엄 상태 새로고침 후 이동
+  await userStore.refreshPremiumStatus();
   router.push('/app');
 };
 
@@ -259,6 +261,8 @@ const formatDate = (date: Date) => {
     weekday: 'long'
   });
 };
+
+
 
 const getFortuneLabel = (key: string) => {
   const labels: Record<string, string> = {
@@ -277,10 +281,12 @@ const loadTodayCard = async () => {
   console.log('Supabase URL:', SUPABASE_CONFIG.url);
   console.log('User:', userStore.currentUser);
   
-  // 상태 완전 초기화 - 매번 새로 시작
+  // 프리미엄 테스트 계정 확인
+  const isPremiumTestAcc = isPremiumTestAccount(userStore.currentUser?.email);
+  
+  // 모든 사용자 동일하게 초기화
   isCardRevealed.value = false;
   selectedCard.value = null;
-  todayCard.value = null;  // 이전 카드 정보도 초기화
   interpretation.value = null;
   showAd.value = false;
   isInterpretationLoading.value = false;
@@ -298,7 +304,7 @@ const loadTodayCard = async () => {
     
     // 로그인 확인 (익명 사용자 차단) - 테스트 계정 예외 처리
     const isTestAcc = isTestAccount(userStore.currentUser?.email);
-    const isPremiumTestAcc = isPremiumTestAccount(userStore.currentUser?.email);
+    // isPremiumTestAcc는 이미 함수 시작 부분에서 선언됨
     
     console.log('테스트 계정 체크:', {
       isTestAcc,
@@ -329,23 +335,10 @@ const loadTodayCard = async () => {
       return;
     }
     
-    // 프리미엄 테스트 계정이면 캐싱 완전 무시하고 바로 리턴
+    // 프리미엄 테스트 계정도 DB 조회 (일반 사용자와 동일하게 처리)
     if (isPremiumTestAcc) {
-      console.log('🎯 프리미엄 테스트 계정 감지: 캐싱 완전 무시');
+      console.log('🎯 프리미엄 테스트 계정 감지');
       console.log('프리미엄 상태:', userStore.isPremium);
-      
-      // DB 조회 없이 바로 초기화 상태로 리턴
-      todayCard.value = null;
-      isCardRevealed.value = false;
-      selectedCard.value = null;
-      interpretation.value = null;
-      showAd.value = false;
-      isInterpretationLoading.value = false;
-      interpretationProgress.value = 0;
-      isLoading.value = false;
-      
-      console.log('프리미엄 테스트 계정 - 새로 뽑기 가능 상태로 설정 완료');
-      return; // 여기서 종료 - DB 조회하지 않음
     }
     
     // 무료 테스트 계정 또는 일반 사용자만 아래 코드 실행
@@ -414,6 +407,9 @@ const loadTodayCard = async () => {
       console.log('오늘의 카드 데이터:', readingData);
       todayCard.value = readingData as DailyReading;
       
+      // 카드가 이미 뽑혀있으므로 공개 상태로 설정
+      isCardRevealed.value = true;
+      
       // interpretation_data 컬럼 체크 (옵셔널)
       try {
         if (readingData.interpretation_data) {
@@ -444,7 +440,7 @@ const loadTodayCard = async () => {
 };
 
 // dailyCardService import 추가
-import { saveDailyCardWithReading, syncDailyCardToReadings } from '../services/dailyCardService';
+import { saveDailyCardWithReading } from '../services/dailyCardService';
 
 // 카드 뽑기
 const drawCard = async () => {
@@ -466,16 +462,8 @@ const drawCard = async () => {
     // 이미 뽑은 카드 표시
     selectedCard.value = todayCard.value.card;
     
-    // readings 테이블 동기화 시도
-    if (selectedCard.value && userStore.currentUser?.id) {
-      const today = new Date().toISOString().split('T')[0];
-      try {
-        await syncDailyCardToReadings(userStore.currentUser.id, selectedCard.value, today);
-        console.log('기존 카드의 readings 동기화 완료');
-      } catch (error) {
-        console.log('readings 동기화 실패 (무시):', error);
-      }
-    }
+    // readings 테이블 동기화는 권한 문제로 스킵
+    console.log('readings 동기화 스킵 (권한 문제)');
     
     // 해석이 있으면 표시
     if (todayCard.value.interpretation_data) {
@@ -524,15 +512,10 @@ const drawCard = async () => {
     return;
   }
   
-  // 프리미엄 테스트 계정은 매번 상태 초기화하고 진행
+  // 프리미엄 테스트 계정은 초기화 필요 없음 (이미 loadTodayCard에서 처리됨)
   if (isPremiumTestAcc) {
-    console.log('프리미엄 테스트 계정 - 상태 초기화 후 진행');
-    isCardRevealed.value = false;
-    selectedCard.value = null;
-    interpretation.value = null;
-    showAd.value = false;
-    isInterpretationLoading.value = false;
-    interpretationProgress.value = 0;
+    console.log('프리미엄 테스트 계정 - 새 카드 뽑기 진행');
+    // 상태 초기화는 제거 - 이미 위에서 처리됨
   }
   
   // isTestAcc는 이미 위에서 선언됨
@@ -557,9 +540,11 @@ const drawCard = async () => {
   // 무료 사용자는 바로 광고로 이동
   let progressInterval: number | null = null;
   
-  // isTestAcc는 이미 위에서 선언됨
-  if (userStore.isPremium && !isTestAcc) {
-    // 프리미엄 사용자만 로딩 화면 표시
+  // 로딩 화면을 보여줘야 할 사용자 확인 (프리미엄 사용자 또는 프리미엄 테스트 계정)
+  const shouldShowLoading = userStore.isPremium || isPremiumTestAcc;
+  
+  if (shouldShowLoading) {
+    console.log('로딩 화면 표시 시작 (isPremium:', userStore.isPremium, ', isPremiumTestAcc:', isPremiumTestAcc, ')');
     isInterpretationLoading.value = true;
     interpretationProgress.value = 10;
     
@@ -575,6 +560,8 @@ const drawCard = async () => {
         console.log('progress updated:', interpretationProgress.value);
       }
     }, 500) as unknown as number;
+  } else {
+    console.log('로딩 화면 표시 안 함 (무료 사용자, 광고 후 표시 예정)');
   }
   
   try {
@@ -602,8 +589,8 @@ const drawCard = async () => {
     
     const card = cards[0];
     
-    // 카드가 정상적으로 선택되었는지 확인
-    if (!card || !card.id) {
+    // 카드가 정상적으로 선택되었는지 확인 (id가 0일 수도 있음 - The Fool)
+    if (!card || (card.id === undefined || card.id === null)) {
       console.error('카드 선택 실패 - 카드 정보:', card);
       throw new Error('카드를 선택할 수 없습니다');
     }
@@ -687,12 +674,22 @@ const drawCard = async () => {
       card: card
     });
     
-    // saveDailyCardWithReading 함수를 사용하여 daily_cards와 readings에 동시 저장
-    // 이 함수는 테스트 계정 처리와 중복 체크를 모두 처리함
+    // saveDailyCardWithReading 함수를 사용하여 daily_cards에 저장
+    // readings 테이블 저장은 현재 권한 문제로 스킵
     
-    // 프리미엄 테스트 계정은 DB에 저장하지 않음
-    if (isPremiumTestAcc) {
-      console.log('프리미엄 테스트 계정: DB 저장 스킵, 메모리에서만 사용');
+    // 모든 사용자(프리미엄 테스트 계정 포함) DB에 저장
+    const savedData = await saveDailyCardWithReading(
+      userId,
+      card,
+      today,
+      isPremiumTestAcc  // 프리미엄 테스트 계정 여부 전달
+    );
+    
+    if (savedData) {
+      todayCard.value = savedData;
+      console.log('오늘의 카드 저장 완료:', savedData);
+    } else {
+      // 저장 실패 시 메모리에서만 사용
       todayCard.value = {
         id: null,
         user_id: userId,
@@ -702,31 +699,7 @@ const drawCard = async () => {
         card: card,
         created_at: new Date().toISOString()
       } as any;
-    } else {
-      // 일반 사용자와 무료 테스트 계정만 DB에 저장
-      const savedData = await saveDailyCardWithReading(
-        userId,
-        card,
-        today,
-        false  // 일반 저장 (삭제 없이)
-      );
-      
-      if (savedData) {
-        todayCard.value = savedData;
-        console.log('오늘의 카드 저장 완료:', savedData);
-      } else {
-        // 저장 실패 시 메모리에서만 사용
-        todayCard.value = {
-          id: null,
-          user_id: userId,
-          card_id: card.id,
-          date: today,
-          orientation: 'upright',
-          card: card,
-          created_at: new Date().toISOString()
-        } as any;
-        console.log('저장 실패, 메모리에서만 사용');
-      }
+      console.log('저장 실패, 메모리에서만 사용');
     }
 
     // 테스트 계정 확인 및 프리미엄 상태 확인
@@ -734,8 +707,7 @@ const drawCard = async () => {
     console.log('프리미엄 상태:', userStore.isPremium);
     console.log('userStore.currentUser:', userStore.currentUser);
     
-    // 프리미엄 테스트 계정 확인
-    const isPremiumTestAcc = isPremiumTestAccount(userStore.currentUser?.email);
+    // isPremiumTestAcc는 이미 함수 시작 부분에서 선언됨
     console.log('현재 사용자 상태:', {
       email: userStore.currentUser?.email,
       isPremium: userStore.isPremium,
@@ -748,17 +720,21 @@ const drawCard = async () => {
     
     // 무료 사용자는 광고 표시 (무료 테스트 계정도 광고 표시)
     if (shouldShowAd) {
-      console.log('무료 사용자 - 광고 표시 준비');
-      // 광고 표시 전에 모든 UI 숨김
-      if (progressInterval) {
-        clearInterval(progressInterval);
-      }
-      isInterpretationLoading.value = false;
-      interpretationProgress.value = 0;
-      isCardRevealed.value = false;
-      
-      // 즉시 광고 호출 (딜레이 없이) - 카드 정보 전달
-      await showAdvertisement(card);
+    console.log('무료 사용자 - 광고 표시 준비');
+    // 광고 표시 전에 카드는 선택하되 공개하지 않음
+    selectedCard.value = card;
+    isCardRevealed.value = false;
+    
+    // 진행중인 프로그레스 인터벌 정리
+    if (progressInterval) {
+      clearInterval(progressInterval);
+      progressInterval = null;
+    }
+    // 무료 사용자는 로딩 상태 초기화하지 않음 (광고 후 로딩 화면 표시해야 함)
+    console.log('무료 사용자 - 로딩 상태 유지');
+    
+    // 광고 표시
+    await showAdvertisement(card);
     } else {
       console.log('프리미엄 사용자 - AI 해석 직접 생성');
       // 프리미엄 사용자는 바로 카드 설정
@@ -793,19 +769,18 @@ const drawCard = async () => {
 
 // 광고 표시 (리워드 광고 사용)
 const showAdvertisement = async (card: TarotCard) => {
-  console.log('광고 표시 시작');
+  console.log('============ 광고 표시 시작 ============');
   console.log('전달받은 카드:', card);
   console.log('현재 상태:', {
     selectedCard: selectedCard.value,
     isCardRevealed: isCardRevealed.value,
-    isInterpretationLoading: isInterpretationLoading.value
+    isInterpretationLoading: isInterpretationLoading.value,
+    showAd: showAd.value
   });
   
   // 카드가 아직 공개되지 않도록 확실히 함
   isCardRevealed.value = false;
-  isInterpretationLoading.value = false;
-  interpretationProgress.value = 0;
-  // selectedCard를 아직 설정하지 않음 (광고 후에 설정)
+  // selectedCard는 이미 drawCard에서 설정됨
   
   try {
     // AdMob 리워드 광고 호출
@@ -826,28 +801,43 @@ const showAdvertisement = async (card: TarotCard) => {
     if (adWatched) {
       // 광고 시청 완료 시 AI 해석 로딩 화면 표시
       console.log('광고 시청 완료, AI 해석 시작');
+      console.log('selectedCard:', selectedCard.value);
       
-      // 이제 카드를 selectedCard에 설정
-      selectedCard.value = card;
-      console.log('카드 설정 완료:', selectedCard.value);
-      
-      // 카드 확인
+      // 카드 확인 (이미 설정되어 있어야 함)
       if (!selectedCard.value) {
-        console.error('선택된 카드가 없음 - 중단');
-        showAd.value = false;
-        isCardRevealed.value = false;
-        await showAlert({
-          title: '오류',
-          message: '카드 정보를 찾을 수 없습니다. 다시 시도해주세요.'
-        });
-        return;
+        console.error('선택된 카드가 없음 - 카드 재설정');
+        selectedCard.value = card;  // 카드가 없으면 다시 설정
+        
+        if (!selectedCard.value) {
+          showAd.value = false;
+          isCardRevealed.value = false;
+          await showAlert({
+            title: '오류',
+            message: '카드 정보를 찾을 수 없습니다. 다시 시도해주세요.'
+          });
+          return;
+        }
       }
       
+      // 로딩 화면을 반드시 표시
+      console.log('============ 광고 후 로딩 화면 표시 시작 ============');
       isInterpretationLoading.value = true;
       interpretationProgress.value = 10; // 초기값 설정
       
+      console.log('로딩 상태 변경 전:', {
+        isInterpretationLoading: isInterpretationLoading.value,
+        interpretationProgress: interpretationProgress.value
+      });
+      
       // DOM 업데이트 보장
       await nextTick();
+      
+      console.log('로딩 화면 활성화 확인 (nextTick 후):', {
+        isInterpretationLoading: isInterpretationLoading.value,
+        interpretationProgress: interpretationProgress.value,
+        showAd: showAd.value,
+        isCardRevealed: isCardRevealed.value
+      });
       
       // 프로그레스 애니메이션 시작
       let progressInterval: number | null = null;
@@ -928,7 +918,9 @@ const showAdvertisement = async (card: TarotCard) => {
         await showAdvertisement(card); // 재귀 호출 - 카드 전달
       } else {
         // 광고 없이 기본 해석만 표시
-        selectedCard.value = card; // 카드 설정
+        if (!selectedCard.value) {
+          selectedCard.value = card; // 카드가 없으면 설정
+        }
         isCardRevealed.value = true;
         interpretation.value = generateDefaultInterpretation(card);
       }
@@ -938,8 +930,11 @@ const showAdvertisement = async (card: TarotCard) => {
     showAd.value = false;
     
     // 광고 실패 시에도 AI 해석 진행 (무료 패스)
-    // 카드 설정
-    selectedCard.value = card;
+    // 카드 확인 (이미 설정되어 있어야 함)
+    if (!selectedCard.value) {
+      console.error('선택된 카드가 없음 - 카드 재설정');
+      selectedCard.value = card;  // 카드가 없으면 다시 설정
+    }
     
     if (!selectedCard.value) {
       console.error('선택된 카드가 없어 진행 불가');
@@ -987,10 +982,9 @@ const saveDailyCardInterpretation = async (interpretationData: DailyInterpretati
   const isTestAcc = isTestAccount(userStore.currentUser?.email);
   const isPremiumTestAcc = isPremiumTestAccount(userStore.currentUser?.email);
   
-  // 프리미엄 테스트 계정은 캐싱하지 않음
+  // 프리미엄 테스트 계정도 캐싱 (모든 사용자 동일하게 처리)
   if (isPremiumTestAcc) {
-    console.log('프리미엄 테스트 계정: 해석 데이터 캐싱 스킵');
-    return;
+    console.log('프리미엄 테스트 계정: 해석 데이터 캐싱 진행');
   }
   
   // 무료 테스트 계정은 일반 사용자처럼 캐싱
@@ -1025,8 +1019,14 @@ const saveDailyCardInterpretation = async (interpretationData: DailyInterpretati
   }
 };
 
-// readings 테이블의 해석 업데이트
+// readings 테이블의 해석 업데이트 (403 에러 무시)
 const updateReadingsInterpretation = async (card: TarotCard, interpretationData: DailyInterpretation) => {
+  // readings 테이블 업데이트는 현재 권한 문제로 스킵
+  // 추후 RLS 정책 수정 후 재활성화
+  console.log('readings 테이블 업데이트 스킵 (권한 문제)');
+  return;
+  
+  /* 권한 문제 해결 후 아래 코드 재활성화
   if (!interpretationData || !userStore.currentUser?.id) {
     console.log('해석 데이터 또는 사용자 정보 없음: readings 업데이트 스킵');
     return;
@@ -1083,6 +1083,7 @@ const updateReadingsInterpretation = async (card: TarotCard, interpretationData:
   } catch (error) {
     console.error('updateReadingsInterpretation 예외:', error);
   }
+  */
 };
 
 // AI 해석 생성
