@@ -220,16 +220,16 @@ const getCardImagePath = (card: any) => {
       return `/assets/tarot-cards/major/${cardNumber}-${majorNames[cardId]}.png`;
     }
     
-    // 마이너 아르카나 - 기존 로직 사용
-    // Wands: 22-35, Cups: 36-49, Swords: 50-63, Pentacles: 64-77
+    // 마이너 아르카나 - 올바른 순서
+    // Cups: 22-35, Wands: 36-49, Swords: 50-63, Pentacles: 64-77
     let suit = '';
     let number = 0;
     
     if (cardId >= 22 && cardId <= 35) {
-      suit = 'wands';
+      suit = 'cups';
       number = cardId - 21; // 1-14
     } else if (cardId >= 36 && cardId <= 49) {
-      suit = 'cups';
+      suit = 'wands';
       number = cardId - 35; // 1-14
     } else if (cardId >= 50 && cardId <= 63) {
       suit = 'swords';
@@ -254,11 +254,12 @@ const getCardImagePath = (card: any) => {
       const suitName = suit.charAt(0).toUpperCase() + suit.slice(1);
       
       // 코트 카드 번호 계산
-      const suitOrder = ['wands', 'cups', 'swords', 'pentacles'];
+      const suitOrder = ['cups', 'wands', 'swords', 'pentacles'];
       const courtOrder = ['page', 'knight', 'queen', 'king'];
       const suitIndex = suitOrder.indexOf(suit);
       const courtIndex = courtOrder.indexOf(courtName);
-      const baseNumbers = [41, 45, 49, 53];
+      // 각 슈트의 코트카드 시작 번호: Cups=45, Wands=41, Swords=49, Pentacles=53
+      const baseNumbers = [45, 41, 49, 53];
       const fileNumber = baseNumbers[suitIndex] + courtIndex;
       
       return `/assets/tarot-cards/minor/${fileNumber}-${courtName.charAt(0).toUpperCase() + courtName.slice(1)}-of-${suitName}.png`;

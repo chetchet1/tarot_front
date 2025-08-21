@@ -32,41 +32,41 @@ export const getCardImagePath = (card: any): string => {
       // 마이너 아르카나 (22-77)
       if (dbId >= 22 && dbId <= 77) {
         const minorMapping: Record<number, string> = {
-          // Wands 숫자 카드 (22-31)
-          22: '01-ace-of-wands.png',
-          23: '02-two-of-wands.png',
-          24: '03-three-of-wands.png',
-          25: '04-four-of-wands.png',
-          26: '05-five-of-wands.png',
-          27: '06-six-of-wands.png',
-          28: '07-seven-of-wands.png',
-          29: '08-eight-of-wands.png',
-          30: '09-nine-of-wands.png',
-          31: '10-ten-of-wands.png',
+          // Cups 숫자 카드 (22-31)
+          22: '01-ace-of-cups.png',
+          23: '02-two-of-cups.png',
+          24: '03-three-of-cups.png',
+          25: '04-four-of-cups.png',
+          26: '05-five-of-cups.png',
+          27: '06-six-of-cups.png',
+          28: '07-seven-of-cups.png',
+          29: '08-eight-of-cups.png',
+          30: '09-nine-of-cups.png',
+          31: '10-ten-of-cups.png',
           
-          // Wands 코트 카드 (32-35) - 파일번호 41-44
-          32: '41-Page-of-Wands.png',
-          33: '42-Knight-of-Wands.png',
-          34: '43-Queen-of-Wands.png',
-          35: '44-King-of-Wands.png',
+          // Cups 코트 카드 (32-35) - 파일번호 45-48
+          32: '45-Page-of-Cups.png',
+          33: '46-Knight-of-Cups.png',
+          34: '47-Queen-of-Cups.png',
+          35: '48-King-of-Cups.png',
           
-          // Cups 숫자 카드 (36-45)
-          36: '01-ace-of-cups.png',
-          37: '02-two-of-cups.png',
-          38: '03-three-of-cups.png',
-          39: '04-four-of-cups.png',
-          40: '05-five-of-cups.png',
-          41: '06-six-of-cups.png',
-          42: '07-seven-of-cups.png',
-          43: '08-eight-of-cups.png',
-          44: '09-nine-of-cups.png',
-          45: '10-ten-of-cups.png',
+          // Wands 숫자 카드 (36-45)
+          36: '01-ace-of-wands.png',
+          37: '02-two-of-wands.png',
+          38: '03-three-of-wands.png',
+          39: '04-four-of-wands.png',
+          40: '05-five-of-wands.png',
+          41: '06-six-of-wands.png',
+          42: '07-seven-of-wands.png',
+          43: '08-eight-of-wands.png',
+          44: '09-nine-of-wands.png',
+          45: '10-ten-of-wands.png',
           
-          // Cups 코트 카드 (46-49) - 파일번호 45-48
-          46: '45-Page-of-Cups.png',
-          47: '46-Knight-of-Cups.png',
-          48: '47-Queen-of-Cups.png',
-          49: '48-King-of-Cups.png',
+          // Wands 코트 카드 (46-49) - 파일번호 41-44
+          46: '41-Page-of-Wands.png',
+          47: '42-Knight-of-Wands.png',
+          48: '43-Queen-of-Wands.png',
+          49: '44-King-of-Wands.png',
           
           // Swords 숫자 카드 (50-59)
           50: '01-ace-of-swords.png',
@@ -134,41 +134,41 @@ export const getCardImagePath = (card: any): string => {
       // 마이너 아르카나 (22-77)
       if (dbId >= 22 && dbId <= 77) {
         const minorMapping: Record<number, string> = {
-          // Wands 숫자 카드 (22-31)
-          22: '01-ace-of-wands.png',
-          23: '02-two-of-wands.png',
-          24: '03-three-of-wands.png',
-          25: '04-four-of-wands.png',
-          26: '05-five-of-wands.png',
-          27: '06-six-of-wands.png',
-          28: '07-seven-of-wands.png',
-          29: '08-eight-of-wands.png',
-          30: '09-nine-of-wands.png',
-          31: '10-ten-of-wands.png',
+          // Cups 숫자 카드 (22-31)
+          22: '01-ace-of-cups.png',
+          23: '02-two-of-cups.png',
+          24: '03-three-of-cups.png',
+          25: '04-four-of-cups.png',
+          26: '05-five-of-cups.png',
+          27: '06-six-of-cups.png',
+          28: '07-seven-of-cups.png',
+          29: '08-eight-of-cups.png',
+          30: '09-nine-of-cups.png',
+          31: '10-ten-of-cups.png',
           
-          // Wands 코트 카드 (32-35) - 파일번호 41-44
-          32: '41-Page-of-Wands.png',
-          33: '42-Knight-of-Wands.png',
-          34: '43-Queen-of-Wands.png',
-          35: '44-King-of-Wands.png',
+          // Cups 코트 카드 (32-35) - 파일번호 45-48
+          32: '45-Page-of-Cups.png',
+          33: '46-Knight-of-Cups.png',
+          34: '47-Queen-of-Cups.png',
+          35: '48-King-of-Cups.png',
           
-          // Cups 숫자 카드 (36-45)
-          36: '01-ace-of-cups.png',
-          37: '02-two-of-cups.png',
-          38: '03-three-of-cups.png',
-          39: '04-four-of-cups.png',
-          40: '05-five-of-cups.png',
-          41: '06-six-of-cups.png',
-          42: '07-seven-of-cups.png',
-          43: '08-eight-of-cups.png',
-          44: '09-nine-of-cups.png',
-          45: '10-ten-of-cups.png',
+          // Wands 숫자 카드 (36-45)
+          36: '01-ace-of-wands.png',
+          37: '02-two-of-wands.png',
+          38: '03-three-of-wands.png',
+          39: '04-four-of-wands.png',
+          40: '05-five-of-wands.png',
+          41: '06-six-of-wands.png',
+          42: '07-seven-of-wands.png',
+          43: '08-eight-of-wands.png',
+          44: '09-nine-of-wands.png',
+          45: '10-ten-of-wands.png',
           
-          // Cups 코트 카드 (46-49) - 파일번호 45-48
-          46: '45-Page-of-Cups.png',
-          47: '46-Knight-of-Cups.png',
-          48: '47-Queen-of-Cups.png',
-          49: '48-King-of-Cups.png',
+          // Wands 코트 카드 (46-49) - 파일번호 41-44
+          46: '41-Page-of-Wands.png',
+          47: '42-Knight-of-Wands.png',
+          48: '43-Queen-of-Wands.png',
+          49: '44-King-of-Wands.png',
           
           // Swords 숫자 카드 (50-59)
           50: '01-ace-of-swords.png',
@@ -267,41 +267,41 @@ export const getCardImagePath = (card: any): string => {
       const getFilePathFromId = (id: number): string => {
         // 완전한 매핑 테이블 (CARD_IMAGE_NAMING_RULES.md 기준)
         const completeMapping: Record<number, string> = {
-          // Wands 숫자 카드 (22-31)
-          22: '01-ace-of-wands.png',
-          23: '02-two-of-wands.png',
-          24: '03-three-of-wands.png',
-          25: '04-four-of-wands.png',
-          26: '05-five-of-wands.png',
-          27: '06-six-of-wands.png',
-          28: '07-seven-of-wands.png',
-          29: '08-eight-of-wands.png',
-          30: '09-nine-of-wands.png',
-          31: '10-ten-of-wands.png',
+          // Cups 숫자 카드 (22-31)
+          22: '01-ace-of-cups.png',
+          23: '02-two-of-cups.png',
+          24: '03-three-of-cups.png',
+          25: '04-four-of-cups.png',
+          26: '05-five-of-cups.png',
+          27: '06-six-of-cups.png',
+          28: '07-seven-of-cups.png',
+          29: '08-eight-of-cups.png',
+          30: '09-nine-of-cups.png',
+          31: '10-ten-of-cups.png',
           
-          // Wands 코트 카드 (32-35) - 파일번호 41-44
-          32: '41-Page-of-Wands.png',
-          33: '42-Knight-of-Wands.png',
-          34: '43-Queen-of-Wands.png',
-          35: '44-King-of-Wands.png',
+          // Cups 코트 카드 (32-35) - 파일번호 45-48
+          32: '45-Page-of-Cups.png',
+          33: '46-Knight-of-Cups.png',
+          34: '47-Queen-of-Cups.png',
+          35: '48-King-of-Cups.png',
           
-          // Cups 숫자 카드 (36-45)
-          36: '01-ace-of-cups.png',
-          37: '02-two-of-cups.png',
-          38: '03-three-of-cups.png',
-          39: '04-four-of-cups.png',
-          40: '05-five-of-cups.png',
-          41: '06-six-of-cups.png',
-          42: '07-seven-of-cups.png',
-          43: '08-eight-of-cups.png',
-          44: '09-nine-of-cups.png',
-          45: '10-ten-of-cups.png',
+          // Wands 숫자 카드 (36-45)
+          36: '01-ace-of-wands.png',
+          37: '02-two-of-wands.png',
+          38: '03-three-of-wands.png',
+          39: '04-four-of-wands.png',
+          40: '05-five-of-wands.png',
+          41: '06-six-of-wands.png',
+          42: '07-seven-of-wands.png',
+          43: '08-eight-of-wands.png',
+          44: '09-nine-of-wands.png',
+          45: '10-ten-of-wands.png',
           
-          // Cups 코트 카드 (46-49) - 파일번호 45-48
-          46: '45-Page-of-Cups.png',
-          47: '46-Knight-of-Cups.png',
-          48: '47-Queen-of-Cups.png',
-          49: '48-King-of-Cups.png',
+          // Wands 코트 카드 (46-49) - 파일번호 41-44
+          46: '41-Page-of-Wands.png',
+          47: '42-Knight-of-Wands.png',
+          48: '43-Queen-of-Wands.png',
+          49: '44-King-of-Wands.png',
           
           // Swords 숫자 카드 (50-59)
           50: '01-ace-of-swords.png',
