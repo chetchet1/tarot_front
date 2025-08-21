@@ -93,6 +93,10 @@ export class CupOfRelationshipAIInterpreter {
       console.log('[CupRelationshipAI] 해석 생성 시작');
       console.log('[CupRelationshipAI] 카드:', this.cards);
       console.log('[CupRelationshipAI] 관계 상태:', this.relationshipStatus);
+      console.log('[CupRelationshipAI] 커스텀 질문:', this.customQuestion);
+      
+      // 프롬프트 생성
+      const customPrompt = this.generateAIPrompt();
       
       // Edge Function 호출
       const { data, error } = await supabase.functions.invoke('generate-interpretation', {
@@ -106,6 +110,7 @@ export class CupOfRelationshipAIInterpreter {
           isPremium: true,
           userId,
           customQuestion: this.customQuestion,
+          customPrompt: customPrompt,
           relationshipStatus: this.relationshipStatus
         }
       });
@@ -268,6 +273,49 @@ export class CupOfRelationshipAIInterpreter {
     }
     
     return advice;
+  }
+  
+  /**
+   * AI용 프롬프트 생성
+   */
+  private generateAIPrompt(): string {
+    let prompt = `당신은 경험 많은 타로 마스터입니다. 컵 오브 릴레이션십 배열법으로 `;
+    
+    // 커스텀 질문이 있는 경우 우선 처리
+    if (this.customQuestion && this.customQuestion.trim()) {
+      prompt += `다음 질문에 대한 깊이 있는 관계 해석을 제공해주세요.\n\n`;
+      prompt += `【질문자의 구체적 질문】\n${this.customQuestion}\n\n`;
+    } else {
+      prompt += `연애와 관계에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
+    }
+    
+    // 관계 상태에 따른 지침
+    if (this.relationshipStatus === 'couple') {
+      prompt += `【중요】 질문자는 현재 연인이 있습니다.\n`;
+      prompt += `현재 관계의 발전과 미래에 초점을 맞춰주세요.\n\n`;
+    } else if (this.relationshipStatus === 'interested') {
+      prompt += `【중요】 질문자는 관심 있는 상대가 있습니다.\n`;
+      prompt += `상대방의 마음과 관계 발전 가능성에 초점을 맞춰주세요.\n\n`;
+    } else if (this.relationshipStatus === 'single') {
+      prompt += `【중요】 질문자는 현재 솔로입니다.\n`;
+      prompt += `새로운 만남과 연애 기회에 초점을 맞춰주세요.\n\n`;
+    }
+    
+    prompt += `【컵 오브 릴레이션십 카드 배열 (11장)】\n`;
+    this.cards.forEach((card, index) => {
+      const position = this.positions[index];
+      prompt += `${index + 1}. ${position.name}: ${card.nameKr} - ${card.orientation === 'upright' ? '정방향' : '역방향'}\n`;
+    });
+    prompt += '\n';
+    
+    prompt += `【응답 지침】\n`;
+    prompt += `• 11장 전체의 흐름을 고려한 종합적 해석\n`;
+    prompt += `• 나와 상대의 생각 차이를 명확히 분석\n`;
+    prompt += `• 현재와 미래의 변화를 구체적으로 설명\n`;
+    prompt += `• 3-4개 문단으로 자연스럽게 작성\n`;
+    prompt += `• 마지막에 "✨ 종합 메시지" 추가\n`;
+    
+    return prompt;
   }
   
   /**

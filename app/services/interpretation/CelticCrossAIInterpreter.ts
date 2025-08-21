@@ -214,7 +214,15 @@ export class CelticCrossAIInterpreter {
    * AI용 프롬프트 생성
    */
   private generateAIPrompt(): string {
-    let prompt = `당신은 경험 많은 타로 마스터입니다. 캘틱 크로스 배열법으로 ${this.topic}에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
+    let prompt = `당신은 경험 많은 타로 마스터입니다. 캘틱 크로스 배열법으로 `;
+    
+    // 커스텀 질문이 있는 경우 우선 처리
+    if (this.customQuestion && this.customQuestion.trim()) {
+      prompt += `다음 질문에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
+      prompt += `【질문자의 구체적 질문】\n${this.customQuestion}\n\n`;
+    } else {
+      prompt += `${this.topic}에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
+    }
     
     // 연애 카테고리 특별 처리
     if (this.topic === '연애' || this.topic === 'love' || this.topic.includes('사랑')) {
@@ -228,10 +236,6 @@ export class CelticCrossAIInterpreter {
         prompt += `【중요】 질문자는 현재 연인이 있습니다.\n`;
         prompt += `관계 발전, 상대방의 마음, 미래 가능성에 초점을 맞춰주세요.\n\n`;
       }
-    }
-    
-    if (this.customQuestion) {
-      prompt += `【질문자의 구체적 질문】\n${this.customQuestion}\n\n`;
     }
     
     prompt += `【캘틱 크로스 카드 배열】\n`;

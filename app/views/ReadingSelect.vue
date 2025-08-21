@@ -356,20 +356,26 @@ const topics = computed<Topic[]>(() => {
 const spreads = computed(() => {
   if (!selectedTopic.value) return [];
   
-  // 커스텀 질문인 경우 켈틱 크로스만 표시
+  // 커스텀 질문인 경우 프리미엄 배열법들 표시
   if (selectedTopic.value === 'custom') {
-    const celticCross = getSpreadById('celtic_cross');
-    if (celticCross) {
-      return [{
-        id: celticCross.spreadId,
-        name: celticCross.nameKr,
-        description: celticCross.description,
-        cardCount: celticCross.cardCount,
-        difficulty: 'hard',
-        isPremium: celticCross.isPremium
-      }];
+    const premiumSpreads = ['celtic_cross', 'seven_star', 'cup_of_relationship'];
+    const availableSpreads = [];
+    
+    for (const spreadId of premiumSpreads) {
+      const spread = getSpreadById(spreadId);
+      if (spread) {
+        availableSpreads.push({
+          id: spread.spreadId,
+          name: spread.nameKr,
+          description: spread.description,
+          cardCount: spread.cardCount,
+          difficulty: 'hard',
+          isPremium: spread.isPremium
+        });
+      }
     }
-    return [];
+    
+    return availableSpreads;
   }
   
   // 연애 주제인 경우 연애 상태를 고려하여 스프레드 필터링

@@ -146,7 +146,15 @@ export class CupOfRelationshipInterpreter {
    * AI용 프롬프트 생성
    */
   private generateAIPrompt(): string {
-    let prompt = `당신은 경험 많은 타로 마스터입니다. 컵 오브 릴레이션쉽 배열법으로 연애와 관계에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
+    let prompt = `당신은 경험 많은 타로 마스터입니다. 컵 오브 릴레이션쉽 배열법으로 `;
+    
+    // 커스텀 질문이 있는 경우 우선 처리
+    if (this.customQuestion && this.customQuestion.trim()) {
+      prompt += `다음 질문에 대한 깊이 있는 관계 해석을 제공해주세요.\n\n`;
+      prompt += `【질문자의 구체적 질문】\n${this.customQuestion}\n\n`;
+    } else {
+      prompt += `연애와 관계에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
+    }
     
     // 연애 테마 최우선 강조
     prompt += `【⚠️ 최우선 지침 - 연애 관계 해석】\n`;
