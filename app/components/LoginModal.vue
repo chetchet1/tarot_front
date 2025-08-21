@@ -35,18 +35,6 @@
           </svg>
           Google로 {{ isLoginMode ? '로그인' : '회원가입' }}
         </button>
-
-        <button 
-          class="social-btn kakao-btn" 
-          @click="handleKakaoLogin"
-          :disabled="isLoading"
-        >
-          <svg width="20" height="20" viewBox="0 0 48 48" class="social-icon">
-            <path fill="#3C1E1E" d="M24 4C12.95 4 4 11.15 4 20c0 5.62 3.58 10.54 9 13.41-.4 1.48-1.44 5.35-1.64 6.19-.25 1.05.39 1.03.82.75.34-.22 5.39-3.68 7.59-5.19 1.38.19 2.79.29 4.23.29 11.05 0 20-7.15 20-16C44 11.15 35.05 4 24 4z"/>
-          </svg>
-          카카오로 {{ isLoginMode ? '로그인' : '회원가입' }}
-          <span class="coming-soon">준비중</span>
-        </button>
       </div>
 
       <!-- 구분선 -->
@@ -414,13 +402,6 @@ export default {
       }
     };
 
-    // 카카오 로그인 처리 (준비중)
-    const handleKakaoLogin = async () => {
-      await showAlert({
-        title: '서비스 준비중',
-        message: '카카오 로그인은 앱 출시 이후 연동될 예정입니다.\n구글 로그인을 이용해 주세요.'
-      });
-    };
 
     // 비밀번호 재설정
     const handlePasswordReset = async () => {
@@ -522,7 +503,6 @@ export default {
       errors,
       handleEmailAuth,
       handleGoogleLogin,
-      handleKakaoLogin,
       handlePasswordReset,
       toggleMode,
       closeModal,
@@ -656,44 +636,11 @@ export default {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
-.kakao-btn {
-  background: #FEE500;
-  color: #000000D9;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  position: relative;
-}
-
-.kakao-btn:hover:not(:disabled) {
-  background: #FDD835;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
 
 .social-icon {
   flex-shrink: 0;
 }
 
-.coming-soon {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 11px;
-  padding: 2px 8px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  font-weight: 400;
-}
-
-.google-btn .coming-soon {
-  background: rgba(0, 0, 0, 0.08);
-  color: #666;
-}
-
-.kakao-btn .coming-soon {
-  background: rgba(0, 0, 0, 0.1);
-  color: #666;
-}
 
 .divider {
   text-align: center;
@@ -971,9 +918,35 @@ export default {
 
 /* 반응형 디자인 */
 @media (max-width: 640px) {
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  
+  .modal-container {
+    position: relative;
+    width: calc(100% - 40px);
+    max-width: 480px;
+    max-height: calc(100vh - 40px);
+    max-height: calc(100dvh - 40px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
   .login-modal {
-    margin: 10px;
-    max-height: calc(100vh - 20px);
+    width: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    margin: 0;
   }
   
   .modal-header,

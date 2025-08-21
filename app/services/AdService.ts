@@ -2,6 +2,10 @@ import { ref } from 'vue';
 
 class AdService {
   private initialized = false;
+  private initializing = false; // 초기화 진행 중 플래그
+  private isFirstLoad = true; // 첫 번째 광고 로드 여부
+  private initRetryCount = 0; // 초기화 재시도 횟수
+  private maxInitRetries = 3; // 최대 재시도 횟수
   private isTestMode = true; // 개발 중에는 테스트 모드
   
   // 광고 ID (나중에 실제 ID로 교체)
@@ -34,8 +38,22 @@ class AdService {
     return 'web';
   }
   
-  async initialize() {
-    if (this.initialized) return;
+  async initialize(forceRetry = false) {
+    // 이미 초기화되었고 강제 재시도가 아니면 리턴
+    if (this.initialized && !forceRetry) return true;
+    
+    // 초기화 진행 중이면 대기
+    if (this.initializing && !forceRetry) {
+      console.log('⏳ 초기화 진행 중... 대기');
+      // 최대 5초 대기
+      for (let i = 0; i < 50; i++) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        if (!this.initializing) break;
+      }
+      return this.initialized;
+    }
+    
+    this.initializing = true;
     
     try {
       const platform = this.getPlatform();
@@ -44,14 +62,16 @@ class AdService {
       if (platform === 'web') {
         console.log('광고는 웹에서 지원되지 않습니다.');
         this.initialized = true;
-        return;
+        this.initializing = false;
+        return true;
       }
       
       // Capacitor AdMob이 있는 경우에만 초기화
       if (typeof (window as any).Capacitor !== 'undefined' && (window as any).Capacitor.Plugins?.AdMob) {
         const AdMob = (window as any).Capacitor.Plugins.AdMob;
         
-        await AdMob.initialize({
+        // 초기화 시도 (타임아웃 설정)
+        const initPromise = AdMob.initialize({
           requestTrackingAuthorization: true,
           testingDevices: this.isTestMode ? [
             'YOUR_TEST_DEVICE_ID',
@@ -60,18 +80,45 @@ class AdService {
           initializeForTesting: this.isTestMode,
         });
         
+        // 타임아웃 설정 (첫 시도는 더 긴 타임아웃)
+        const timeout = this.isFirstLoad ? 15000 : 10000;
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('초기화 타임아웃')), timeout);
+        });
+        
+        await Promise.race([initPromise, timeoutPromise]);
+        
         console.log('🎯 AdMob 테스트 모드:', this.isTestMode);
         
         this.initialized = true;
-        console.log('AdMob 초기화 완료');
+        this.initializing = false;
+        this.initRetryCount = 0;
+        console.log('✅ AdMob 초기화 완료');
         
         // 광고 이벤트 리스너 설정
         this.setupEventListeners();
+        return true;
       }
       
-    } catch (error) {
+      this.initialized = false;
+      this.initializing = false;
+      return false;
+      
+    } catch (error: any) {
       console.error('AdMob 초기화 실패:', error);
-      this.initialized = true; // 오류가 나도 초기화된 것으로 처리
+      this.initializing = false;
+      
+      // 재시도 로직
+      if (this.initRetryCount < this.maxInitRetries) {
+        this.initRetryCount++;
+        console.log(`🔄 초기화 재시도 ${this.initRetryCount}/${this.maxInitRetries}`);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 대기
+        return await this.initialize(true);
+      }
+      
+      // 최대 재시도 횟수 초과 시 실패로 처리
+      this.initialized = false;
+      return false;
     }
   }
   
@@ -111,14 +158,45 @@ class AdService {
   }
   
   async loadInterstitialAd(): Promise<boolean> {
-    if (!this.initialized) {
-      await this.initialize();
+    // 첫 번째 로드인 경우 특별 처리
+    if (this.isFirstLoad) {
+      console.log('🚀 첫 번째 광고 로드 시도');
+      
+      // 초기화 확인 및 재시도
+      if (!this.initialized) {
+        console.log('🔧 광고 시스템 초기화 중...');
+        const initSuccess = await this.initialize();
+        if (!initSuccess) {
+          console.warn('⚠️ 초기화 실패 - 재시도');
+          // 한 번 더 시도
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const retrySuccess = await this.initialize(true);
+          if (!retrySuccess) {
+            console.error('❌ 초기화 최종 실패');
+            this.isFirstLoad = false;
+            return false;
+          }
+        }
+      }
+      
+      // 첫 로드 시 추가 대기 시간
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } else if (!this.initialized) {
+      const initSuccess = await this.initialize();
+      if (!initSuccess) {
+        return false;
+      }
     }
     
     // 이미 로딩 중이면 기다림
     if (this.isLoading.value) {
       console.log('🔄 이미 광고 로딩 중...');
-      return false;
+      // 로딩 완료 대기 (최대 5초)
+      for (let i = 0; i < 50; i++) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        if (!this.isLoading.value) break;
+      }
+      return this.isAdReady.value;
     }
     
     // 광고가 준비되었더라도 매번 새로 로드
@@ -148,13 +226,14 @@ class AdService {
         
         console.log('📡 광고 로드 옵션:', options);
         
-        // 타임아웃 설정 (10초)
+        // 타임아웃 설정 (첫 로드는 15초, 이후는 10초)
+        const timeout = this.isFirstLoad ? 15000 : 10000;
         const timeoutPromise = new Promise<boolean>((resolve) => {
           setTimeout(() => {
-            console.warn('⏱️ 광고 로드 타임아웃');
+            console.warn(`⏱️ 광고 로드 타임아웃 (${timeout}ms)`);
             this.isLoading.value = false;
             resolve(false);
-          }, 10000);
+          }, timeout);
         });
         
         const loadPromise = AdMob.prepareInterstitial(options).then(() => {
@@ -167,10 +246,38 @@ class AdService {
         // 타임아웃과 로드 중 먼저 완료되는 것 반환
         const result = await Promise.race([loadPromise, timeoutPromise]);
         
+        // 타임아웃이 발생했고 첫 로드인 경우 재시도
+        if (!result && this.isFirstLoad) {
+          console.warn('🔄 첫 광고 로드 실패 - 재시도');
+          this.isAdReady.value = false;
+          this.isLoading.value = false;
+          
+          // 1초 대기 후 재시도
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // prepareInterstitial 한 번 더 시도
+          try {
+            this.isLoading.value = true;
+            await AdMob.prepareInterstitial(options);
+            console.log('✅ 재시도 광고 로드 성공');
+            this.isAdReady.value = true;
+            this.isLoading.value = false;
+            this.isFirstLoad = false; // 첫 로드 완료
+            return true;
+          } catch (retryError) {
+            console.error('❌ 재시도도 실패:', retryError);
+            this.isLoading.value = false;
+            this.isFirstLoad = false;
+            return false;
+          }
+        }
+        
         // 타임아웃이 발생했다면 상태 초기화
         if (!result) {
           this.isAdReady.value = false;
           console.warn('⏱️ 광고 로드 타임아웃으로 인한 상태 초기화');
+        } else if (result && this.isFirstLoad) {
+          this.isFirstLoad = false; // 첫 로드 성공
         }
         
         return result;
@@ -235,6 +342,14 @@ class AdService {
       
       // Capacitor AdMob이 있는 경우
       if (typeof (window as any).Capacitor !== 'undefined' && (window as any).Capacitor.Plugins?.AdMob) {
+        // 초기화가 되지 않았으면 먼저 초기화
+        if (!this.initialized) {
+          console.log('📺 광고 서비스 초기화 필요 - 초기화 시작');
+          await this.initialize();
+          // 초기화 후 잠시 대기 (AdMob SDK가 준비되도록)
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
         const AdMob = (window as any).Capacitor.Plugins.AdMob;
         
         // 매번 새로운 광고를 로드하도록 강제
@@ -242,9 +357,27 @@ class AdService {
         this.isAdReady.value = false;
         
         console.log('📺 광고 로드 시도...');
-        const loaded = await this.loadInterstitialAd();
+        
+        // 재시도 로직 추가 (첫 로드는 3번, 이후는 2번 시도)
+        const maxAttempts = this.isFirstLoad ? 3 : 2;
+        let loaded = false;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          console.log(`📺 광고 로드 시도 ${attempt}/${maxAttempts}`);
+          loaded = await this.loadInterstitialAd();
+          
+          if (loaded) {
+            console.log(`✅ 광고 로드 성공 (${attempt}번째 시도)`);
+            break;
+          } else if (attempt < maxAttempts) {
+            console.log(`⚠️ 광고 로드 실패 - 재시도 중...`);
+            // 재시도 전 잠시 대기 (첫 로드는 더 긴 대기)
+            const waitTime = this.isFirstLoad ? 1500 : 1000;
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+          }
+        }
+        
         if (!loaded) {
-          console.warn('⚠️ 광고 로드 실패 - 광고 없이 진행');
+          console.warn('⚠️ 광고 로드 최종 실패 - 광고 없이 진행');
           // 광고 로드 실패해도 계속 진행 (사용자 경험 우선)
           return true;
         }

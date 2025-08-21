@@ -62,17 +62,26 @@ const initializeApp = async () => {
       console.error('타로 데이터 초기화 실패:', error);
     });
     
-    // 3. 광고 서비스 초기화 (비동기로 실행)
-    setTimeout(async () => {
-      try {
-        if (!userStore.isPremium) {
-          console.log('📺 광고 서비스 초기화...');
-          await initializeAdMob();
-        }
-      } catch (error) {
+    // 3. 광고 서비스 초기화 (즉시 실행 - 모바일에서 빠른 초기화를 위해)
+    // 무료 사용자만 광고 초기화
+    if (!userStore.isPremium) {
+      console.log('📺 광고 서비스 초기화 시작...');
+      initializeAdMob().then(() => {
+        console.log('📺 광고 서비스 초기화 완료');
+      }).catch(error => {
         console.error('광고 서비스 초기화 실패:', error);
-      }
-    }, 1000);
+        // 초기화 실패 시 재시도
+        setTimeout(async () => {
+          try {
+            console.log('📺 광고 서비스 재초기화 시도...');
+            await initializeAdMob();
+            console.log('📺 광고 서비스 재초기화 성공');
+          } catch (retryError) {
+            console.error('광고 서비스 재초기화 실패:', retryError);
+          }
+        }, 3000);
+      });
+    }
     
     // 4. 구독 서비스 초기화 (비동기로 실행)
     setTimeout(async () => {

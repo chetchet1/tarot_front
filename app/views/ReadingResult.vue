@@ -1194,13 +1194,63 @@ const showAIInterpretationWithAd = async () => {
     console.log('🔮 [showAIInterpretationWithAd] 광고 표시 시작...');
     console.log('🔮 광고 상태 - isAdReady:', adService.isAdReady.value, 'isLoading:', adService.isLoading.value);
     
+    // 광고 로딩 중 표시 (모바일에서 로딩이 길 수 있음)
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 9998;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+    `;
+    loadingOverlay.innerHTML = `
+      <div style="text-align: center;">
+        <div class="loading-spinner" style="
+          width: 60px;
+          height: 60px;
+          border: 4px solid rgba(255, 255, 255, 0.3);
+          border-top: 4px solid white;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        "></div>
+        <p style="margin-top: 20px;">광고를 불러오는 중...</p>
+        <p style="font-size: 14px; opacity: 0.7; margin-top: 10px;">잠시만 기다려주세요</p>
+      </div>
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+    `;
+    document.body.appendChild(loadingOverlay);
+    
     // 먼저 광고를 보여줌
     const adWatched = await adService.showInterstitialAd();
+    
+    // 로딩 오버레이 제거
+    if (loadingOverlay.parentElement) {
+      document.body.removeChild(loadingOverlay);
+    }
+    
     console.log('🔮 [showAIInterpretationWithAd] 광고 시청 결과:', adWatched);
     console.log('🔮 광고 시청 후 상태 - isAdReady:', adService.isAdReady.value, 'isLoading:', adService.isLoading.value);
     
     if (!adWatched) {
       console.log('🔮 [showAIInterpretationWithAd] 광고 시청 실패로 종료');
+      // 광고 로드 실패 시 사용자에게 알림
+      await showAlert({
+        title: '광고 로드 실패',
+        message: '광고를 불러올 수 없습니다. 네트워크 연결을 확인하고 다시 시도해주세요.'
+      });
       return;
     }
     
