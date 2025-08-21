@@ -211,6 +211,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { getThemeDisplayName, getSpreadDisplayName } from '../utils/themeQuestions';
 import { getCardImageFromObject } from '../utils/cardImageUtils';
+import { showAlert } from '../utils/alerts';
 
 const route = useRoute();
 const loading = ref(true);
@@ -453,9 +454,12 @@ const formatDate = (dateString: string) => {
   });
 };
 
-// 홈으로 이동
-const goHome = () => {
-  window.location.href = '/';
+// 홈으로 이동 (준비중 알림 표시)
+const goHome = async () => {
+  await showAlert({
+    title: '준비 중',
+    message: '해당 기능은 준비중입니다.'
+  });
 };
 
 // 테마 표시 이름 가져오기
