@@ -1147,12 +1147,15 @@ const goToResult = async () => {
         
         // 켈틱 크로스도 tarot.ts의 createReading에서 이미 해석 생성됨
         // 중복 호출 제거 - 2025.01.14
-        if (isCelticCross.value && !customQuestion) {
+        // 켈틱크로스는 커스텀 질문 여부와 관계없이 이미 createReading에서 CelticCrossAIInterpreter로 처리됨
+        if (isCelticCross.value) {
           console.log('🤖 켈틱 크로스 - 이미 createReading에서 해석 생성됨');
+          console.log('🤖 커스텀 질문 여부:', !!customQuestion);
           console.log('🤖 기존 해석 확인:', {
             hasImprovedInterpretation: !!reading.improvedInterpretation,
             hasPremiumInsights: !!reading.premiumInsights,
-            hasEnhancedInterpretation: !!reading.enhancedInterpretation
+            hasEnhancedInterpretation: !!reading.enhancedInterpretation,
+            hasAiInterpretation: !!reading.aiInterpretation
           });
           
           // 이미 생성된 해석이 있는지 확인
@@ -1160,7 +1163,8 @@ const goToResult = async () => {
             // improvedInterpretation에서 AI 해석 추출
             let aiInterpretationText = '';
             if (typeof reading.improvedInterpretation === 'object') {
-              aiInterpretationText = reading.improvedInterpretation.overallInterpretation || 
+              aiInterpretationText = reading.improvedInterpretation.aiInterpretation ||
+                                    reading.improvedInterpretation.overallInterpretation || 
                                     reading.improvedInterpretation.summary || 
                                     reading.improvedInterpretation.overallMessage ||
                                     '해석을 생성할 수 없습니다.';
@@ -1198,7 +1202,8 @@ const goToResult = async () => {
           }
         }
         // 커스텀 질문이 있는 경우 customInterpretationService 사용
-        else if (customQuestion) {
+        // 프리미엄 배열법(켈틱크로스, 세븐스타, 컵오브릴레이션십)은 제외
+        else if (customQuestion && !isCelticCross.value && !isSevenStar.value && !isCupOfRelationship.value) {
           console.log('🤖 커스텀 질문 AI 해석 생성');
           
           const interpretationRequest = {

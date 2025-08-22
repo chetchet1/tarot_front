@@ -1,3 +1,93 @@
+// 카드 뒷면 기본 이미지
+const CARD_BACK_URL = '/assets/tarot-cards/back.jpg';
+
+/**
+ * DailyCard.vue의 카드 이미지 URL 가져오기 함수
+ * 카드 속성(arcana, number, suit, court)을 기반으로 이미지 경로 생성
+ */
+export const getCardImageUrl = (card: any): string => {
+  if (!card) {
+    return CARD_BACK_URL;
+  }
+  
+  // 메이저 아르카나
+  if (card.arcana === 'major') {
+    const cardNumber = (card.number !== undefined ? card.number : 0).toString().padStart(2, '0');
+    
+    // 메이저 카드 이름 매핑 (실제 파일명)
+    const majorNames: Record<string, string> = {
+      '00': 'the-Fool',
+      '01': 'The-Magician',
+      '02': 'The-High-Priestess',
+      '03': 'The-Empress',
+      '04': 'The-Emperor',
+      '05': 'The-Hierophant',
+      '06': 'The-Lovers',
+      '07': 'The-Chariot',
+      '08': 'Strength',
+      '09': 'The-Hermit',
+      '10': 'Wheel-of-Fortune',
+      '11': 'Justice',
+      '12': 'The-Hanged-Man',
+      '13': 'Death',
+      '14': 'Temperance',
+      '15': 'The-Devil',
+      '16': 'The-Tower',
+      '17': 'The-Star',
+      '18': 'The-Moon',
+      '19': 'The-Sun',
+      '20': 'Judgement',
+      '21': 'The-World'
+    };
+    
+    const cardName = majorNames[cardNumber] || card.name.replace(/ /g, '-');
+    return `/assets/tarot-cards/major/${cardNumber}-${cardName}.png`;
+  }
+  
+  // 마이너 아르카나
+  if (card.arcana === 'minor') {
+    const suit = card.suit?.toLowerCase() || 'wands';
+    
+    // 숫자 카드 (1-10)
+    if (card.number && card.number >= 1 && card.number <= 10) {
+      const cardNumber = card.number.toString().padStart(2, '0');
+      const numberNames = ['', 'ace', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+      const cardName = `${numberNames[card.number]}-of-${suit}`;
+      return `/assets/tarot-cards/minor/${cardNumber}-${cardName}.png`;
+    }
+    
+    // 코트 카드 (11-14 또는 court 필드)
+    let courtType = card.court;
+    if (!courtType && card.number && card.number >= 11 && card.number <= 14) {
+      const courtByNumber: Record<number, string> = {
+        11: 'page',
+        12: 'knight', 
+        13: 'queen',
+        14: 'king'
+      };
+      courtType = courtByNumber[card.number];
+    }
+    
+    if (courtType) {
+      const suitOrder = ['wands', 'cups', 'swords', 'pentacles'];
+      const courtOrder = ['page', 'knight', 'queen', 'king'];
+      const baseNumbers = [41, 45, 49, 53]; // 각 슈트의 시작 번호
+      
+      const suitIndex = suitOrder.indexOf(suit);
+      const courtIndex = courtOrder.indexOf(courtType.toLowerCase());
+      
+      if (suitIndex !== -1 && courtIndex !== -1) {
+        const cardNumber = baseNumbers[suitIndex] + courtIndex;
+        const courtName = courtType.charAt(0).toUpperCase() + courtType.slice(1).toLowerCase();
+        const suitName = suit.charAt(0).toUpperCase() + suit.slice(1).toLowerCase();
+        return `/assets/tarot-cards/minor/${cardNumber}-${courtName}-of-${suitName}.png`;
+      }
+    }
+  }
+  
+  return CARD_BACK_URL;
+};
+
 /**
  * 카드 이미지 경로를 반환하는 유틸리티 함수
  * CARD_IMAGE_NAMING_RULES.md 문서를 기준으로 정확한 매핑 사용

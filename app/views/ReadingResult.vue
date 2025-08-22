@@ -651,7 +651,10 @@ const isLoadingInterpretation = ref(false);
 const interpretationProgress = ref(0);
 
 // 카드 이미지 URL 생성 함수 사용
-const getCardImageUrl = (card: DrawnCard) => getCardImagePath(card);
+const getCardImageUrl = (card: DrawnCard) => {
+  // 모든 배열에서 동일하게 getCardImagePath 사용 (DB ID 기반 정확한 매핑)
+  return getCardImagePath(card);
+};
 const onImageError = (event: Event) => handleImageError(event);
 
 const goBack = () => {
@@ -1619,7 +1622,7 @@ onMounted(async () => {
         interpretationText: getAIInterpretationText()?.substring(0, 100)
       });
       // 프리미엄 배열법은 절대 여기서 생성하지 않음
-      // return; // 더 이상 처리하지 않음
+      return; // 더 이상 처리하지 않음 - 중복 호출 방지
     } else if (customQuestion.value && userStore.isPremium) {
       // 커스텀 질문은 프리미엄만 (1장, 3장 배열에서만)
       console.log('🎴 [ReadingResult] 커스텀 질문 - AI 해석 생성');
