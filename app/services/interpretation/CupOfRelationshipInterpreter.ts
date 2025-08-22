@@ -146,70 +146,75 @@ export class CupOfRelationshipInterpreter {
    * AI용 프롬프트 생성
    */
   private generateAIPrompt(): string {
-    let prompt = `당신은 경험 많은 타로 마스터입니다. 컵 오브 릴레이션쉽 배열법으로 `;
+    let prompt = `당신은 경험 많은 타로 마스터이자 연애 전문 상담가입니다. `;
     
-    // 커스텀 질문이 있는 경우 우선 처리
+    // 커스텀 질문이 있는 경우
     if (this.customQuestion && this.customQuestion.trim()) {
-      prompt += `다음 질문에 대한 깊이 있는 관계 해석을 제공해주세요.\n\n`;
-      prompt += `【질문자의 구체적 질문】\n${this.customQuestion}\n\n`;
+      prompt += `컵 오브 릴레이션쉽 배열법으로 다음 연애 질문에 대한 명확하고 깊이 있는 답변을 제공해주세요.\n\n`;
+      prompt += `【질문자의 구체적 질문】\n"${this.customQuestion}"\n\n`;
+      prompt += `【답변 우선순위】\n`;
+      prompt += `1. 첫 문장에서 반드시 질문에 대한 직접적인 답변을 제시하세요\n`;
+      prompt += `2. 질문의 핵심 키워드를 자연스럽게 반복 사용하세요\n`;
+      prompt += `3. 일반적인 관계 조언이 아닌 질문과 관련된 구체적인 해석만 제공하세요\n\n`;
     } else {
-      prompt += `연애와 관계에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
+      prompt += `컵 오브 릴레이션쉽 배열법으로 연애와 관계에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
     }
-    
-    // 연애 테마 최우선 강조
-    prompt += `【⚠️ 최우선 지침 - 연애 관계 해석】\n`;
-    prompt += `컵 오브 릴레이션쉽은 연애와 관계 전용 배열법입니다. 모든 해석은 반드시 연애와 사랑에 집중해야 합니다.\n`;
-    prompt += `직업, 돈, 건강 등 다른 주제는 절대 언급하지 마세요. 오직 연애 관계만 다뤄주세요.\n\n`;
     
     // 연애 상태 반영
+    prompt += `【관계 상태】\n`;
     if (this.relationshipStatus === 'couple') {
-      prompt += `【질문자 상황】\n`;
-      prompt += `질문자는 현재 연인이 있는 상태입니다. 현재 연인과의 관계를 중심으로 해석해주세요.\n`;
-      prompt += `관계의 발전, 갈등 해결, 더 깊은 사랑으로 나아가는 방법 등을 조언해주세요.\n\n`;
+      prompt += `질문자는 현재 연인이 있는 상태입니다. 현재 관계의 깊이, 발전 가능성, 결혼까지의 여정에 초점을 맞춰주세요.\n\n`;
     } else {
-      prompt += `【질문자 상황】\n`;
-      prompt += `질문자는 현재 마음에 둔 상대가 있거나 썸타는 단계일 가능성이 높습니다.\n`;
-      prompt += `상대의 마음을 얻는 방법, 고백 타이밍, 관계 발전 가능성 등을 중심으로 해석해주세요.\n\n`;
+      prompt += `질문자는 마음에 둔 상대가 있거나 썸타는 단계입니다. 상대의 진심, 고백 타이밍, 관계 발전 가능성에 초점을 맞춰주세요.\n\n`;
     }
     
-    prompt += `컵 오브 릴레이션쉽은 나와 상대의 관계에 집중하는 배열법입니다. 그에 맞는 해석을 준비해주세요.\n`;
-    prompt += `해석 톤: 카드가 긍정적이면 희망적으로, 부정적이면 현실적 조언과 개선 방법 중심으로\n`;
-    
-    if (this.customQuestion) {
-      prompt += `【질문자의 구체적 질문】\n${this.customQuestion}\n\n`;
-    }
-    
-    prompt += `【카드 배열】\n`;
+    prompt += `【컵 오브 릴레이션쉽 카드 배열 (11장)】\n`;
     this.cards.forEach((card, index) => {
       const pos = this.positions[index];
-      prompt += `${index + 1}. ${pos.name}: ${card.nameKr} - ${card.orientation === 'upright' ? '정방향' : '역방향'}\n`;
+      prompt += `${index + 1}. ${pos.name}: ${card.nameKr} (${card.orientation === 'upright' ? '정방향' : '역방향'})\n`;
     });
     prompt += '\n';
     
-    // 관계 패턴 분석
-    const patterns = this.analyzeRelationshipPatterns();
-    if (patterns.length > 0) {
-      prompt += `【발견된 관계 패턴】\n`;
-      patterns.forEach(pattern => {
-        prompt += `• ${pattern}\n`;
-      });
-      prompt += '\n';
+    // 핵심 카드 분석
+    prompt += `【핵심 카드 의미】\n`;
+    prompt += `• 나의 마음: ${this.cards[0]?.nameKr} - 나의 현재 감정 상태\n`;
+    prompt += `• 상대의 마음: ${this.cards[1]?.nameKr} - 상대방의 현재 감정 상태\n`;
+    prompt += `• 관계의 기본: ${this.cards[2]?.nameKr} - 두 사람의 기본적 연결고리\n`;
+    prompt += `• 최종 결과: ${this.cards[10]?.nameKr} - 예상되는 관계의 미래\n\n`;
+    
+    // 응답 형식 지침
+    prompt += `【응답 형식】\n`;
+    
+    if (this.customQuestion && this.customQuestion.trim()) {
+      prompt += `첫 문장에서 "${this.customQuestion}"에 대한 명확한 답변을 제시하세요.\n\n`;
     }
     
-    prompt += `【연애 관계 해석 가이드라인】
-1. 나와 상대(미래의 상대 포함)의 감정 상태와 호감도 비교
-2. 겉으로 드러난 마음과 숨겨진 진심의 차이
-3. 두 사람 사이의 케미스트리와 운명적 연결
-4. 관계 발전을 방해하는 요소와 극복 방법
-5. 3개월, 6개월 후의 관계 전망
-6. 썸은 고백 타이밍, 연인은 다음 단계 조언
-7. 카드 전체 흐름을 보고 객관적으로 평가 (무조건 긍정적이지 않게)
-
-【응답 형식】
-연애 전문 상담가의 따뜻하면서도 현실적인 톤으로 작성하세요.
-구체적 시기와 실천 방법을 반드시 포함하세요.
-전체 해석은 4-5개 문단으로 구성하고, 각 문단은 3-4문장으로 작성해주세요.
-연애와 관계에만 집중하고, 다른 주제는 절대 언급하지 마세요.`;
+    prompt += `다음과 같은 형식으로 작성하세요:\n\n`;
+    prompt += `👥 관계의 역학\n`;
+    prompt += `(나와 상대의 현재 감정 상태와 관계 역학을 3-4문장으로 설명)\n\n`;
+    prompt += `💖 감정의 흐름\n`;
+    prompt += `(과거부터 현재까지의 감정 변화와 앞으로의 흐름을 3-4문장으로 설명)\n\n`;
+    prompt += `✨ 관계의 강점\n`;
+    prompt += `(두 사람 사이의 긍정적 요소와 발전 가능성을 3-4문장으로 설명)\n\n`;
+    prompt += `🔮 미래 전망\n`;
+    prompt += `(3개월, 6개월 후의 관계 전망을 구체적으로 3-4문장으로 설명)\n\n`;
+    prompt += `💡 조언과 지침\n`;
+    prompt += `(관계 발전을 위한 구체적이고 실천 가능한 조언을 3가지 제시)\n\n`;
+    
+    if (this.relationshipStatus === 'couple') {
+      prompt += `💑 관계 발전 팁\n`;
+      prompt += `(더 깊은 사랑으로 나아가기 위한 구체적 방법을 2-3문장으로)\n\n`;
+    } else {
+      prompt += `💘 고백 타이밍\n`;
+      prompt += `(언제, 어떻게 마음을 전하면 좋을지 구체적으로 2-3문장으로)\n\n`;
+    }
+    
+    prompt += `🌟 종합 메시지\n`;
+    prompt += `(전체 카드의 흐름을 종합한 희망적인 연애 메시지를 2-3문장으로)\n\n`;
+    
+    prompt += `각 섹션은 이모지와 제목을 먼저 쓰고 줄바꿈 후 내용을 작성하세요.\n`;
+    prompt += `전체 길이는 1000-1200자 정도로 충실하게 작성하세요.\n`;
+    prompt += `연애와 관계에만 집중하고, 직업이나 돈 같은 다른 주제는 절대 언급하지 마세요.`;
     
     return prompt;
   }

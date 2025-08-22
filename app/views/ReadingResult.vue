@@ -1477,7 +1477,7 @@ const saveReadingToDB = async () => {
       id: readingId,
       user_id: userStore.currentUser?.id,
       spread_id: reading.value.spreadId,
-      topic: selectedTheme.value,
+      topic: selectedTheme.value === 'custom' ? 'general' : selectedTheme.value,  // custom은 general로 변환
       question: customQuestion.value || displayQuestion.value,
       cards: reading.value.cards,  // JSONB 필드이므로 그대로 저장
       overall_message: reading.value.overallMessage || null,

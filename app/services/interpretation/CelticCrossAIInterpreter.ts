@@ -214,27 +214,28 @@ export class CelticCrossAIInterpreter {
    * AI용 프롬프트 생성
    */
   private generateAIPrompt(): string {
-    let prompt = `당신은 경험 많은 타로 마스터입니다. 캘틱 크로스 배열법으로 `;
+    let prompt = `당신은 경험 많은 타로 마스터입니다. `;
     
-    // 커스텀 질문이 있는 경우 우선 처리
+    // 커스텀 질문이 있는 경우
     if (this.customQuestion && this.customQuestion.trim()) {
-      prompt += `다음 질문에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
-      prompt += `【질문자의 구체적 질문】\n${this.customQuestion}\n\n`;
+      prompt += `캘틱 크로스 배열법으로 다음 질문에 대한 명확하고 깊이 있는 답변을 제공해주세요.\n\n`;
+      prompt += `【질문자의 구체적 질문】\n"${this.customQuestion}"\n\n`;
+      prompt += `【답변 우선순위】\n`;
+      prompt += `1. 첫 문장에서 반드시 질문에 대한 직접적인 답변을 제시하세요\n`;
+      prompt += `2. 질문의 핵심 키워드를 자연스럽게 반복 사용하세요\n`;
+      prompt += `3. 일반적인 조언이 아닌 질문과 관련된 구체적인 해석만 제공하세요\n\n`;
+    } else if (this.topic !== 'custom') {
+      prompt += `캘틱 크로스 배열법으로 ${this.topic}에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
     } else {
-      prompt += `${this.topic}에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
+      prompt += `캘틱 크로스 배열법으로 전반적인 운세에 대한 해석을 제공해주세요.\n\n`;
     }
     
-    // 연애 카테고리 특별 처리
-    if (this.topic === '연애' || this.topic === 'love' || this.topic.includes('사랑')) {
-      prompt += `【⚠️ 최우선 지침】\n`;
-      prompt += `이 해석은 오직 연애와 사랑에 관한 것입니다. 다른 주제는 언급하지 마세요.\n\n`;
-      
+    // 연애 카테고리 처리
+    if (!this.customQuestion && (this.topic === '연애' || this.topic === 'love')) {
       if (this.relationshipStatus === 'single') {
-        prompt += `【중요】 질문자는 현재 솔로입니다.\n`;
-        prompt += `새로운 만남, 연애 기회, 자기 계발에 초점을 맞춰주세요.\n\n`;
+        prompt += `질문자는 현재 솔로입니다. 새로운 만남과 연애 기회에 초점을 맞춰주세요.\n\n`;
       } else if (this.relationshipStatus === 'couple') {
-        prompt += `【중요】 질문자는 현재 연인이 있습니다.\n`;
-        prompt += `관계 발전, 상대방의 마음, 미래 가능성에 초점을 맞춰주세요.\n\n`;
+        prompt += `질문자는 현재 연인이 있습니다. 관계 발전과 미래에 초점을 맞춰주세요.\n\n`;
       }
     }
     
@@ -245,32 +246,43 @@ export class CelticCrossAIInterpreter {
     });
     prompt += '\n';
     
-    // 중요 포지션 강조
-    prompt += `【핵심 포지션 분석】\n`;
+    // 핵심 포지션 분석
+    prompt += `【핵심 카드 의미】\n`;
     prompt += `• 현재 상황: ${this.cards[0]?.nameKr} - 중심 에너지\n`;
-    prompt += `• 도전 과제: ${this.cards[1]?.nameKr} - 극복해야 할 것\n`;
+    prompt += `• 도전/십자가: ${this.cards[1]?.nameKr} - 극복해야 할 것\n`;
     prompt += `• 최종 결과: ${this.cards[9]?.nameKr} - 예상되는 결말\n\n`;
     
-    // 시간대별 분석
+    // 시간대별 흐름
     prompt += `【시간의 흐름】\n`;
     prompt += `• 과거: ${this.cards[2]?.nameKr}(먼 과거), ${this.cards[3]?.nameKr}(가까운 과거)\n`;
     prompt += `• 현재: ${this.cards[0]?.nameKr}(상황), ${this.cards[6]?.nameKr}(접근법)\n`;
     prompt += `• 미래: ${this.cards[5]?.nameKr}(가까운 미래), ${this.cards[4]?.nameKr}(가능한 미래)\n\n`;
     
-    // 카드 패턴 분석
-    const patterns = this.analyzePatterns();
-    if (patterns.length > 0) {
-      prompt += `【발견된 패턴】\n`;
-      patterns.forEach(pattern => {
-        prompt += `• ${pattern}\n`;
-      });
-      prompt += '\n';
+    // 응답 형식 지침
+    prompt += `【응답 형식】\n`;
+    
+    if (this.customQuestion && this.customQuestion.trim()) {
+      prompt += `첫 문장에서 "${this.customQuestion}"에 대한 명확한 답변을 제시하세요.\n\n`;
     }
     
-    // 최소한의 응답 지침
-    prompt += `【응답 지침】\n`;
-    prompt += `• 3-4개 문단으로 자연스럽게 작성\n`;
-    prompt += `• 마지막에 "✨ 종합 메시지" 추가\n`;
+    prompt += `다음과 같은 형식으로 작성하세요:\n\n`;
+    prompt += `🌟 핵심 통찰\n`;
+    prompt += `(현재 상황과 도전 카드가 보여주는 핵심 메시지를 3-4문장으로 설명)\n\n`;
+    prompt += `⏰ 시간의 흐름\n`;
+    prompt += `(과거가 현재에 미친 영향과 미래로의 연결을 3-4문장으로 설명)\n\n`;
+    prompt += `✨ 기회와 가능성\n`;
+    prompt += `(가능한 미래와 희망 카드가 보여주는 긍정적 요소를 3-4문장으로 설명)\n\n`;
+    prompt += `🔍 숨겨진 요소\n`;
+    prompt += `(외부 영향과 내면의 희망/두려움이 암시하는 것을 3-4문장으로 설명)\n\n`;
+    prompt += `🎯 예상되는 결과\n`;
+    prompt += `(최종 결과 카드를 중심으로 예상되는 결말을 3-4문장으로 설명)\n\n`;
+    prompt += `💡 조언과 지침\n`;
+    prompt += `(구체적이고 실천 가능한 조언을 3가지 제시)\n\n`;
+    prompt += `🌟 마무리 조언\n`;
+    prompt += `(전체 카드의 흐름을 종합한 희망적인 메시지를 2-3문장으로)\n\n`;
+    
+    prompt += `각 섹션은 이모지와 제목을 먼저 쓰고 줄바꿈 후 내용을 작성하세요.\n`;
+    prompt += `전체 길이는 1000-1200자 정도로 충실하게 작성하세요.`;
     
     return prompt;
   }

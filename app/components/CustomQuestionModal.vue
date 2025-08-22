@@ -38,7 +38,7 @@
         <button 
           class="btn btn-primary" 
           @click="handleConfirm"
-          :disabled="!question.trim() || question.length < 10"
+          :disabled="!question.trim()"
         >
           확인
         </button>
@@ -75,7 +75,7 @@ const handleClose = () => {
 };
 
 const handleConfirm = () => {
-  if (question.value.trim() && question.value.length >= 10) {
+  if (question.value.trim()) {
     emit('confirm', question.value.trim());
     question.value = '';
   }

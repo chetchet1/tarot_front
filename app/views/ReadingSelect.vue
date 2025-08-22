@@ -90,9 +90,6 @@
       <!-- 스프레드 선택 -->
       <section class="section" v-show="selectedTopic && (!selectedSpread || !isMobile)">
         <h2 class="section-title">카드 배열법을 선택하세요</h2>
-        <div v-if="selectedTopic === 'custom'" class="custom-notice">
-          <p>💫 커스텀 질문에는 가장 상세한 답변을 제공하는 켈틱 크로스 배열법을 사용합니다.</p>
-        </div>
         
         <!-- 무료 사용자 유료 배열 안내 -->
         <div v-if="!userStore.isPremium && userStore.currentUser?.email !== 'test@example.com'" class="premium-spread-notice">
@@ -358,7 +355,7 @@ const spreads = computed(() => {
   
   // 커스텀 질문인 경우 프리미엄 배열법들 표시
   if (selectedTopic.value === 'custom') {
-    const premiumSpreads = ['celtic_cross', 'seven_star', 'cup_of_relationship'];
+    const premiumSpreads = ['seven_star', 'celtic_cross'];  // 세븐스타를 먼저, 컵 오브 릴레이션쉽 제외
     const availableSpreads = [];
     
     for (const spreadId of premiumSpreads) {
@@ -1232,22 +1229,6 @@ const resetSelection = () => {
 
 .premium-link:hover {
   text-decoration: underline;
-}
-
-.custom-notice {
-  background: rgba(168, 85, 247, 0.1);
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.custom-notice p {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
-  line-height: 1.5;
 }
 
 /* 무료 사용자 유료 배열 안내 */

@@ -144,61 +144,66 @@ export class SevenStarInterpreter {
    * AI용 프롬프트 생성
    */
   private generateAIPrompt(): string {
-    let prompt = `당신은 경험 많은 타로 마스터입니다. 세븐 스타 배열법으로 `;
+    let prompt = `당신은 경험 많은 타로 마스터입니다. `;
     
-    // 커스텀 질문이 있는 경우 우선 처리
+    // 커스텀 질문이 있는 경우
     if (this.customQuestion && this.customQuestion.trim()) {
-      prompt += `다음 질문에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
-      prompt += `【질문자의 구체적 질문】\n${this.customQuestion}\n\n`;
+      prompt += `세븐 스타 배열법으로 다음 질문에 대한 명확하고 깊이 있는 답변을 제공해주세요.\n\n`;
+      prompt += `【질문자의 구체적 질문】\n"${this.customQuestion}"\n\n`;
+      prompt += `【답변 우선순위】\n`;
+      prompt += `1. 첫 문장에서 반드시 질문에 대한 직접적인 답변을 제시하세요\n`;
+      prompt += `2. 질문의 핵심 키워드를 자연스럽게 반복 사용하세요\n`;
+      prompt += `3. 일반적인 조언이 아닌 질문과 관련된 구체적인 해석만 제공하세요\n\n`;
+    } else if (this.topic !== 'custom') {
+      prompt += `세븐 스타 배열법으로 ${this.topic}에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
     } else {
-      prompt += `${this.topic}에 대한 깊이 있는 해석을 제공해주세요.\n\n`;
+      prompt += `세븐 스타 배열법으로 전반적인 운세에 대한 해석을 제공해주세요.\n\n`;
     }
     
-    // 연애 카테고리 - 간결하고 명확하게
-    if (this.topic === '연애' || this.topic === 'love' || this.topic.includes('사랑')) {
-      prompt += `【⚠️ 최우선 지침】\n`;
-      prompt += `이 해석은 오직 연애와 사랑에 관한 것입니다. 다른 주제(직업, 돈, 건강 등)는 절대 언급하지 마세요.\n\n`;
-      
-      // 연애 상태별 명확한 지침
+    // 연애 카테고리 처리
+    if (!this.customQuestion && (this.topic === '연애' || this.topic === 'love')) {
       if (this.relationshipStatus === 'single') {
-        prompt += `【중요】 질문자는 현재 솔로입니다. 연인이 없습니다.\n`;
-        prompt += `다음 내용에만 집중하세요:\n`;
-        prompt += `• 새로운 만남의 시기와 징조\n`;
-        prompt += `• 이상형이 나타날 가능성\n`;
-        prompt += `• 연애를 시작하기 위한 준비 사항\n`;
-        prompt += `• 자기 매력 향상 방법\n\n`;
-        prompt += `절대 "연인과의 관계", "상대방의 마음" 같은 표현을 사용하지 마세요.\n\n`;
+        prompt += `질문자는 현재 솔로입니다. 새로운 만남과 연애 기회에 초점을 맞춰주세요.\n\n`;
       } else if (this.relationshipStatus === 'couple') {
-        prompt += `【중요】 질문자는 현재 연인이 있습니다.\n`;
-        prompt += `다음 내용에만 집중하세요:\n`;
-        prompt += `• 현재 관계의 깊이와 상태\n`;
-        prompt += `• 상대방의 진심과 감정\n`;
-        prompt += `• 결혼 가능성과 장기적 미래\n`;
-        prompt += `• 관계 개선 방법\n\n`;
+        prompt += `질문자는 현재 연인이 있습니다. 관계 발전과 미래에 초점을 맞춰주세요.\n\n`;
       }
     }
     
-    prompt += `【카드 배열】\n`;
+    prompt += `【세븐 스타 카드 배열】\n`;
     this.cards.forEach((card, index) => {
       const pos = this.positions[index];
-      prompt += `${index + 1}. ${pos.name}: ${card.nameKr} - ${card.orientation === 'upright' ? '정방향' : '역방향'}\n`;
+      prompt += `${index + 1}. ${pos.name}: ${card.nameKr} (${card.orientation === 'upright' ? '정방향' : '역방향'})\n`;
     });
     prompt += '\n';
     
-    // 카드 패턴 분석
-    const patterns = this.analyzePatterns();
-    if (patterns.length > 0) {
-      prompt += `【발견된 패턴】\n`;
-      patterns.forEach(pattern => {
-        prompt += `• ${pattern}\n`;
-      });
-      prompt += '\n';
+    // 핵심 포지션 분석
+    prompt += `【핵심 카드 의미】\n`;
+    prompt += `• 과거의 영향: ${this.cards[0]?.nameKr} - 지나온 길\n`;
+    prompt += `• 현재 상황: ${this.cards[1]?.nameKr} - 지금의 에너지\n`;
+    prompt += `• 미래 가능성: ${this.cards[2]?.nameKr} - 앞으로의 방향\n`;
+    prompt += `• 최종 결과: ${this.cards[6]?.nameKr} - 예상되는 결과\n\n`;
+    
+    // 응답 형식 지침
+    prompt += `【응답 형식】\n`;
+    
+    if (this.customQuestion && this.customQuestion.trim()) {
+      prompt += `첫 문장에서 "${this.customQuestion}"에 대한 명확한 답변을 제시하세요.\n\n`;
     }
     
-    // 최소한의 응답 지침
-    prompt += `【응답 지침】\n`;
-    prompt += `• 3-4개 문단으로 자연스럽게 작성\n`;
-    prompt += `• 마지막에 "✨ 종합 메시지" 추가\n`;
+    prompt += `다음과 같은 형식으로 작성하세요:\n\n`;
+    prompt += `🔮 현재 상황\n`;
+    prompt += `(현재 카드들이 보여주는 상황을 3-4문장으로 설명)\n\n`;
+    prompt += `⏰ 시간의 흐름\n`;
+    prompt += `(과거-현재-미래의 연결성을 3-4문장으로 설명)\n\n`;
+    prompt += `✨ 숨겨진 메시지\n`;
+    prompt += `(내면과 외부 환경 카드가 암시하는 것을 3-4문장으로 설명)\n\n`;
+    prompt += `💡 실천 조언\n`;
+    prompt += `(조언 카드를 바탕으로 구체적인 행동 지침을 3-4문장으로 제시)\n\n`;
+    prompt += `🌟 종합 메시지\n`;
+    prompt += `(전체 카드의 흐름을 종합한 희망적인 메시지를 2-3문장으로)\n\n`;
+    
+    prompt += `각 섹션은 이모지와 제목을 먼저 쓰고 줄바꿈 후 내용을 작성하세요.\n`;
+    prompt += `전체 길이는 800-1000자 정도로 충실하게 작성하세요.`;
     
     return prompt;
   }

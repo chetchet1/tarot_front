@@ -1115,16 +1115,18 @@ const goToResult = async () => {
       tarotStore.setImprovedInterpretation(improvedInterpretation.value);
     }
     
+    // 커스텀 질문 가져오기
+    const customQuestion = tarotStore.getCustomQuestion();
+    
     // 뽑힌 카드로 점괘 생성
     const reading = await tarotStore.createReading(
       tarotStore.selectedSpread?.spreadId || 'one_card',
       tarotStore.selectedTopic?.id || 'general',
-      undefined, // 질문은 나중에 처리
+      customQuestion || undefined, // 커스텀 질문 전달
       tarotStore.getTempDrawnCards() || undefined
     );
     
     // AI 해석 생성 (프리미엄/테스트 계정만)
-    const customQuestion = tarotStore.getCustomQuestion();
     const topic = tarotStore.selectedTopic?.id || 'general';
     const spreadId = tarotStore.selectedSpread?.spreadId || 'three_cards';
     const shouldGenerateAI = (userStore.isPremium || isTestAccount) && 
