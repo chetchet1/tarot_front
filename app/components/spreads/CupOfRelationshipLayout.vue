@@ -417,21 +417,6 @@
       </div>
     </div>
 
-    <!-- 버튼 컨테이너 (일괄 뒤집기 + 슬롯) -->
-    <div class="action-buttons-container" v-if="!isDrawing">
-      <button 
-        v-if="hasUnrevealedCards"
-        class="btn-action btn-reveal-all" 
-        @click="revealAllCards"
-      >
-        <span class="icon">✨</span> 모든 카드 뒤집기
-      </button>
-      <div v-else class="button-placeholder"></div>
-      
-      <!-- 부모 컴포넌트에서 전달하는 추가 버튼을 위한 슬롯 -->
-      <slot name="action-button"></slot>
-    </div>
-
     <!-- 진행 상태 표시 -->
     <div class="progress-indicator" v-if="isDrawing">
       <p>사랑의 에너지가 카드를 통해 흐르고 있습니다...</p>
@@ -441,13 +426,28 @@
     </div>
   </div>
   
-  <!-- 포지션 의미 인라인 표시 (프리미엄 사용자용) -->
+  <!-- 포지션 의미 인라인 표시 (프리미엄 사용자용) - 레이아웃 밖에 배치 -->
   <PositionMeaningInline
     v-if="userStore.isPremium"
     :visible="showPositionMeaning"
     :spread-id="'cup_of_relationship'"
     :position="selectedPosition"
   />
+  
+  <!-- 버튼 컨테이너 (일괄 뒤집기 + 슬롯) -->
+  <div class="action-buttons-container" v-if="!isDrawing">
+    <button 
+      v-if="hasUnrevealedCards"
+      class="btn-action btn-reveal-all" 
+      @click="revealAllCards"
+    >
+      <span class="icon">✨</span> 모든 카드 뒤집기
+    </button>
+    <div v-else class="button-placeholder"></div>
+    
+    <!-- 부모 컴포넌트에서 전달하는 추가 버튼을 위한 슬롯 -->
+    <slot name="action-button"></slot>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -508,14 +508,23 @@ const revealAllCards = async () => {
 
 // 카드 클릭 핸들러
 const handleCardClick = async (index: number) => {
-  if (props.cards[index] && !props.cards[index].revealed) {
+  if (props.cards[index]) {
     await nativeUtils.buttonTapHaptic();
-    emit('card-click', index);
     
-    // 프리미엄 사용자인 경우 카드 공개 후 포지션 의미 표시
+    // 카드가 아직 공개되지 않은 경우
+    if (!props.cards[index].revealed) {
+      emit('card-click', index);
+    }
+    
+    // 프리미엄 사용자인 경우 포지션 의미 표시 (카드가 공개된 상태에서도)
     if (userStore.isPremium) {
       selectedPosition.value = index + 1;
       showPositionMeaning.value = true;
+      
+      // 3초 후에 자동으로 숨김
+      setTimeout(() => {
+        showPositionMeaning.value = false;
+      }, 3000);
     }
   }
 };

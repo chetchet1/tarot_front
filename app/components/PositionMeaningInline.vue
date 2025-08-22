@@ -38,14 +38,19 @@ const meaning = computed(() => {
 
 <style scoped>
 .position-meaning-inline {
-  margin-top: 20px;
-  background: linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(49, 46, 129, 0.95) 100%);
-  border: 2px solid rgba(168, 85, 247, 0.3);
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 600px;
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.98) 0%, rgba(49, 46, 129, 0.98) 100%);
+  border: 2px solid rgba(168, 85, 247, 0.5);
   border-radius: 16px;
   padding: 20px;
   backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  transform: translateY(90px);
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
 }
 
 .meaning-content {
@@ -109,19 +114,20 @@ const meaning = computed(() => {
 
 .fade-slide-enter-from {
   opacity: 0;
-  transform: translateY(-20px);
+  transform: translateX(-50%) translateY(20px);
 }
 
 .fade-slide-leave-to {
   opacity: 0;
-  transform: translateY(-20px);
+  transform: translateX(-50%) translateY(20px);
 }
 
 /* 모바일 반응형 */
 @media (max-width: 768px) {
   .position-meaning-inline {
     padding: 15px;
-    margin-top: 15px;
+    bottom: 10px;
+    width: 95%;
   }
   
   .position-title {

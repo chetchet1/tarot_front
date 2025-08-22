@@ -556,6 +556,11 @@ const handleCardClick = async (index: number) => {
     if (userStore.isPremium) {
       selectedPosition.value = index + 1;
       showPositionMeaning.value = true;
+      
+      // 3초 후에 자동으로 숨김
+      setTimeout(() => {
+        showPositionMeaning.value = false;
+      }, 3000);
     }
   }
 };

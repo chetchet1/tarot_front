@@ -287,8 +287,6 @@
       </div>
     </div>
 
-    <!-- 버튼 컨테이너는 레이아웃 밖에 배치 -->
-
     <!-- 진행 상태 표시 -->
     <div class="progress-indicator" v-if="isDrawing">
       <p>카드를 배치하고 있습니다...</p>
@@ -297,6 +295,15 @@
       </div>
     </div>
   </div>
+  
+  <!-- 포지션 의미 인라인 표시 (프리미엄 사용자용) - 레이아웃 밖에 배치 -->
+  <PositionMeaningInline
+    v-if="userStore.isPremium"
+    :visible="showPositionMeaning"
+    :spread-id="'seven_star'"
+    :position="selectedPosition"
+  />
+  
   <!-- 버튼 컨테이너 -->
   <div class="action-buttons-container" v-if="!isDrawing">
     <button 
@@ -316,6 +323,7 @@ import { ref, computed } from 'vue';
 import { nativeUtils } from '@/utils/capacitor';
 import { useUserStore } from '@/store/user';
 import { getCardImagePath, handleImageError } from '@/utils/cardUtils';
+import PositionMeaningInline from '@/components/PositionMeaningInline.vue';
 
 interface CardData {
   card: any;
@@ -336,6 +344,10 @@ const emit = defineEmits(['card-click', 'reveal-all']);
 const cardsContainer = ref<HTMLElement>();
 const userStore = useUserStore();
 
+// 포지션 의미 표시 관련
+const showPositionMeaning = ref(false);
+const selectedPosition = ref(0);
+
 // 공개되지 않은 카드가 있는지 확인
 const hasUnrevealedCards = computed(() => {
   return props.cards.some(card => card && !card.revealed);
@@ -349,9 +361,24 @@ const revealAllCards = async () => {
 
 // 카드 클릭 핸들러
 const handleCardClick = async (index: number) => {
-  if (props.cards[index] && !props.cards[index].revealed) {
+  if (props.cards[index]) {
     await nativeUtils.buttonTapHaptic();
-    emit('card-click', index);
+    
+    // 카드가 아직 공개되지 않은 경우
+    if (!props.cards[index].revealed) {
+      emit('card-click', index);
+    }
+    
+    // 프리미엄 사용자인 경우 포지션 의미 표시 (카드가 공개된 상태에서도)
+    if (userStore.isPremium) {
+      selectedPosition.value = index + 1;
+      showPositionMeaning.value = true;
+      
+      // 3초 후에 자동으로 숨김
+      setTimeout(() => {
+        showPositionMeaning.value = false;
+      }, 3000);
+    }
   }
 };
 
