@@ -512,6 +512,20 @@ const handleRelationshipCancel = () => {
 
 const selectSpread = async (spread: Spread) => {
   
+  // 커스텀 질문 + 컵 오브 릴레이션십 선택 시 확인
+  if (selectedTopic.value === 'custom' && spread.id === 'cup_of_relationship') {
+    const confirmResult = await showConfirm({
+      title: '확인',
+      message: '컵 오브 릴레이션십은 관계를 위한 배열법입니다.\n\n생각해둔 상대가 없다면 이 배열은 의미없는 선택이 될 것입니다.\n\n계속하시겠습니까?',
+      confirmText: '확인',
+      cancelText: '취소'
+    });
+    
+    if (!confirmResult) {
+      return; // 취소 시 선택하지 않음
+    }
+  }
+  
   if (spread.isPremium && !userStore.isPremium) {
     // 테스트 계정 확인
     if (userStore.currentUser && !userStore.currentUser.isAnonymous && 
