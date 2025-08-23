@@ -55,6 +55,20 @@
       <div class="post-body">
         <div class="post-text" v-html="sanitizedContent"></div>
         
+        <!-- 첨부 이미지 (관리자 공지/이벤트) -->
+        <div v-if="post.image_urls && post.image_urls.length > 0" class="post-images">
+          <div class="images-grid">
+            <div v-for="(imageUrl, index) in post.image_urls" :key="index" class="post-image-wrapper">
+              <img 
+                :src="imageUrl" 
+                :alt="`첨부 이미지 ${index + 1}`"
+                class="post-image"
+                @click="openImageModal(imageUrl)"
+              />
+            </div>
+          </div>
+        </div>
+        
         <!-- 점괘 공유 (있는 경우) -->
         <div v-if="sharedReading" class="shared-reading">
           <h3 class="reading-title">🔮 첨부된 타로 점괘</h3>
@@ -157,6 +171,14 @@
       @close="closeReadingModal"
     />
     
+    <!-- 이미지 모달 -->
+    <div v-if="showImageModal" class="image-modal" @click="closeImageModal">
+      <div class="image-modal-content">
+        <img :src="selectedImageUrl" alt="확대 이미지" />
+        <button class="image-modal-close" @click="closeImageModal">✕</button>
+      </div>
+    </div>
+    
     <!-- 배너 광고 (프리미엄 사용자 제외) -->
     <AdBanner />
   </div>
@@ -191,6 +213,8 @@ const isSubmitting = ref(false);
 const hasLiked = ref(false);
 const sharedReading = ref<any>(null);
 const showReadingModal = ref(false);
+const selectedImageUrl = ref<string>('');
+const showImageModal = ref(false);
 
 const postId = computed(() => route.params.id as string);
 const currentUserId = computed(() => userStore.currentUser?.id || '');
@@ -343,6 +367,18 @@ const openReadingModal = () => {
 // 점괘 상세보기 모달 닫기
 const closeReadingModal = () => {
   showReadingModal.value = false;
+};
+
+// 이미지 모달 열기
+const openImageModal = (imageUrl: string) => {
+  selectedImageUrl.value = imageUrl;
+  showImageModal.value = true;
+};
+
+// 이미지 모달 닫기
+const closeImageModal = () => {
+  showImageModal.value = false;
+  selectedImageUrl.value = '';
 };
 
 // 공유된 점괘 불러오기
@@ -742,6 +778,95 @@ onMounted(async () => {
   line-height: 1.8;
   color: rgba(255, 255, 255, 0.9);
   word-break: break-word;
+}
+
+/* 첨부 이미지 */
+.post-images {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.images-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.post-image-wrapper {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.post-image {
+  max-width: 100%;
+  max-height: 600px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  border-radius: 6px;
+}
+
+.post-image:hover {
+  transform: scale(1.02);
+}
+
+/* 이미지 모달 */
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.image-modal-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.image-modal-content img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.image-modal-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.image-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .shared-reading {

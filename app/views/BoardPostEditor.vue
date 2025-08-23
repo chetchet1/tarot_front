@@ -760,27 +760,42 @@ const removeImage = (index: number) => {
 // 이미지 업로드 (Supabase Storage)
 const uploadImagesToStorage = async () => {
   const uploadedUrls: string[] = [];
+  const userId = userStore.currentUser?.id;
+  
+  if (!userId) {
+    console.error('사용자 ID를 찾을 수 없습니다');
+    return uploadedUrls;
+  }
   
   for (const image of uploadedImages.value) {
     try {
-      const fileExt = image.file.name.split('.').pop();
-      const fileName = `board/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
-      const { data, error } = await supabase.storage
-        .from('board-images')
-        .upload(fileName, image.file);
-      
-      if (error) {
-        console.error('이미지 업로드 실패:', error);
+      // 기존 이미지인 경우 URL 그대로 사용
+      if (image.url) {
+        uploadedUrls.push(image.url);
         continue;
       }
       
-      // 공개 URL 가져오기
-      const { data: { publicUrl } } = supabase.storage
-        .from('board-images')
-        .getPublicUrl(fileName);
-      
-      uploadedUrls.push(publicUrl);
+      // 새 이미지인 경우 업로드
+      if (image.file) {
+        const fileExt = image.file.name.split('.').pop();
+        const fileName = `${userId}/board/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { data, error } = await supabase.storage
+          .from('board-images')
+          .upload(fileName, image.file);
+        
+        if (error) {
+          console.error('이미지 업로드 실패:', error);
+          continue;
+        }
+        
+        // 공개 URL 가져오기
+        const { data: { publicUrl } } = supabase.storage
+          .from('board-images')
+          .getPublicUrl(fileName);
+        
+        uploadedUrls.push(publicUrl);
+      }
     } catch (error) {
       console.error('이미지 업로드 중 오류:', error);
     }
@@ -819,6 +834,15 @@ const loadExistingPost = async () => {
       isNotice: post.is_notice || false,
       isEventPost: post.is_event_post || false
     });
+    
+    // 기존 이미지 로드
+    if (post.image_urls && post.image_urls.length > 0) {
+      uploadedImages.value = post.image_urls.map((url: string) => ({
+        file: null as any,
+        preview: url,
+        url: url // 기존 이미지 URL 저장
+      }));
+    }
     
     // 공유 점괘가 있는 경우 로드
     if (post.shared_reading_id) {
