@@ -1860,8 +1860,12 @@ onMounted(async () => {
 }
 
 .seven-star-layout .card-position:hover {
-  transform: scale(1.05);
   z-index: 100;
+}
+
+.seven-star-layout .card-position:hover .card-mini {
+  border-color: rgba(255, 215, 0, 0.8);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
 }
 
 /* 세븐 스타 각 위치별 좌표 */
@@ -1932,8 +1936,12 @@ onMounted(async () => {
 }
 
 .cup-relationship-layout .card-position:hover {
-  transform: scale(1.05);
   z-index: 100;
+}
+
+.cup-relationship-layout .card-position:hover .card-mini {
+  border-color: rgba(236, 72, 153, 0.8);
+  box-shadow: 0 0 15px rgba(236, 72, 153, 0.6);
 }
 
 /* 컵 오브 릴레이션십 각 위치별 좌표 */
@@ -2028,8 +2036,12 @@ onMounted(async () => {
 }
 
 .celtic-cross-layout .card-position:hover {
-  transform: scale(1.05);
   z-index: 100;
+}
+
+.celtic-cross-layout .card-position:hover .card-mini {
+  border-color: rgba(168, 85, 247, 0.8);
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.6);
 }
 
 /* 각 위치별 좌표 - 간격을 좁혀서 조정 */
