@@ -148,6 +148,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { supabase } from '../../services/supabase';
+import { getUnifiedCardImagePath } from '../../utils/unifiedCardImage';
 
 const props = defineProps({
   reading: {
@@ -198,76 +199,10 @@ const getFortuneLabel = (key: string) => {
   return labels[key] || key;
 };
 
-// 카드 이미지 경로 생성
+// 카드 이미지 경로 생성 - 통합 카드 이미지 함수 사용
 const getCardImagePath = (card: any) => {
   if (!card) return '/assets/card-back.png';
-  
-  // 카드 번호가 있는 경우 (0-77)
-  if (card.cardNumber !== undefined) {
-    const cardId = card.cardNumber;
-    
-    // 메이저 아르카나 (0-21)
-    if (cardId <= 21) {
-      const majorNames = [
-        'the-Fool', 'The-Magician', 'The-High-Priestess', 'The-Empress',
-        'The-Emperor', 'The-Hierophant', 'The-Lovers', 'The-Chariot',
-        'Strength', 'The-Hermit', 'Wheel-of-Fortune', 'Justice',
-        'The-Hanged-Man', 'Death', 'Temperance', 'The-Devil',
-        'The-Tower', 'The-Star', 'The-Moon', 'The-Sun',
-        'Judgement', 'The-World'
-      ];
-      const cardNumber = cardId.toString().padStart(2, '0');
-      return `/assets/tarot-cards/major/${cardNumber}-${majorNames[cardId]}.png`;
-    }
-    
-    // 마이너 아르카나 - 올바른 순서
-    // Cups: 22-35, Wands: 36-49, Swords: 50-63, Pentacles: 64-77
-    let suit = '';
-    let number = 0;
-    
-    if (cardId >= 22 && cardId <= 35) {
-      suit = 'cups';
-      number = cardId - 21; // 1-14
-    } else if (cardId >= 36 && cardId <= 49) {
-      suit = 'wands';
-      number = cardId - 35; // 1-14
-    } else if (cardId >= 50 && cardId <= 63) {
-      suit = 'swords';
-      number = cardId - 49; // 1-14
-    } else if (cardId >= 64 && cardId <= 77) {
-      suit = 'pentacles';
-      number = cardId - 63; // 1-14
-    }
-    
-    // 숫자 카드 (1-10)
-    if (number >= 1 && number <= 10) {
-      const numberNames = ['', 'ace', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
-      const cardNumber = number.toString().padStart(2, '0');
-      const cardName = `${numberNames[number]}-of-${suit}`;
-      return `/assets/tarot-cards/minor/${cardNumber}-${cardName}.png`;
-    }
-    
-    // 코트 카드 (11-14)
-    if (number >= 11 && number <= 14) {
-      const courtNames = ['', '', '', '', '', '', '', '', '', '', '', 'page', 'knight', 'queen', 'king'];
-      const courtName = courtNames[number];
-      const suitName = suit.charAt(0).toUpperCase() + suit.slice(1);
-      
-      // 코트 카드 번호 계산
-      const suitOrder = ['cups', 'wands', 'swords', 'pentacles'];
-      const courtOrder = ['page', 'knight', 'queen', 'king'];
-      const suitIndex = suitOrder.indexOf(suit);
-      const courtIndex = courtOrder.indexOf(courtName);
-      // 각 슈트의 코트카드 시작 번호: Cups=45, Wands=41, Swords=49, Pentacles=53
-      const baseNumbers = [45, 41, 49, 53];
-      const fileNumber = baseNumbers[suitIndex] + courtIndex;
-      
-      return `/assets/tarot-cards/minor/${fileNumber}-${courtName.charAt(0).toUpperCase() + courtName.slice(1)}-of-${suitName}.png`;
-    }
-  }
-  
-  // 기본값
-  return '/assets/card-back.png';
+  return getUnifiedCardImagePath(card);
 };
 
 // daily_cards 테이블에서 interpretation_data 조회

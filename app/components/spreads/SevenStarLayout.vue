@@ -322,7 +322,7 @@
 import { ref, computed } from 'vue';
 import { nativeUtils } from '@/utils/capacitor';
 import { useUserStore } from '@/store/user';
-import { getCardImagePath, handleImageError } from '@/utils/cardUtils';
+import { getUnifiedCardImagePath, handleUnifiedImageError } from '@/utils/unifiedCardImage';
 import PositionMeaningInline from '@/components/PositionMeaningInline.vue';
 
 interface CardData {
@@ -382,13 +382,13 @@ const handleCardClick = async (index: number) => {
   }
 };
 
-// 카드 이미지 URL 생성 - cardUtils 사용
+// 카드 이미지 URL 생성 - 통합 함수 사용
 const getCardImageUrl = (card: any) => {
-  return getCardImagePath(card);
+  return getUnifiedCardImagePath(card);
 };
 
-// 이미지 에러 핸들러 - cardUtils 사용
-const onImageError = handleImageError;
+// 이미지 에러 핸들러 - 통합 함수 사용
+const onImageError = handleUnifiedImageError;
 
 
 </script>

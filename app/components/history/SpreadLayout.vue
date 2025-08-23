@@ -9,17 +9,17 @@
       >
         <div class="card-wrapper">
           <img 
-            :src="getCardImagePath(card)" 
+            :src="getUnifiedCardImagePath(card)" 
             :alt="getCardName(card)"
             class="card-image"
-            :class="{ reversed: isReversedCard(card) }"
-            @error="handleImageError"
+            :class="{ reversed: isCardReversed(card) }"
+            @error="handleUnifiedImageError"
           />
           <div class="card-info">
             <div class="position-label">{{ getPositionName(index) }}</div>
             <div class="card-name">{{ getCardName(card) }}</div>
-            <div class="card-orientation" :class="{ reversed: isReversedCard(card) }">
-              {{ isReversedCard(card) ? '역방향' : '정방향' }}
+            <div class="card-orientation" :class="{ reversed: isCardReversed(card) }">
+              {{ isCardReversed(card) ? '역방향' : '정방향' }}
             </div>
           </div>
         </div>
@@ -35,17 +35,17 @@
       >
         <div class="card-wrapper">
           <img 
-            :src="getCardImagePath(card)" 
+            :src="getUnifiedCardImagePath(card)" 
             :alt="getCardName(card)"
             class="card-image"
-            :class="{ reversed: isReversedCard(card) }"
-            @error="handleImageError"
+            :class="{ reversed: isCardReversed(card) }"
+            @error="handleUnifiedImageError"
           />
           <div class="card-info">
             <div class="position-label">{{ getPositionName(index) }}</div>
             <div class="card-name">{{ getCardName(card) }}</div>
-            <div class="card-orientation" :class="{ reversed: isReversedCard(card) }">
-              {{ isReversedCard(card) ? '역방향' : '정방향' }}
+            <div class="card-orientation" :class="{ reversed: isCardReversed(card) }">
+              {{ isCardReversed(card) ? '역방향' : '정방향' }}
             </div>
           </div>
         </div>
@@ -61,17 +61,17 @@
       >
         <div class="card-wrapper">
           <img 
-            :src="getCardImagePath(card)" 
+            :src="getUnifiedCardImagePath(card)" 
             :alt="getCardName(card)"
             class="card-image"
-            :class="{ reversed: isReversedCard(card) }"
-            @error="handleImageError"
+            :class="{ reversed: isCardReversed(card) }"
+            @error="handleUnifiedImageError"
           />
           <div class="card-info">
             <div class="position-label">{{ getPositionName(index) }}</div>
             <div class="card-name">{{ getCardName(card) }}</div>
-            <div class="card-orientation" :class="{ reversed: isReversedCard(card) }">
-              {{ isReversedCard(card) ? '역방향' : '정방향' }}
+            <div class="card-orientation" :class="{ reversed: isCardReversed(card) }">
+              {{ isCardReversed(card) ? '역방향' : '정방향' }}
             </div>
           </div>
         </div>
@@ -87,17 +87,17 @@
       >
         <div class="card-wrapper">
           <img 
-            :src="getCardImagePath(card)" 
+            :src="getUnifiedCardImagePath(card)" 
             :alt="getCardName(card)"
             class="card-image"
-            :class="{ reversed: isReversedCard(card) }"
-            @error="handleImageError"
+            :class="{ reversed: isCardReversed(card) }"
+            @error="handleUnifiedImageError"
           />
           <div class="card-info">
             <div class="position-label">{{ getPositionName(index) }}</div>
             <div class="card-name">{{ getCardName(card) }}</div>
-            <div class="card-orientation" :class="{ reversed: isReversedCard(card) }">
-              {{ isReversedCard(card) ? '역방향' : '정방향' }}
+            <div class="card-orientation" :class="{ reversed: isCardReversed(card) }">
+              {{ isCardReversed(card) ? '역방향' : '정방향' }}
             </div>
           </div>
         </div>
@@ -109,19 +109,19 @@
       <div class="card-position single-position">
         <div class="card-wrapper">
           <img 
-            :src="getCardImagePath(cards[0])" 
+            :src="getUnifiedCardImagePath(cards[0])" 
             :alt="getCardName(cards[0])"
             class="card-image"
-            :class="{ reversed: isReversedCard(cards[0]) }"
-            @error="handleImageError"
+            :class="{ reversed: isCardReversed(cards[0]) }"
+            @error="handleUnifiedImageError"
           />
           <div class="card-info">
             <div class="position-label">
               {{ spreadType === 'daily_card' ? '오늘의 카드' : '현재 상황' }}
             </div>
             <div class="card-name">{{ getCardName(cards[0]) }}</div>
-            <div class="card-orientation" :class="{ reversed: isReversedCard(cards[0]) }">
-              {{ isReversedCard(cards[0]) ? '역방향' : '정방향' }}
+            <div class="card-orientation" :class="{ reversed: isCardReversed(cards[0]) }">
+              {{ isCardReversed(cards[0]) ? '역방향' : '정방향' }}
             </div>
           </div>
         </div>
@@ -137,17 +137,17 @@
       >
         <div class="card-wrapper">
           <img 
-            :src="getCardImagePath(card)" 
+            :src="getUnifiedCardImagePath(card)" 
             :alt="getCardName(card)"
             class="card-image"
-            :class="{ reversed: isReversedCard(card) }"
-            @error="handleImageError"
+            :class="{ reversed: isCardReversed(card) }"
+            @error="handleUnifiedImageError"
           />
           <div class="card-info">
             <div class="position-label">카드 {{ index + 1 }}</div>
             <div class="card-name">{{ getCardName(card) }}</div>
-            <div class="card-orientation" :class="{ reversed: isReversedCard(card) }">
-              {{ isReversedCard(card) ? '역방향' : '정방향' }}
+            <div class="card-orientation" :class="{ reversed: isCardReversed(card) }">
+              {{ isCardReversed(card) ? '역방향' : '정방향' }}
             </div>
           </div>
         </div>
@@ -158,7 +158,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { getCardImagePath, isReversedCard, handleImageError } from '@/utils/cardUtils';
+import { getUnifiedCardImagePath, isCardReversed, handleUnifiedImageError } from '@/utils/unifiedCardImage';
 
 interface Props {
   spreadId?: string;

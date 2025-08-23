@@ -210,7 +210,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { getThemeDisplayName, getSpreadDisplayName } from '../utils/themeQuestions';
-import { getCardImageFromObject } from '../utils/cardImageUtils';
+import { getUnifiedCardImagePath } from '../utils/unifiedCardImage';
 import { showAlert } from '../utils/alerts';
 
 const route = useRoute();
@@ -236,7 +236,7 @@ const parsedCards = computed(() => {
         name: card.name,
         nameKr: card.nameKr,
         orientation: card.orientation,
-        expectedImage: getCardImageFromObject(card)
+        expectedImage: getUnifiedCardImagePath(card)
       });
     });
     
@@ -432,9 +432,9 @@ const formattedDailyInterpretation = computed(() => {
   return html;
 });
 
-// 카드 이미지 URL 생성 - cardImageUtils 사용
+// 카드 이미지 URL 생성 - 통합 카드 이미지 함수 사용
 const getCardImageUrl = (card: any) => {
-  return getCardImageFromObject(card);
+  return getUnifiedCardImagePath(card);
 };
 
 // 이미지 에러 처리

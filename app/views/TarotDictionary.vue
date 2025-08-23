@@ -138,7 +138,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTarotStore } from '@/store/tarot';
-import { getCardImagePath, handleImageError } from '@/utils/cardUtils';
+import { getUnifiedCardImagePath, handleUnifiedImageError } from '@/utils/unifiedCardImage';
 
 const tarotStore = useTarotStore();
 const allCards = ref<any[]>([]);
@@ -202,8 +202,8 @@ const setMeaningTab = (tabId: string) => {
   activeMeaningTab.value = tabId;
 };
 
-// 카드 이미지 URL 생성 - utils에서 가져온 함수 사용
-const getCardImageUrl = (card: any) => getCardImagePath(card);
+// 카드 이미지 URL 생성 - 통합 카드 이미지 함수 사용
+const getCardImageUrl = (card: any) => getUnifiedCardImagePath(card);
 
 const selectCard = (card: any) => {
   selectedCard.value = card;
@@ -230,8 +230,8 @@ const getSuitName = (suit: string) => {
   return suitNames[suit] || suit;
 };
 
-// 이미지 로드 에러 처리 - utils에서 가져온 함수 사용
-const onImageError = (event: Event) => handleImageError(event);
+// 이미지 로드 에러 처리 - 통합 이미지 에러 처리 함수 사용
+const onImageError = (event: Event) => handleUnifiedImageError(event);
 </script>
 
 <style scoped>

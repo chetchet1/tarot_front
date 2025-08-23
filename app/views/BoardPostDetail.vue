@@ -169,7 +169,7 @@ import { useBoardStore } from '../store/board';
 import { useUserStore } from '../store/user';
 import { supabase } from '../services/supabase';
 import { showAlert, showConfirm } from '../utils/alerts';
-import { getCardImageFromObject } from '../utils/cardImageUtils';
+import { getUnifiedCardImagePath } from '../utils/unifiedCardImage';
 // BoardComment 컴포넌트는 동적으로 import
 import { defineAsyncComponent } from 'vue';
 const BoardComment = defineAsyncComponent(() => import('../components/BoardComment.vue'));
@@ -278,7 +278,7 @@ const getCardImages = (reading: any) => {
     const card = cards[i];
     if (typeof card === 'object') {
       preview.push({
-        image: getCardImageFromObject(card),
+        image: getUnifiedCardImagePath(card),
         name: card.nameKr || card.name || `카드 ${i + 1}`,
         orientation: card.orientation || 'upright'
       });

@@ -289,7 +289,7 @@
 import { ref, computed, watch } from 'vue';
 import { supabase } from '../services/supabase';
 import { getThemeDisplayName, getSpreadDisplayName } from '../utils/themeQuestions';
-import { getCardImageFromObject } from '../utils/cardImageUtils';
+import { getUnifiedCardImagePath } from '../utils/unifiedCardImage';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -319,9 +319,9 @@ const parsedCards = computed(() => {
   }
 });
 
-// 카드 이미지 URL 생성
+// 카드 이미지 URL 생성 - 통합 카드 이미지 함수 사용
 const getCardImageUrl = (card: any) => {
-  return getCardImageFromObject(card);
+  return getUnifiedCardImagePath(card);
 };
 
 // 이미지 에러 처리

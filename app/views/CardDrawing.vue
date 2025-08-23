@@ -259,7 +259,7 @@ import { getAdManager } from '../services/adManagerSingleton';
 // import { CupOfRelationshipInterpreter } from '../services/interpretation/CupOfRelationshipInterpreter'; // tarot.ts에서만 사용
 import { customInterpretationService } from '../services/ai/customInterpretationService';
 import { showAlert, showConfirm } from '../utils/alerts';
-import { getCardImagePath, handleImageError } from '../utils/cardUtils';
+import { getUnifiedCardImagePath, handleUnifiedImageError } from '../utils/unifiedCardImage';
 import { showInterstitialAd } from '../services/admob'; // 직접 import 추가
 import { interceptPremiumSpreadCalls, interceptAdManager } from '../utils/debugPremiumSpread'; // 디버그 도구
 import { monitorSupabaseAPICalls } from '../utils/supabaseMonitor'; // Supabase API 모니터링
@@ -362,8 +362,8 @@ const getDrawButtonText = () => {
   return '카드 뽑기';
 };
 
-// 카드 이미지 URL 생성 - utils에서 가져온 함수 사용
-const getCardImageUrl = (card: any) => getCardImagePath(card);
+// 카드 이미지 URL 생성 - 통합 함수 사용
+const getCardImageUrl = (card: any) => getUnifiedCardImagePath(card);
 
 // 카드 개수 가져오기
 const getCardCount = () => {
@@ -1316,56 +1316,8 @@ const goToResult = async () => {
 //   }
 // };
 
-// 이미지 로드 에러 처리
-// 이미지 로드 에러 처리
-const onImageError = (event: Event) => {
-  if (!event || !event.target) {
-    console.warn('이미지 에러 이벤트가 유효하지 않음');
-    return;
-  }
-  
-  const img = event.target as HTMLImageElement;
-  if (!img) {
-    console.warn('이미지 엘리먼트가 없음');
-    return;
-  }
-  
-  console.warn('이미지 로드 실패:', img.src);
-  
-  // 안전하게 폴백 처리
-  const parentElement = img.parentElement;
-  if (parentElement) {
-    try {
-      // 이미지를 숨기고 이모지로 대체
-      img.style.display = 'none';
-      
-      // 이미 이모지가 추가되어 있는지 확인
-      if (!parentElement.querySelector('.fallback-emoji')) {
-        const fallbackEmoji = document.createElement('div');
-        fallbackEmoji.className = 'fallback-emoji';
-        fallbackEmoji.textContent = '🎴';
-        fallbackEmoji.style.fontSize = '48px';
-        fallbackEmoji.style.textAlign = 'center';
-        fallbackEmoji.style.display = 'flex';
-        fallbackEmoji.style.alignItems = 'center';
-        fallbackEmoji.style.justifyContent = 'center';
-        fallbackEmoji.style.width = '100%';
-        fallbackEmoji.style.height = '100%';
-        fallbackEmoji.style.position = 'absolute';
-        fallbackEmoji.style.top = '0';
-        fallbackEmoji.style.left = '0';
-        fallbackEmoji.style.zIndex = '10';
-        fallbackEmoji.style.background = 'rgba(75, 85, 99, 0.9)';
-        fallbackEmoji.style.borderRadius = '6px';
-        parentElement.appendChild(fallbackEmoji);
-      }
-    } catch (error) {
-      console.error('폴백 이미지 생성 중 에러:', error);
-    }
-  } else {
-    console.warn('이미지의 부모 엘리먼트가 없음');
-  }
-};
+// 이미지 로드 에러 처리 - 통합 함수 사용
+const onImageError = handleUnifiedImageError;
 
 // 스프레드별 위치 이름 가져오기
 const getPositionNameForSpread = (spreadId: string, index: number): string => {

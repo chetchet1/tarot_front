@@ -90,12 +90,12 @@
                   v-for="(card, idx) in getReadingCards(reading).slice(0, 3)" 
                   :key="idx"
                   class="mini-card"
-                  :class="{ reversed: isReversedCard(card) }"
+                  :class="{ reversed: isCardReversed(card) }"
                 >
                   <img 
                     :src="getMiniCardImage(card)" 
                     :alt="getCardName(card)"
-                    @error="handleImageError"
+                    @error="handleUnifiedImageError"
                   />
                 </div>
                 <span v-if="getReadingCards(reading).length > 3" class="more-cards">
@@ -198,7 +198,7 @@ import { supabase } from '@/services/supabase';
 import LoginModal from '@/components/LoginModal.vue';
 import SpreadLayout from '@/components/history/SpreadLayout.vue';
 import DailyCardModal from '@/components/modals/DailyCardModal.vue';
-import { getCardImagePath, isReversedCard, handleImageError } from '@/utils/cardUtils';
+import { getUnifiedCardImagePath, isCardReversed, handleUnifiedImageError } from '@/utils/unifiedCardImage';
 import { showAlert } from '@/utils/alerts';
 import type { ReadingHistory, DrawnCard } from '@/types/history';
 
@@ -374,8 +374,8 @@ const getMiniCardImage = (card: any): string => {
     return '/assets/tarot-cards/back.jpg';
   }
   
-  // getCardImagePath 함수 사용
-  return getCardImagePath(card);
+  // getUnifiedCardImagePath 함수 사용
+  return getUnifiedCardImagePath(card);
 };
 
 const getCardName = (card: any): string => {

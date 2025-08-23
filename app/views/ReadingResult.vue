@@ -556,7 +556,7 @@ import { useUserStore } from '../store/user';
 import { generateAIInterpretation as generateAI } from '../services/ai/aiInterpretationHelper';
 import { showConfirm, showAlert } from '../utils/alerts';
 import { adService } from '../services/AdService';
-import { getCardImagePath, handleImageError } from '../utils/cardUtils';
+import { getUnifiedCardImagePath, handleUnifiedImageError } from '../utils/unifiedCardImage';
 import { useSubscriptionStatus } from '../composables/useSubscriptionStatus';
 import { AIInterpretationService } from '../services/ai/AIInterpretationService';
 // 공유 기능을 위한 import
@@ -652,10 +652,10 @@ const interpretationProgress = ref(0);
 
 // 카드 이미지 URL 생성 함수 사용
 const getCardImageUrl = (card: DrawnCard) => {
-  // 모든 배열에서 동일하게 getCardImagePath 사용 (DB ID 기반 정확한 매핑)
-  return getCardImagePath(card);
+  // 통합 함수 사용 (DB ID 기반 정확한 매핑)
+  return getUnifiedCardImagePath(card);
 };
-const onImageError = (event: Event) => handleImageError(event);
+const onImageError = (event: Event) => handleUnifiedImageError(event);
 
 const goBack = () => {
   router.go(-1);
