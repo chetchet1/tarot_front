@@ -8,6 +8,7 @@ import { initializeAdMob } from './services/admob';
 import { initializeSubscription } from './services/purchasesWeb';
 import { Platform } from './utils/platform';
 import { setupDeepLinks } from './utils/deepLinks';
+import { adService } from './services/AdService';
 
 // Capacitor 초기화
 NativeUtils.initializeApp();
@@ -66,8 +67,13 @@ const initializeApp = async () => {
     // 무료 사용자만 광고 초기화
     if (!userStore.isPremium) {
       console.log('📺 광고 서비스 초기화 시작...');
-      initializeAdMob().then(() => {
+      initializeAdMob().then(async () => {
         console.log('📺 광고 서비스 초기화 완료');
+        
+        // 광고 프리로드 시작 (백그라운드에서 진행)
+        console.log('🚀 광고 프리로드 시작...');
+        await adService.preloadAd();
+        console.log('✅ 광고 프리로드 요청 완료');
       }).catch(error => {
         console.error('광고 서비스 초기화 실패:', error);
         // 초기화 실패 시 재시도
@@ -76,6 +82,11 @@ const initializeApp = async () => {
             console.log('📺 광고 서비스 재초기화 시도...');
             await initializeAdMob();
             console.log('📺 광고 서비스 재초기화 성공');
+            
+            // 재초기화 성공 시에도 프리로드 시도
+            console.log('🚀 광고 프리로드 시작 (재시도)...');
+            await adService.preloadAd();
+            console.log('✅ 광고 프리로드 요청 완료 (재시도)');
           } catch (retryError) {
             console.error('광고 서비스 재초기화 실패:', retryError);
           }

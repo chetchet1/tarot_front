@@ -208,7 +208,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
@@ -262,10 +262,8 @@ const checkMobile = () => {
   isMobile.value = window.innerWidth <= 768;
 };
 
-onMounted(async () => {
-  checkMobile();
-  window.addEventListener('resize', checkMobile);
-  
+// 프리미엄 사용 상태 체크 함수
+const checkPremiumUsageStatus = async () => {
   // 테스트 계정이면 유료 배열 사용 여부 체크 생략
   const isTestAccount = userStore.currentUser?.email === 'test@example.com';
   
@@ -295,10 +293,29 @@ onMounted(async () => {
     hasPremiumUsageToday.value = false; // 테스트 계정은 항상 사용 가능한 것처럼 표시
     freeUserMessage.value = '테스트 계정 - 유료 배열을 무제한 이용 가능';
   }
+};
+
+// 페이지가 포커스를 받을 때마다 상태 체크
+const handleVisibilityChange = async () => {
+  if (!document.hidden) {
+    await checkPremiumUsageStatus();
+  }
+};
+
+onMounted(async () => {
+  checkMobile();
+  window.addEventListener('resize', checkMobile);
+  
+  // 초기 프리미엄 사용 상태 체크
+  await checkPremiumUsageStatus();
+  
+  // 페이지 포커스 이벤트 리스너 추가
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 });
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile);
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 
 // 주제 목록

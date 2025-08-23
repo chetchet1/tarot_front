@@ -1199,23 +1199,28 @@ const showAIInterpretationWithAd = async () => {
     
     // 광고 로딩 중 표시 (모바일에서 로딩이 길 수 있음)
     const loadingOverlay = document.createElement('div');
+    loadingOverlay.id = 'ad-loading-overlay';
     loadingOverlay.style.cssText = `
       position: fixed;
       top: 0;
       left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.8);
-      z-index: 9998;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 99999;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       color: white;
       font-size: 18px;
+      pointer-events: all;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
     `;
     loadingOverlay.innerHTML = `
-      <div style="text-align: center;">
+      <div style="text-align: center; pointer-events: none;">
         <div class="loading-spinner" style="
           width: 60px;
           height: 60px;
@@ -1226,6 +1231,7 @@ const showAIInterpretationWithAd = async () => {
         "></div>
         <p style="margin-top: 20px;">광고를 불러오는 중...</p>
         <p style="font-size: 14px; opacity: 0.7; margin-top: 10px;">잠시만 기다려주세요</p>
+        <p style="font-size: 12px; opacity: 0.5; margin-top: 5px;">처음에는 로딩이 조금 걸릴 수 있습니다</p>
       </div>
       <style>
         @keyframes spin {
@@ -1234,7 +1240,20 @@ const showAIInterpretationWithAd = async () => {
         }
       </style>
     `;
+    
+    // 뒤로 가기 방지를 위한 이벤트 리스너
+    const preventBack = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+    
+    loadingOverlay.addEventListener('click', preventBack);
+    loadingOverlay.addEventListener('touchstart', preventBack);
+    loadingOverlay.addEventListener('touchmove', preventBack);
+    
     document.body.appendChild(loadingOverlay);
+    document.body.style.overflow = 'hidden';
     
     // 먼저 광고를 보여줌
     const adWatched = await adService.showInterstitialAd();
@@ -1242,6 +1261,7 @@ const showAIInterpretationWithAd = async () => {
     // 로딩 오버레이 제거
     if (loadingOverlay.parentElement) {
       document.body.removeChild(loadingOverlay);
+      document.body.style.overflow = '';
     }
     
     console.log('🔮 [showAIInterpretationWithAd] 광고 시청 결과:', adWatched);
@@ -1592,6 +1612,9 @@ onMounted(async () => {
     router.push('/app');
     return;
   }
+  
+  // 광고 프리로드는 이제 앱 시작 시점에 처리됨 (main.ts에서 adService.preloadAd() 호출)
+  // 사용자가 테마와 배열을 선택하는 동안 광고가 백그라운드에서 로드됨
   
   // 프리미엄 사용자이면 DB에 저장
   if (userStore.isPremium && reading.value) {

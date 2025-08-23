@@ -157,6 +157,62 @@ class AdService {
     }
   }
   
+  async preloadAd(): Promise<boolean> {
+    try {
+      console.log('🚀 광고 프리로드 시작');
+      
+      // 초기화가 안 되어 있으면 초기화
+      if (!this.initialized) {
+        console.log('🔧 광고 시스템 초기화 중...');
+        const initSuccess = await this.initialize();
+        if (!initSuccess) {
+          console.warn('⚠️ 프리로드 초기화 실패');
+          return false;
+        }
+      }
+      
+      const platform = this.getPlatform();
+      
+      // 웹 환경에서는 프리로드 스킵
+      if (platform === 'web') {
+        console.log('웹 환경: 광고 프리로드 스킵');
+        return true;
+      }
+      
+      // Capacitor AdMob이 있는 경우에만 프리로드
+      if (typeof (window as any).Capacitor !== 'undefined' && (window as any).Capacitor.Plugins?.AdMob) {
+        const AdMob = (window as any).Capacitor.Plugins.AdMob;
+        
+        const options = {
+          adId: platform === 'ios' 
+            ? this.adIds.ios.interstitial 
+            : this.adIds.android.interstitial,
+          isTesting: this.isTestMode
+        };
+        
+        console.log('📡 광고 프리로드 옵션:', options);
+        
+        // 프리로드는 백그라운드에서 진행되므로 타임아웃 없이 진행
+        AdMob.prepareInterstitial(options).then(() => {
+          console.log('✅ 광고 프리로드 성공');
+          this.isAdReady.value = true;
+          this.isFirstLoad = false; // 프리로드가 성공하면 첫 로드 플래그 해제
+        }).catch((error: any) => {
+          console.warn('⚠️ 광고 프리로드 실패:', error);
+        });
+        
+        // 프리로드는 비동기로 진행되도록 즉시 true 반환
+        return true;
+      }
+      
+      return true;
+      
+    } catch (error) {
+      console.error('광고 프리로드 오류:', error);
+      return false;
+    }
+  }
+
   async loadInterstitialAd(): Promise<boolean> {
     // 첫 번째 로드인 경우 특별 처리
     if (this.isFirstLoad) {
@@ -226,8 +282,8 @@ class AdService {
         
         console.log('📡 광고 로드 옵션:', options);
         
-        // 타임아웃 설정 (첫 로드는 15초, 이후는 10초)
-        const timeout = this.isFirstLoad ? 15000 : 10000;
+        // 타임아웃 설정 (첫 로드는 10초, 이후는 8초)
+        const timeout = this.isFirstLoad ? 10000 : 8000;
         const timeoutPromise = new Promise<boolean>((resolve) => {
           setTimeout(() => {
             console.warn(`⏱️ 광고 로드 타임아웃 (${timeout}ms)`);
