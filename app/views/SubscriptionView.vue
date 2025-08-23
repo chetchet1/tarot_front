@@ -257,6 +257,10 @@ const purchase = async () => {
     return;
   }
 
+  // 구글 플레이 앱 등록 전 임시 비활성화
+  await showAlert('알림', '준비중입니다.');
+  return;
+
   loading.value = true;
   
   // 웹 테스트 환경 처리
