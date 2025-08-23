@@ -174,6 +174,7 @@ export const postService = {
       console.log('[postService] Supabase 쿼리 실행');
       const { data, error, count } = await query
         .order('is_notice', { ascending: false })  // 공지사항을 먼저 (true가 false보다 먼저)
+        .order('is_event_post', { ascending: false })  // 이벤트 글을 그 다음 (true가 false보다 먼저)
         .order('created_at', { ascending: false })  // 그 다음 최신순
         .range(offset, offset + limit - 1);
 
@@ -407,7 +408,9 @@ export const postService = {
         .select('*', { count: 'exact' })
         .eq('is_deleted', false)
         .or(`title.ilike.%${query}%,content.ilike.%${query}%`)
-        .order('created_at', { ascending: false })
+        .order('is_notice', { ascending: false })  // 공지사항을 먼저
+        .order('is_event_post', { ascending: false })  // 이벤트 글을 그 다음
+        .order('created_at', { ascending: false })  // 그 다음 최신순
         .range(offset, offset + limit - 1);
 
       if (error) throw error;

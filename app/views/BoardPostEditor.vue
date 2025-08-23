@@ -72,32 +72,44 @@
         </label>
         
         <div class="reading-attach-section">
-          <!-- 선택된 점괘 표시 -->
-          <div v-if="selectedReading" class="selected-reading">
-            <div class="selected-reading-info">
-              <span class="selected-badge">{{ getSpreadLabel(selectedReading.spread_type) }}</span>
-              <span class="selected-date">{{ formatDate(selectedReading.created_at) }}</span>
-              <button class="remove-btn" @click="removeSelectedReading">
-                <span>✕</span>
-              </button>
-            </div>
-            <div v-if="selectedReading.question" class="selected-question">
-              <span class="question-icon">❓</span>
-              <span class="question-text">{{ selectedReading.question }}</span>
+          <!-- 무료 사용자 제한 안내 -->
+          <div v-if="!userStore.isPremium" class="premium-only-notice">
+            <div class="premium-lock-icon">🔒</div>
+            <div class="premium-lock-info">
+              <p class="premium-lock-title">프리미엄 전용 기능</p>
+              <p class="premium-lock-desc">점괘 첨부는 프리미엄 구독자만 이용할 수 있습니다.</p>
             </div>
           </div>
-
-          <!-- 선택 버튼 -->
-          <button 
-            v-else
-            class="select-reading-btn"
-            @click="showReadingModal = true"
-          >
-            <span class="btn-icon">📖</span>
-            <span class="btn-text">내 점괘 기록에서 선택</span>
-          </button>
           
-          <p class="select-help">내 점괘 기록에서 선택하여 함께 공유할 수 있습니다.</p>
+          <!-- 프리미엄 사용자만 점괘 첨부 가능 -->
+          <template v-else>
+            <!-- 선택된 점괘 표시 -->
+            <div v-if="selectedReading" class="selected-reading">
+              <div class="selected-reading-info">
+                <span class="selected-badge">{{ getSpreadLabel(selectedReading.spread_type) }}</span>
+                <span class="selected-date">{{ formatDate(selectedReading.created_at) }}</span>
+                <button class="remove-btn" @click="removeSelectedReading">
+                  <span>✕</span>
+                </button>
+              </div>
+              <div v-if="selectedReading.question" class="selected-question">
+                <span class="question-icon">❓</span>
+                <span class="question-text">{{ selectedReading.question }}</span>
+              </div>
+            </div>
+
+            <!-- 선택 버튼 -->
+            <button 
+              v-else
+              class="select-reading-btn"
+              @click="showReadingModal = true"
+            >
+              <span class="btn-icon">📖</span>
+              <span class="btn-text">내 점괘 기록에서 선택</span>
+            </button>
+            
+            <p class="select-help">내 점괘 기록에서 선택하여 함께 공유할 수 있습니다.</p>
+          </template>
         </div>
       </div>
 
@@ -363,11 +375,19 @@ const submitPost = async () => {
     console.log('[게시글 제출] form.content:', form.content);
     console.log('[게시글 제출] form.content.trim():', form.content.trim());
     
+    // 무료 사용자는 점괘 첨부 불가
+    let finalSharedReadingId = form.shared_reading_id;
+    if (!userStore.isPremium && form.shared_reading_id) {
+      console.log('[게시글 제출] 무료 사용자 점괘 첨부 차단');
+      finalSharedReadingId = null;
+      selectedReading.value = null;
+    }
+    
     const postData: any = {
       category: form.category,
       title: form.title.trim(),
       content: form.content.trim(),
-      shared_reading_id: form.shared_reading_id || null
+      shared_reading_id: finalSharedReadingId || null
     };
     
     // 관리자 옵션 추가
@@ -1181,6 +1201,39 @@ onMounted(async () => {
   margin-top: 8px;
   font-size: 14px;
   color: rgba(255, 255, 255, 0.6);
+}
+
+/* 프리미엄 전용 안내 */
+.premium-only-notice {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.premium-lock-icon {
+  font-size: 32px;
+  opacity: 0.6;
+}
+
+.premium-lock-info {
+  flex: 1;
+}
+
+.premium-lock-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 4px 0;
+}
+
+.premium-lock-desc {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
 }
 
 /* 작성자 정보 */
