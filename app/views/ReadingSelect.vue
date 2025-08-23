@@ -529,13 +529,6 @@ const selectSpread = async (spread: Spread) => {
         userStore.currentUser.email === 'test@example.com') {
       // 테스트 계정은 체크하지 않고 바로 선택 가능
       selectedSpread.value = spread.id;
-      
-      // 연애 + 특정 배열법 선택 시 바로 모달 표시
-      if (selectedTopic.value === 'love' && 
-          (spread.id === 'celtic_cross' || spread.id === 'seven_star')) {
-        console.log('[SelectSpread] 연애 + 특정 배열법 선택 - 모달 표시');
-        showRelationshipModal.value = true;
-      }
       return;
     }
     
