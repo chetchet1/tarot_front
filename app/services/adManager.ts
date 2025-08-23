@@ -238,16 +238,55 @@ export class AdManager {
   async recordPremiumSpreadUsage(spreadId: string): Promise<void> {
     console.log('🔍 [AdManager.recordPremiumSpreadUsage] 유료 배열 사용 기록 시작:', spreadId);
     console.log('🔍 [AdManager.recordPremiumSpreadUsage] 호출 시간:', new Date().toISOString());
-    const { recordPremiumSpreadUsage } = await import('../utils/premiumSpreadTracker');
-    await recordPremiumSpreadUsage(spreadId);
+    
+    const userStore = this.getUserStore();
+    const user = userStore.currentUser;
+    
+    if (!user) {
+      console.error('🔍 [AdManager.recordPremiumSpreadUsage] 사용자 정보 없음');
+      return;
+    }
+    
+    // 로그인 사용자는 DB에 저장, 익명 사용자는 로컬 스토리지에 저장
+    if (!user.isAnonymous) {
+      console.log('🔍 [AdManager.recordPremiumSpreadUsage] 로그인 사용자 - DB에 저장');
+      const { recordPremiumSpreadUsage } = await import('../services/premium/premiumSpreadService');
+      await recordPremiumSpreadUsage(spreadId, user.id, user.email);
+    } else {
+      console.log('🔍 [AdManager.recordPremiumSpreadUsage] 익명 사용자 - 로컬 스토리지에 저장');
+      const { recordPremiumSpreadUsage } = await import('../utils/premiumSpreadTracker');
+      await recordPremiumSpreadUsage(spreadId);
+    }
+    
     console.log('🔍 [AdManager.recordPremiumSpreadUsage] 기록 완료');
   }
   
   // 유료 배열 사용 횟수 확인 (디버그용)
   async checkPremiumSpreadUsage(spreadId: string): Promise<{ usedToday: number, canUse: boolean }> {
     console.log('🔍 [AdManager.checkPremiumSpreadUsage] 사용 횟수 확인:', spreadId);
-    const { getPremiumSpreadUsageToday } = await import('../utils/premiumSpreadTracker');
-    const usedToday = await getPremiumSpreadUsageToday(spreadId);
+    
+    const userStore = this.getUserStore();
+    const user = userStore.currentUser;
+    
+    if (!user) {
+      console.error('🔍 [AdManager.checkPremiumSpreadUsage] 사용자 정보 없음');
+      return { usedToday: 0, canUse: true };
+    }
+    
+    let usedToday = 0;
+    
+    // 로그인 사용자는 DB에서 확인, 익명 사용자는 로컬 스토리지에서 확인
+    if (!user.isAnonymous) {
+      console.log('🔍 [AdManager.checkPremiumSpreadUsage] 로그인 사용자 - DB에서 확인');
+      const { hasUsedPremiumSpreadToday } = await import('../services/premium/premiumSpreadService');
+      const hasUsed = await hasUsedPremiumSpreadToday(user.id);
+      usedToday = hasUsed ? 1 : 0;
+    } else {
+      console.log('🔍 [AdManager.checkPremiumSpreadUsage] 익명 사용자 - 로컬 스토리지에서 확인');
+      const { getPremiumSpreadUsageToday } = await import('../utils/premiumSpreadTracker');
+      usedToday = await getPremiumSpreadUsageToday(spreadId);
+    }
+    
     const canUse = usedToday < 1; // 하루 1회 제한
     console.log('🔍 [AdManager.checkPremiumSpreadUsage] 결과:', { usedToday, canUse });
     return { usedToday, canUse };

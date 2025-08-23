@@ -33,13 +33,17 @@ export function isPremiumSpread(spreadId: string): boolean {
  * 사용자가 오늘 유료 배열을 사용했는지 확인
  */
 export async function hasUsedPremiumSpreadToday(userId: string): Promise<boolean> {
+  console.log('🔍 [DB] hasUsedPremiumSpreadToday 체크 시작:', userId);
+  
   try {
     // userId가 없으면 false 반환
     if (!userId) {
+      console.log('🔍 [DB] userId 없음 - false 반환');
       return false;
     }
     
     const today = getCurrentDate();
+    console.log('🔍 [DB] 오늘 날짜:', today);
     
     const { data, error } = await supabase
       .from('premium_spread_usage')
@@ -52,21 +56,23 @@ export async function hasUsedPremiumSpreadToday(userId: string): Promise<boolean
     if (error) {
       // 406 에러는 무시하고 false 반환 (권한 없음)
       if (error.code === '406' || error.message?.includes('Not Acceptable')) {
-        console.warn('Premium spread usage check skipped - user might be anonymous');
+        console.warn('🔍 [DB] Premium spread usage check skipped - user might be anonymous');
         return false;
       }
       // 42P01 에러 (테이블 없음)도 무시
       if (error.code === '42P01') {
-        console.warn('Premium spread usage table not found');
+        console.warn('🔍 [DB] Premium spread usage table not found');
         return false;
       }
-      console.error('Error checking premium spread usage:', error);
+      console.error('🔍 [DB] Error checking premium spread usage:', error);
       return false;
     }
     
-    return !!data;
+    const result = !!data;
+    console.log('🔍 [DB] 오늘 사용 여부:', result, data ? `(${data.spread_id})` : '');
+    return result;
   } catch (error) {
-    console.error('Error checking premium spread usage:', error);
+    console.error('🔍 [DB] Error checking premium spread usage:', error);
     return false;
   }
 }
@@ -146,47 +152,59 @@ export async function recordPremiumSpreadUsage(
   userId: string,
   userEmail?: string
 ): Promise<void> {
+  console.log('📝 [DB] recordPremiumSpreadUsage 시작:', { spreadId, userId, userEmail });
+  
   if (!isPremiumSpread(spreadId)) {
+    console.log('📝 [DB] 유료 배열이 아님 - 기록 건너뜀');
     return;
   }
   
   // userId가 없으면 기록하지 않음
   if (!userId) {
-    console.warn('Cannot record premium spread usage without userId');
+    console.warn('📝 [DB] Cannot record premium spread usage without userId');
     return;
   }
   
   // 테스트 계정은 기록하지 않음
   if (userEmail === TEST_ACCOUNT_EMAIL) {
-    console.log('Test account - skipping premium spread usage recording');
+    console.log('📝 [DB] Test account - skipping premium spread usage recording');
     return;
   }
   
   try {
     const now = new Date();
-    const { error } = await supabase
+    console.log('📝 [DB] DB에 저장 시도:', {
+      user_id: userId,
+      spread_id: spreadId,
+      used_at: now.toISOString()
+    });
+    
+    const { data, error } = await supabase
       .from('premium_spread_usage')
       .insert({
         user_id: userId,
         spread_id: spreadId,
         used_at: now.toISOString()
-      });
+      })
+      .select();
     
     if (error) {
       // 406 에러는 무시 (권한 없음)
       if (error.code === '406' || error.message?.includes('Not Acceptable')) {
-        console.warn('Cannot record premium spread usage - insufficient permissions');
+        console.warn('📝 [DB] Cannot record premium spread usage - insufficient permissions');
         return;
       }
       // 42P01 에러 (테이블 없음)도 무시
       if (error.code === '42P01') {
-        console.warn('Premium spread usage table not found');
+        console.warn('📝 [DB] Premium spread usage table not found');
         return;
       }
-      console.error('Error recording premium spread usage:', error);
+      console.error('📝 [DB] Error recording premium spread usage:', error);
+    } else {
+      console.log('📝 [DB] 저장 성공!', data);
     }
   } catch (error) {
-    console.error('Error recording premium spread usage:', error);
+    console.error('📝 [DB] Error recording premium spread usage:', error);
   }
 }
 
