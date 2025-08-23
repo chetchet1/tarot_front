@@ -120,7 +120,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
@@ -134,6 +134,13 @@ const tarotStore = useTarotStore();
 const showUserDropdown = ref(false);
 const showTestButton = ref(import.meta.env.MODE !== 'production');
 const isTestPanelOpen = ref(false);
+const showTestMenu = ref(false);
+
+// 테스트 계정 확인
+const isTestAccount = computed(() => {
+  return userStore.currentUser?.email === 'test@example.com' || 
+         userStore.currentUser?.email === 'premium@example.com';
+});
 
 const toggleTestPanel = () => {
   isTestPanelOpen.value = !isTestPanelOpen.value;
@@ -261,6 +268,59 @@ const handleClickOutside = (event: MouseEvent) => {
     if (dropdown) {
       dropdown.style.transform = 'translateX(0)';
     }
+  }
+};
+
+// 테스트 메뉴 토글
+const toggleTestMenu = () => {
+  showTestMenu.value = !showTestMenu.value;
+};
+
+// 무료로 리셋
+const resetToFree = async () => {
+  try {
+    console.log('🧪 테스트 계정 무료 리셋');
+    const { profileService } = await import('../services/supabase');
+    await profileService.updatePremiumStatus(
+      userStore.currentUser?.id || '',
+      false
+    );
+    await userStore.refreshPremiumStatus();
+    await showAlert({
+      title: '리셋 완료',
+      message: '테스트 계정이 무료 상태로 되돌아갔습니다.'
+    });
+    showTestMenu.value = false;
+  } catch (error) {
+    console.error('리셋 실패:', error);
+    await showAlert({
+      title: '오류',
+      message: '리셋 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+// 프리미엄으로 업그레이드
+const upgradeToPremium = async () => {
+  try {
+    console.log('🧪 테스트 계정 프리미엄 전환');
+    const { profileService } = await import('../services/supabase');
+    await profileService.updatePremiumStatus(
+      userStore.currentUser?.id || '',
+      true
+    );
+    await userStore.refreshPremiumStatus();
+    await showAlert({
+      title: '전환 완료',
+      message: '테스트 계정이 프리미엄 상태가 되었습니다.'
+    });
+    showTestMenu.value = false;
+  } catch (error) {
+    console.error('프리미엄 전환 실패:', error);
+    await showAlert({
+      title: '오류',
+      message: '전환 중 오류가 발생했습니다.'
+    });
   }
 };
 </script>
@@ -671,5 +731,108 @@ button:focus,
 .menu-card:focus {
   outline: 2px solid rgba(168, 85, 247, 0.8);
   outline-offset: 2px;
+}
+
+/* 테스트 계정 플로팅 버튼 */
+.test-floating-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);
+  transition: all 0.3s ease;
+  z-index: 999;
+}
+
+.test-floating-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(255, 165, 0, 0.5);
+}
+
+/* 테스트 메뉴 패널 */
+.test-menu-panel {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: 998;
+  min-width: 200px;
+}
+
+.test-menu-panel h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.test-menu-panel p {
+  margin: 0 0 15px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.test-menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.test-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.reset-btn {
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF5252 100%);
+  color: white;
+}
+
+.reset-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.premium-btn {
+  background: linear-gradient(135deg, #4CAF50 0%, #45A049 100%);
+  color: white;
+}
+
+.premium-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+/* 모바일 반응형 */
+@media (max-width: 640px) {
+  .test-floating-button {
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+    bottom: 15px;
+    right: 15px;
+  }
+  
+  .test-menu-panel {
+    bottom: 75px;
+    right: 15px;
+    left: 15px;
+    min-width: auto;
+  }
 }
 </style>

@@ -109,6 +109,35 @@
         </div>
       </div>
 
+      <!-- 테스트 계정 전용 리셋 버튼 -->
+      <div v-if="isTestAccount" class="test-reset-section">
+        <div class="test-card card">
+          <h3>🧪 테스트 계정 전용</h3>
+          <p>테스트를 위해 프리미엄 상태를 리셋할 수 있습니다.</p>
+          <div class="test-actions">
+            <button 
+              v-if="userStore.isPremium"
+              class="btn btn-warning" 
+              @click="resetTestAccount"
+              :disabled="isLoading"
+            >
+              🔄 무료 계정으로 되돌리기
+            </button>
+            <button 
+              v-else
+              class="btn btn-success" 
+              @click="makeTestPremium"
+              :disabled="isLoading"
+            >
+              👑 프리미엄으로 전환 (테스트)
+            </button>
+          </div>
+          <div class="test-info">
+            <small>현재 상태: {{ userStore.isPremium ? '프리미엄' : '무료' }}</small>
+          </div>
+        </div>
+      </div>
+
       <div class="faq-section">
         <h3>자주 묻는 질문</h3>
         <div class="faq-list">
@@ -125,21 +154,27 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { useUserStore } from '@/store/user';
+import { useUserStore } from '../store/user';
 import { 
   SUBSCRIPTION_PRODUCTS, 
   PAYMENT_METHODS, 
   purchaseSubscription,
   formatPrice, 
   calculateDiscount
-} from '@/services/purchasesWeb';
-import { showAlert, showConfirm } from '@/utils/alerts';
-import type { SubscriptionBenefit, FAQ } from '@/types/premium';
+} from '../services/purchasesWeb';
+import { showAlert, showConfirm } from '../utils/alerts';
+import type { SubscriptionBenefit, FAQ } from '../types/premium';
 
 const router = useRouter();
 const userStore = useUserStore();
 // 상태 관리
 const isLoading = ref(false);
+
+// 테스트 계정 확인
+const isTestAccount = computed(() => {
+  return userStore.currentUser?.email === 'test@example.com' || 
+         userStore.currentUser?.email === 'premium@example.com';
+});
 const showPaymentModal = ref(false);
 const selectedPlan = ref<'monthly' | 'yearly'>('monthly');
 const selectedPaymentMethod = ref<string>('');
@@ -223,15 +258,29 @@ const closePaymentModal = () => {
 };
 
 const processPurchase = async () => {
-  if (!selectedPaymentMethod.value) return;
+  console.log('💳 결제 시작');
+  console.log('선택한 플랜:', selectedPlan.value);
+  console.log('선택한 결제 수단:', selectedPaymentMethod.value);
+  
+  if (!selectedPaymentMethod.value) {
+    console.error('결제 수단이 선택되지 않음');
+    await showAlert({
+      title: '결제 수단 선택',
+      message: '결제 수단을 선택해주세요.'
+    });
+    return;
+  }
   
   try {
     isLoading.value = true;
+    console.log('💳 purchaseSubscription 호출 시작');
     
     const result = await purchaseSubscription(
       selectedPlan.value, 
       selectedPaymentMethod.value
     );
+    
+    console.log('💳 결제 결과:', result);
     
     if (result.success) {
       await showAlert({
@@ -243,18 +292,19 @@ const processPurchase = async () => {
     } else {
       await showAlert({
         title: '결제 실패',
-        message: '결제에 실패했습니다. 다시 시도해주세요.'
+        message: result.error || '결제에 실패했습니다. 다시 시도해주세요.'
       });
       console.error('Purchase failed:', result.error);
     }
   } catch (error) {
-    console.error('Purchase error:', error);
+    console.error('💳 Purchase error:', error);
     await showAlert({
       title: '오류',
-      message: '결제 중 오류가 발생했습니다.'
+      message: error.message || '결제 중 오류가 발생했습니다.'
     });
   } finally {
     isLoading.value = false;
+    console.log('💳 결제 프로세스 종료');
   }
 };
 
@@ -296,6 +346,70 @@ const formatDate = (date: Date | string) => {
     month: 'long',
     day: 'numeric'
   });
+};
+
+// 테스트 계정 리셋
+const resetTestAccount = async () => {
+  try {
+    isLoading.value = true;
+    console.log('🧪 테스트 계정 리셋 시작');
+    
+    // 프리미엄 상태를 false로 변경
+    const { profileService } = await import('../services/supabase');
+    await profileService.updatePremiumStatus(
+      userStore.currentUser?.id || '',
+      false
+    );
+    
+    // 로컬 상태 업데이트
+    await userStore.refreshPremiumStatus();
+    
+    await showAlert({
+      title: '리셋 완료',
+      message: '테스트 계정이 무료 상태로 되돌아갔습니다.'
+    });
+    console.log('🧪 테스트 계정 리셋 완료');
+  } catch (error) {
+    console.error('테스트 계정 리셋 실패:', error);
+    await showAlert({
+      title: '오류',
+      message: '리셋 중 오류가 발생했습니다.'
+    });
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// 테스트 계정을 프리미엄으로 전환
+const makeTestPremium = async () => {
+  try {
+    isLoading.value = true;
+    console.log('🧪 테스트 계정 프리미엄 전환 시작');
+    
+    // 프리미엄 상태를 true로 변경
+    const { profileService } = await import('../services/supabase');
+    await profileService.updatePremiumStatus(
+      userStore.currentUser?.id || '',
+      true
+    );
+    
+    // 로컬 상태 업데이트
+    await userStore.refreshPremiumStatus();
+    
+    await showAlert({
+      title: '전환 완료',
+      message: '테스트 계정이 프리미엄 상태가 되었습니다.'
+    });
+    console.log('🧪 테스트 계정 프리미엄 전환 완료');
+  } catch (error) {
+    console.error('테스트 계정 프리미엄 전환 실패:', error);
+    await showAlert({
+      title: '오류',
+      message: '전환 중 오류가 발생했습니다.'
+    });
+  } finally {
+    isLoading.value = false;
+  }
 };
 </script>
 
@@ -536,6 +650,78 @@ const formatDate = (date: Date | string) => {
 .faq-item p {
   color: rgba(255, 255, 255, 0.7);
   line-height: 1.5;
+}
+
+/* 테스트 계정 리셋 섹션 */
+.test-reset-section {
+  margin-bottom: 50px;
+}
+
+.test-card {
+  padding: 30px;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  text-align: center;
+}
+
+.test-card h3 {
+  font-size: 20px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.test-card p {
+  color: #555;
+  margin-bottom: 20px;
+}
+
+.test-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.test-actions .btn {
+  padding: 12px 24px;
+  font-weight: 600;
+}
+
+.btn-warning {
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF5252 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-warning:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #4CAF50 0%, #45A049 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-success:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+}
+
+.test-info {
+  margin-top: 10px;
+}
+
+.test-info small {
+  color: #666;
+  font-size: 14px;
 }
 
 /* 결제 모달 스타일 */

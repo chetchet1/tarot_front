@@ -70,20 +70,38 @@ class WebSubscriptionService {
   }
 
   // 구독 구매
-  async purchaseSubscription(productId: string, paymentMethod: string): Promise<{
+  async purchaseSubscription(productId: string, paymentMethod?: string): Promise<{
     success: boolean;
     error?: any;
     subscription?: any;
   }> {
+    console.log('💳 purchaseSubscription 호출됨');
+    console.log('💳 productId:', productId);
+    console.log('💳 paymentMethod:', paymentMethod);
+    
     try {
+      // 초기화 확인
+      if (!this.isInitialized) {
+        console.log('💳 결제 서비스 초기화 시작');
+        await this.initialize();
+      }
+      
       const userStore = useUserStore();
       const product = SUBSCRIPTION_PRODUCTS[productId as keyof typeof SUBSCRIPTION_PRODUCTS];
       
       if (!product) {
+        console.error('💳 잘못된 product ID:', productId);
         throw new Error('Invalid product ID');
+      }
+      
+      if (!paymentMethod) {
+        console.error('💳 결제 수단 누락');
+        throw new Error('Payment method is required');
       }
 
       console.log(`🌐 [Web] 구독 구매 시작: ${productId}, 결제수단: ${paymentMethod}`);
+      console.log('🌐 [Web] 상품 정보:', product);
+      console.log('🌐 [Web] 사용자 정보:', userStore.currentUser?.email);
 
       // 주문 ID 생성
       const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -101,7 +119,9 @@ class WebSubscriptionService {
       };
 
       // 실제 결제 진행 (Toss Payments 예시)
+      console.log('🌐 [Web] 결제 처리 시작...');
       const paymentResult = await this.processPayment(paymentData);
+      console.log('🌐 [Web] 결제 처리 결과:', paymentResult);
 
       if (paymentResult.success) {
         try {
@@ -141,10 +161,11 @@ class WebSubscriptionService {
         }
       }
 
+      console.error('🌐 [Web] 결제 실패:', paymentResult.error);
       return { success: false, error: paymentResult.error };
     } catch (error) {
       console.error('🌐 [Web] 구독 구매 실패:', error);
-      return { success: false, error };
+      return { success: false, error: error.message || error };
     }
   }
 
