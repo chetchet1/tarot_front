@@ -9,6 +9,22 @@ import { initializeSubscription } from './services/purchasesWeb';
 import { Platform } from './utils/platform';
 import { setupDeepLinks } from './utils/deepLinks';
 import { adService } from './services/AdService';
+import { checkPlatform, getPlatformInfo } from './utils/platformCheck';
+
+// 플랫폼 체크 (웹 접속 차단)
+const isBlocked = checkPlatform();
+if (isBlocked) {
+  // 웹에서 접속이 차단된 경우 더 이상 진행하지 않음
+  console.log('🚫 앱 초기화 중단 - 웹 접속 차단됨');
+  
+  // 디버그 모드에서 플랫폼 정보 출력
+  if (import.meta.env.VITE_DEBUG_MODE === 'true') {
+    console.log('플랫폼 정보:', getPlatformInfo());
+  }
+  
+  // 앱 초기화를 중단하고 종료
+  throw new Error('Web access blocked - Mobile only app');
+}
 
 // Capacitor 초기화
 NativeUtils.initializeApp();
