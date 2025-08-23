@@ -47,7 +47,7 @@
       <!-- Position 1: 현재내면 (중앙) -->
       <div 
         class="card-position position-1"
-        :class="{ 'has-card': cards[0], 'revealed': cards[0]?.revealed }"
+        :class="{ 'has-card': cards[0], 'revealed': cards[0]?.revealed, 'selected': selectedCardIndex === 0 }"
         @click="handleCardClick(0)"
       >
         <div class="position-label">1. 현재내면</div>
@@ -82,7 +82,7 @@
       <!-- Position 2: 현재외부 (중앙, 위에 겹침) -->
       <div 
         class="card-position position-2"
-        :class="{ 'has-card': cards[1], 'revealed': cards[1]?.revealed }"
+        :class="{ 'has-card': cards[1], 'revealed': cards[1]?.revealed, 'selected': selectedCardIndex === 1 }"
         @click="handleCardClick(1)"
       >
         <div class="position-label">2. 현재외부</div>
@@ -117,7 +117,7 @@
       <!-- Position 3: 근본 (아래) -->
       <div 
         class="card-position position-3"
-        :class="{ 'has-card': cards[2], 'revealed': cards[2]?.revealed }"
+        :class="{ 'has-card': cards[2], 'revealed': cards[2]?.revealed, 'selected': selectedCardIndex === 2 }"
         @click="handleCardClick(2)"
       >
         <div class="position-label">3. 근본</div>
@@ -152,7 +152,7 @@
       <!-- Position 4: 과거 (왼쪽) -->
       <div 
         class="card-position position-4"
-        :class="{ 'has-card': cards[3], 'revealed': cards[3]?.revealed }"
+        :class="{ 'has-card': cards[3], 'revealed': cards[3]?.revealed, 'selected': selectedCardIndex === 3 }"
         @click="handleCardClick(3)"
       >
         <div class="position-label">4. 과거</div>
@@ -187,7 +187,7 @@
       <!-- Position 5: 드러나는 모습 (위) -->
       <div 
         class="card-position position-5"
-        :class="{ 'has-card': cards[4], 'revealed': cards[4]?.revealed }"
+        :class="{ 'has-card': cards[4], 'revealed': cards[4]?.revealed, 'selected': selectedCardIndex === 4 }"
         @click="handleCardClick(4)"
       >
         <div class="position-label">5. 드러나는 모습</div>
@@ -222,7 +222,7 @@
       <!-- Position 6: 미래 (오른쪽) -->
       <div 
         class="card-position position-6"
-        :class="{ 'has-card': cards[5], 'revealed': cards[5]?.revealed }"
+        :class="{ 'has-card': cards[5], 'revealed': cards[5]?.revealed, 'selected': selectedCardIndex === 5 }"
         @click="handleCardClick(5)"
       >
         <div class="position-label">6. 미래</div>
@@ -258,7 +258,7 @@
       <!-- Position 7: 내가보는나 -->
       <div 
         class="card-position position-7"
-        :class="{ 'has-card': cards[6], 'revealed': cards[6]?.revealed }"
+        :class="{ 'has-card': cards[6], 'revealed': cards[6]?.revealed, 'selected': selectedCardIndex === 6 }"
         @click="handleCardClick(6)"
       >
         <div class="position-label">7. 내가보는나</div>
@@ -293,7 +293,7 @@
       <!-- Position 8: 남이보는나 -->
       <div 
         class="card-position position-8"
-        :class="{ 'has-card': cards[7], 'revealed': cards[7]?.revealed }"
+        :class="{ 'has-card': cards[7], 'revealed': cards[7]?.revealed, 'selected': selectedCardIndex === 7 }"
         @click="handleCardClick(7)"
       >
         <div class="position-label">8. 남이보는나</div>
@@ -328,7 +328,7 @@
       <!-- Position 9: 예상하는 결과 -->
       <div 
         class="card-position position-9"
-        :class="{ 'has-card': cards[8], 'revealed': cards[8]?.revealed }"
+        :class="{ 'has-card': cards[8], 'revealed': cards[8]?.revealed, 'selected': selectedCardIndex === 8 }"
         @click="handleCardClick(8)"
       >
         <div class="position-label">9. 예상하는 결과</div>
@@ -363,7 +363,7 @@
       <!-- Position 10: 실제 결과 -->
       <div 
         class="card-position position-10"
-        :class="{ 'has-card': cards[9], 'revealed': cards[9]?.revealed }"
+        :class="{ 'has-card': cards[9], 'revealed': cards[9]?.revealed, 'selected': selectedCardIndex === 9 }"
         @click="handleCardClick(9)"
       >
         <div class="position-label">10. 실제 결과</div>
@@ -497,6 +497,7 @@
     :visible="showPositionMeaning"
     :spread-id="'celtic_cross'"
     :position="selectedPosition"
+    @close="showPositionMeaning = false; selectedCardIndex = null"
   />
 </template>
 
@@ -543,6 +544,9 @@ const revealAllCards = async () => {
   emit('reveal-all');
 };
 
+// 현재 선택된 카드 인덱스 추가
+const selectedCardIndex = ref<number | null>(null);
+
 // 카드 클릭 핸들러
 const handleCardClick = async (index: number) => {
   if (props.cards[index]) {
@@ -553,15 +557,19 @@ const handleCardClick = async (index: number) => {
       emit('card-click', index);
     }
     
-    // 프리미엄 사용자인 경우 포지션 의미 표시 (카드가 공개된 상태에서도)
+    // 선택된 카드 표시
+    selectedCardIndex.value = index;
+    
+    // 프리미엄 사용자인 경우 포지션 의미 표시 (뒤집지 않은 카드도 클릭 시 의미 표시)
     if (userStore.isPremium) {
-      selectedPosition.value = index + 1;
-      showPositionMeaning.value = true;
-      
-      // 3초 후에 자동으로 숨김
-      setTimeout(() => {
+      // 이미 표시 중이고 같은 카드를 다시 클릭하면 숨김
+      if (showPositionMeaning.value && selectedPosition.value === index + 1) {
         showPositionMeaning.value = false;
-      }, 3000);
+        selectedCardIndex.value = null;
+      } else {
+        selectedPosition.value = index + 1;
+        showPositionMeaning.value = true;
+      }
     }
   }
 };
@@ -820,6 +828,17 @@ const onImageError = handleUnifiedImageError;
   z-index: 100;
 }
 
+/* 선택된 카드 강조 효과 */
+.card-position.selected {
+  z-index: 101;
+}
+
+.card-position.selected .card-slot {
+  border-color: #A855F7;
+  border-width: 3px;
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.8);
+}
+
 /* 각 위치별 좌표 */
 .position-1 { /* 현재상황 - 중앙 왼쪽 */
   top: 55%; /* 60% -> 80% 추가로 20% 아래로 이동 */
@@ -964,7 +983,8 @@ const onImageError = handleUnifiedImageError;
 
 .card-position:hover .card-slot {
   border-color: rgba(168, 85, 247, 0.8);
-  box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.6);
+  border-width: 2.5px;
 }
 
 /* 카드 콘텐츠 */

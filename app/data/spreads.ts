@@ -55,7 +55,7 @@ export const tarotSpreads: TarotSpread[] = [
       }
     ],
     isPremium: false,
-    topics: ["general", "love", "career", "money"]
+    topics: ["general", "love", "career", "money", "health"]
   },
   {
     id: "seven_star",
@@ -116,7 +116,7 @@ export const tarotSpreads: TarotSpread[] = [
       }
     ],
     isPremium: true,
-    topics: ["general", "love", "career", "money"]
+    topics: ["general", "love", "career", "money", "health"]
   },
   {
     id: "celtic_cross",
@@ -198,7 +198,7 @@ export const tarotSpreads: TarotSpread[] = [
       }
     ],
     isPremium: true,
-    topics: ["general", "love", "career", "money"]
+    topics: ["general", "love", "career", "money", "health"]
   },
   {
     id: "cup_of_relationship",
@@ -288,67 +288,6 @@ export const tarotSpreads: TarotSpread[] = [
     ],
     isPremium: true,
     topics: ["love"]
-  },
-  {
-    id: "career_path",
-    spreadId: "career_path",
-    name: "Career Path",
-    nameKr: "경력 경로",
-    description: "직업과 경력에 대한 7장 배열",
-    cardCount: 7,
-    positions: [
-      {
-        position: 1,
-        name: "현재 위치",
-        description: "직업적 현재 상황",
-        x: 50,
-        y: 50
-      },
-      {
-        position: 2,
-        name: "강점",
-        description: "당신의 직업적 강점",
-        x: 25,
-        y: 30
-      },
-      {
-        position: 3,
-        name: "약점",
-        description: "개선이 필요한 부분",
-        x: 75,
-        y: 30
-      },
-      {
-        position: 4,
-        name: "기회",
-        description: "다가오는 기회",
-        x: 25,
-        y: 70
-      },
-      {
-        position: 5,
-        name: "장애물",
-        description: "극복해야 할 도전",
-        x: 75,
-        y: 70
-      },
-      {
-        position: 6,
-        name: "조언",
-        description: "취해야 할 행동",
-        x: 50,
-        y: 20
-      },
-      {
-        position: 7,
-        name: "결과",
-        description: "예상되는 결과",
-        x: 50,
-        y: 80
-      }
-    ],
-    isPremium: true,
-    topics: ["career"]
   }
 ];
 

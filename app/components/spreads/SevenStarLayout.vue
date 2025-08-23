@@ -44,7 +44,7 @@
       <!-- Position 1: 과거의 영향 (상단 중앙) -->
       <div 
         class="card-position position-1"
-        :class="{ 'has-card': cards[0], 'revealed': cards[0]?.revealed }"
+        :class="{ 'has-card': cards[0], 'revealed': cards[0]?.revealed, 'selected': selectedCardIndex === 0 }"
         @click="handleCardClick(0)"
       >
         <div class="position-label">1. 과거의 영향</div>
@@ -79,7 +79,7 @@
       <!-- Position 2: 현재 상황 (중앙) -->
       <div 
         class="card-position position-2"
-        :class="{ 'has-card': cards[1], 'revealed': cards[1]?.revealed }"
+        :class="{ 'has-card': cards[1], 'revealed': cards[1]?.revealed, 'selected': selectedCardIndex === 1 }"
         @click="handleCardClick(1)"
       >
         <div class="position-label">2. 현재 상황</div>
@@ -114,7 +114,7 @@
       <!-- Position 3: 숨겨진 영향 (좌측 상단) -->
       <div 
         class="card-position position-3"
-        :class="{ 'has-card': cards[2], 'revealed': cards[2]?.revealed }"
+        :class="{ 'has-card': cards[2], 'revealed': cards[2]?.revealed, 'selected': selectedCardIndex === 2 }"
         @click="handleCardClick(2)"
       >
         <div class="position-label">3. 숨겨진 영향</div>
@@ -149,7 +149,7 @@
       <!-- Position 4: 의식적 욕구 (우측 상단) -->
       <div 
         class="card-position position-4"
-        :class="{ 'has-card': cards[3], 'revealed': cards[3]?.revealed }"
+        :class="{ 'has-card': cards[3], 'revealed': cards[3]?.revealed, 'selected': selectedCardIndex === 3 }"
         @click="handleCardClick(3)"
       >
         <div class="position-label">4. 의식적 욕구</div>
@@ -184,7 +184,7 @@
       <!-- Position 5: 무의식적 욕구 (좌측 하단) -->
       <div 
         class="card-position position-5"
-        :class="{ 'has-card': cards[4], 'revealed': cards[4]?.revealed }"
+        :class="{ 'has-card': cards[4], 'revealed': cards[4]?.revealed, 'selected': selectedCardIndex === 4 }"
         @click="handleCardClick(4)"
       >
         <div class="position-label">5. 무의식적 욕구</div>
@@ -219,7 +219,7 @@
       <!-- Position 6: 조언 (우측 하단) -->
       <div 
         class="card-position position-6"
-        :class="{ 'has-card': cards[5], 'revealed': cards[5]?.revealed }"
+        :class="{ 'has-card': cards[5], 'revealed': cards[5]?.revealed, 'selected': selectedCardIndex === 5 }"
         @click="handleCardClick(5)"
       >
         <div class="position-label">6. 조언</div>
@@ -254,7 +254,7 @@
       <!-- Position 7: 최종 결과 (하단 중앙) -->
       <div 
         class="card-position position-7"
-        :class="{ 'has-card': cards[6], 'revealed': cards[6]?.revealed }"
+        :class="{ 'has-card': cards[6], 'revealed': cards[6]?.revealed, 'selected': selectedCardIndex === 6 }"
         @click="handleCardClick(6)"
       >
         <div class="position-label">7. 최종 결과</div>
@@ -302,6 +302,7 @@
     :visible="showPositionMeaning"
     :spread-id="'seven_star'"
     :position="selectedPosition"
+    @close="showPositionMeaning = false; selectedCardIndex = null"
   />
   
   <!-- 버튼 컨테이너 -->
@@ -360,6 +361,9 @@ const revealAllCards = async () => {
 };
 
 // 카드 클릭 핸들러
+// 현재 선택된 카드 인덱스 추가
+const selectedCardIndex = ref<number | null>(null);
+
 const handleCardClick = async (index: number) => {
   if (props.cards[index]) {
     await nativeUtils.buttonTapHaptic();
@@ -369,15 +373,19 @@ const handleCardClick = async (index: number) => {
       emit('card-click', index);
     }
     
-    // 프리미엄 사용자인 경우 포지션 의미 표시 (카드가 공개된 상태에서도)
+    // 선택된 카드 표시
+    selectedCardIndex.value = index;
+    
+    // 프리미엄 사용자인 경우 포지션 의미 표시 (뒤집지 않은 카드도 클릭 시 의미 표시)
     if (userStore.isPremium) {
-      selectedPosition.value = index + 1;
-      showPositionMeaning.value = true;
-      
-      // 3초 후에 자동으로 숨김
-      setTimeout(() => {
+      // 이미 표시 중이고 같은 카드를 다시 클릭하면 숨김
+      if (showPositionMeaning.value && selectedPosition.value === index + 1) {
         showPositionMeaning.value = false;
-      }, 3000);
+        selectedCardIndex.value = null;
+      } else {
+        selectedPosition.value = index + 1;
+        showPositionMeaning.value = true;
+      }
     }
   }
 };
@@ -511,7 +519,17 @@ const onImageError = handleUnifiedImageError;
 
 .card-position:hover {
   z-index: 100;
-  transform: scale(1.05);
+}
+
+/* 선택된 카드 강조 효과 */
+.card-position.selected {
+  z-index: 101;
+}
+
+.card-position.selected .card-slot {
+  border-color: #FFD700;
+  border-width: 3px;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
 }
 
 /* 별 모양으로 카드 배치 */
@@ -599,7 +617,8 @@ const onImageError = handleUnifiedImageError;
 
 .card-position:hover .card-slot {
   border-color: rgba(255, 215, 0, 0.8);
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  box-shadow: 0 0 25px rgba(255, 215, 0, 0.6);
+  border-width: 2.5px;
 }
 
 /* 중앙 카드 강조 */
