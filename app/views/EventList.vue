@@ -49,20 +49,17 @@
           
           <!-- 이벤트 기간 -->
           <div class="event-period">
-            <Icon name="calendar" />
-            <span>{{ formatDate(event.start_date) }} ~ {{ formatDate(event.end_date) }}</span>
+            <span>📅 {{ formatDate(event.start_date) }} ~ {{ formatDate(event.end_date) }}</span>
           </div>
           
           <!-- 참여 상태 -->
           <div v-if="isParticipated(event.id)" class="participation-status">
-            <Icon name="check-circle" class="participated-icon" />
-            <span>참여 완료 ({{ getParticipationCount(event.id) }}회)</span>
+            <span>✅ 참여 완료 ({{ getParticipationCount(event.id) }}회)</span>
           </div>
           
           <!-- 자동 응모 표시 -->
           <div v-if="event.event_type === 'auto'" class="auto-entry-badge">
-            <Icon name="lightning" />
-            <span>조건 충족 시 자동 응모</span>
+            <span>⚡ 조건 충족 시 자동 응모</span>
           </div>
         </div>
       </div>
@@ -70,7 +67,7 @@
 
     <!-- 이벤트가 없을 때 -->
     <div v-else class="empty-state">
-      <Icon name="calendar-x" class="empty-icon" />
+      <span class="empty-icon">📆</span>
       <h3>현재 진행 중인 이벤트가 없습니다</h3>
       <p>새로운 이벤트를 준비 중이니 조금만 기다려주세요!</p>
     </div>
@@ -110,7 +107,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { eventService, type Event } from '../services/EventService';
 import { supabase } from '../services/supabase';
-import { Icon } from '@iconify/vue';
+import { showAlert } from '../utils/alerts';
 
 const router = useRouter();
 const isLoading = ref(true);
@@ -175,7 +172,6 @@ const claimReward = async (winningId: string) => {
       await loadUserWinnings();
       
       // 성공 메시지 표시
-      const { showAlert } = await import('../composables/useCustomAlert');
       await showAlert({
         title: '수령 완료',
         message: '쿠폰이 성공적으로 수령되었습니다!'
@@ -395,9 +391,6 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.participated-icon {
-  font-size: 16px;
-}
 
 .auto-entry-badge {
   display: inline-flex;
@@ -421,6 +414,7 @@ onMounted(() => {
   font-size: 64px;
   color: #ccc;
   margin-bottom: 20px;
+  display: block;
 }
 
 .empty-state h3 {

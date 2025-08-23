@@ -11,6 +11,7 @@ export const useUserStore = defineStore('user', () => {
   const currentUser = ref<User | null>(null);
   const isLoggedIn = computed(() => !!currentUser.value && !currentUser.value.isAnonymous);
   const isPremium = computed(() => currentUser.value?.isPremium || false);
+  const isAdmin = computed(() => currentUser.value?.isAdmin || false);
   const isLoading = ref(false);
   const isInitialized = ref(false); // 초기화 완료 여부
   
@@ -379,14 +380,22 @@ export const useUserStore = defineStore('user', () => {
           // 프로필 존재 확인 및 생성
           await ensureProfileExists(user.id, user.email);
           
-          // 프리미엄 상태 확인 (오류 발생해도 계속 진행)
+          // 프로필 정보 및 프리미엄 상태 확인 (오류 발생해도 계속 진행)
           let isPremiumUser = false;
+          let isAdminUser = false;
           try {
+            // 프로필 정보 가져오기
+            const profile = await profileService.getProfile(user.id);
+            if (profile) {
+              isAdminUser = profile.is_admin || false;
+              console.log('관리자 권한 확인:', isAdminUser);
+            }
+            
             // DB에서 프리미엄 상태 확인 (테스트 계정 처리는 checkPremiumStatus 내부에서)
             isPremiumUser = await checkPremiumStatus(user.id);
             console.log('프리미엄 상태 확인 완료:', isPremiumUser);
           } catch (premiumError) {
-            console.warn('프리미엄 상태 확인 실패:', premiumError);
+            console.warn('프로필/프리미엄 상태 확인 실패:', premiumError);
           }
           
           currentUser.value = {
@@ -399,6 +408,7 @@ export const useUserStore = defineStore('user', () => {
             lastLoginAt: new Date(),
             isAnonymous: false,
             isPremium: isPremiumUser,
+            isAdmin: isAdminUser,
             preferences: currentUser.value?.preferences || {
               theme: 'dark',
               language: 'ko',
@@ -476,6 +486,7 @@ export const useUserStore = defineStore('user', () => {
             lastLoginAt: new Date(),
             isAnonymous: false,
             isPremium: isPremiumUser,
+            isAdmin: isAdminUser,
             preferences: currentUser.value?.preferences || {
               theme: 'dark',
               language: 'ko',
@@ -548,26 +559,32 @@ export const useUserStore = defineStore('user', () => {
           }
         }, 100);
         
-        // 즉시 사용자 정보 설정 (프리미엄 상태는 DB에서 확인)
+        // 즉시 사용자 정보 설정 (프리미엄 상태와 관리자 권한은 DB에서 확인)
         let isPremiumUser = false;
+        let isAdminUser = false;
         
-        // DB에서 프리미엄 상태 확인
+        // DB에서 프리미엄 상태와 관리자 권한 확인
         try {
           const { data: profile } = await authService.supabase
             .from('profiles')
-            .select('is_premium')
+            .select('is_premium, is_admin')
             .eq('id', user.id)
             .maybeSingle();
           
           isPremiumUser = profile?.is_premium || false;
+          isAdminUser = profile?.is_admin || false;
           
           // 테스트 계정인 경우 항상 프리미엄으로 설정
           if (email === 'premium@example.com') {
             console.log('🎯 프리미엄 테스트 계정 감지! DB 상태:', isPremiumUser);
             isPremiumUser = true;
           }
+          
+          if (isAdminUser) {
+            console.log('👑 관리자 계정 로그인');
+          }
         } catch (error) {
-          console.warn('로그인 시 프리미엄 상태 확인 실패:', error);
+          console.warn('로그인 시 프로필 정보 확인 실패:', error);
         }
         
         currentUser.value = {
@@ -580,6 +597,7 @@ export const useUserStore = defineStore('user', () => {
           lastLoginAt: new Date(),
           isAnonymous: false,
           isPremium: isPremiumUser,
+          isAdmin: isAdminUser,
           preferences: {
             theme: 'dark',
             language: 'ko',
@@ -871,6 +889,7 @@ export const useUserStore = defineStore('user', () => {
     currentUser,
     isLoggedIn,
     isPremium,
+    isAdmin,
     isLoading,
     isInitialized,
     freeReadingsToday,

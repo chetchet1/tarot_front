@@ -10,8 +10,7 @@
     <div v-else-if="event" class="event-detail">
       <!-- 뒤로가기 버튼 -->
       <button @click="goBack" class="back-button">
-        <Icon name="arrow-left" />
-        이벤트 목록
+        ← 이벤트 목록
       </button>
 
       <!-- 이벤트 헤더 -->
@@ -32,16 +31,13 @@
           
           <div class="event-meta">
             <div class="meta-item">
-              <Icon name="calendar" />
-              <span>{{ formatPeriod(event.start_date, event.end_date) }}</span>
+              <span>📅 {{ formatPeriod(event.start_date, event.end_date) }}</span>
             </div>
             <div class="meta-item">
-              <Icon name="trophy" />
-              <span>최대 {{ event.max_winners }}명 당첨</span>
+              <span>🏆 최대 {{ event.max_winners }}명 당첨</span>
             </div>
             <div v-if="daysRemaining >= 0" class="meta-item">
-              <Icon name="clock" />
-              <span>{{ daysRemaining }}일 남음</span>
+              <span>⏰ {{ daysRemaining }}일 남음</span>
             </div>
           </div>
         </div>
@@ -52,7 +48,7 @@
         <h2>📋 참여 조건</h2>
         <div class="condition-content">
           <div v-if="event.event_type === 'auto'" class="auto-condition">
-            <Icon name="lightning" class="auto-icon" />
+            <span class="auto-icon">⚡</span>
             <div>
               <h3>자동 응모 조건</h3>
               <p>{{ getConditionDescription() }}</p>
@@ -60,7 +56,7 @@
           </div>
           
           <div v-if="event.event_type === 'hybrid'" class="bonus-condition">
-            <Icon name="plus-circle" class="bonus-icon" />
+            <span class="bonus-icon">➕</span>
             <div>
               <h3>보너스 응모</h3>
               <p>{{ getBonusDescription() }}</p>
@@ -105,21 +101,20 @@
       <!-- 보너스 응모 버튼 (하이브리드 이벤트) -->
       <div v-if="event.event_type === 'hybrid'" class="action-section">
         <button @click="addBonusEntry" class="bonus-button">
-          <Icon name="plus" />
-          보너스 응모권 받기
+          ➕ 보너스 응모권 받기
         </button>
         <p class="action-hint">게시판에 인증글을 작성하면 응모권을 추가로 받을 수 있습니다!</p>
       </div>
 
       <!-- 자동 응모 안내 -->
       <div v-if="event.event_type === 'auto' && !hasParticipatedToday" class="auto-entry-notice">
-        <Icon name="info-circle" />
+        <span>ℹ️</span>
         <p>조건을 충족하면 자동으로 응모됩니다. 별도의 참여 신청이 필요하지 않습니다.</p>
       </div>
 
       <!-- 이미 참여한 경우 -->
       <div v-if="hasParticipatedToday" class="already-participated">
-        <Icon name="check-circle" class="check-icon" />
+        <span class="check-icon">✅</span>
         <p>오늘 이미 참여하셨습니다! 내일 다시 참여해주세요.</p>
       </div>
 
@@ -142,7 +137,7 @@
 
     <!-- 이벤트를 찾을 수 없음 -->
     <div v-else class="not-found">
-      <Icon name="alert-circle" class="alert-icon" />
+      <span class="alert-icon">⚠️</span>
       <h2>이벤트를 찾을 수 없습니다</h2>
       <button @click="goBack" class="back-button-center">
         이벤트 목록으로 돌아가기
@@ -156,8 +151,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { eventService, type Event } from '../services/EventService';
 import { supabase } from '../services/supabase';
-import { Icon } from '@iconify/vue';
-import { showAlert } from '../composables/useCustomAlert';
+import { showAlert } from '../utils/alerts';
 
 const route = useRoute();
 const router = useRouter();
@@ -548,11 +542,13 @@ onMounted(() => {
 .auto-icon {
   font-size: 24px;
   color: #1976d2;
+  display: inline-block;
 }
 
 .bonus-icon {
   font-size: 24px;
   color: #388e3c;
+  display: inline-block;
 }
 
 .auto-condition h3,
@@ -703,6 +699,7 @@ onMounted(() => {
 .check-icon {
   font-size: 20px;
   color: #4caf50;
+  display: inline-block;
 }
 
 .already-participated p {
@@ -780,6 +777,7 @@ onMounted(() => {
   font-size: 64px;
   color: #ff9800;
   margin-bottom: 20px;
+  display: block;
 }
 
 .not-found h2 {

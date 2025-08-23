@@ -18,6 +18,7 @@ export interface User {
   lastLoginAt: Date;
   isAnonymous: boolean;
   isPremium: boolean;
+  isAdmin?: boolean;
   preferences: UserPreferences;
   subscription?: Subscription;
   stats?: UserStats;
