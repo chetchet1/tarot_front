@@ -12,7 +12,7 @@ interface PremiumSpreadUsage {
 }
 
 /**
- * 현재 날짜를 YYYY-MM-DD 형식으로 반환
+ * 현재 날짜를 YYYY-MM-DD 형식으로 반환 (로컬 시간 기준)
  */
 function getCurrentDate(): string {
   const now = new Date();
@@ -20,6 +20,18 @@ function getCurrentDate(): string {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+/**
+ * 로컬 시간을 ISO 문자열로 변환 (시간대 보정)
+ */
+function getLocalISOString(date: Date): string {
+  // 로컬 시간대 오프셋 가져오기 (분 단위)
+  const offset = date.getTimezoneOffset();
+  // 로컬 시간으로 조정된 Date 객체 생성
+  const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+  // ISO 형식으로 변환하되 Z를 제거하여 로컬 시간처럼 처리
+  return localDate.toISOString().replace('Z', '');
 }
 
 /**
@@ -34,6 +46,7 @@ export function isPremiumSpread(spreadId: string): boolean {
  */
 export async function hasUsedPremiumSpreadToday(userId: string): Promise<boolean> {
   console.log('🔍 [DB] hasUsedPremiumSpreadToday 체크 시작:', userId);
+  console.log('🔍 [DB] 호출 시간:', new Date().toISOString());
   
   try {
     // userId가 없으면 false 반환
@@ -43,15 +56,33 @@ export async function hasUsedPremiumSpreadToday(userId: string): Promise<boolean
     }
     
     const today = getCurrentDate();
-    console.log('🔍 [DB] 오늘 날짜:', today);
+    const now = new Date();
     
+    // 로컬 시간 기준 오늘의 시작과 끝을 구한 후 UTC로 변환
+    const localStartOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const localEndOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    
+    // UTC 시간으로 변환
+    const utcStart = localStartOfDay.toISOString();
+    const utcEnd = localEndOfDay.toISOString();
+    
+    console.log('🔍 [DB] 오늘 날짜:', today);
+    console.log('🔍 [DB] 조회 범위 (UTC):', {
+      utcStart: utcStart,
+      utcEnd: utcEnd,
+      localStart: localStartOfDay.toLocaleString(),
+      localEnd: localEndOfDay.toLocaleString(),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    });
+    
+    // UTC 시간으로 조회
     const { data, error } = await supabase
       .from('premium_spread_usage')
-      .select('id, spread_id')
+      .select('id, spread_id, used_at')
       .eq('user_id', userId)
-      .gte('used_at', `${today}T00:00:00`)
-      .lt('used_at', `${today}T23:59:59`)
-      .maybeSingle(); // single() 대신 maybeSingle() 사용
+      .gte('used_at', utcStart)
+      .lte('used_at', utcEnd)
+      .maybeSingle();
     
     if (error) {
       // 406 에러는 무시하고 false 반환 (권한 없음)
@@ -69,7 +100,12 @@ export async function hasUsedPremiumSpreadToday(userId: string): Promise<boolean
     }
     
     const result = !!data;
-    console.log('🔍 [DB] 오늘 사용 여부:', result, data ? `(${data.spread_id})` : '');
+    console.log('🔍 [DB] 조회 결과:', {
+      found: result,
+      spread: data?.spread_id,
+      usedAt: data?.used_at,
+      currentTime: new Date().toISOString()
+    });
     return result;
   } catch (error) {
     console.error('🔍 [DB] Error checking premium spread usage:', error);
@@ -86,14 +122,20 @@ export async function getTodayUsedPremiumSpread(userId: string): Promise<string 
       return null;
     }
     
-    const today = getCurrentDate();
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    
+    // UTC로 통일
+    const utcStart = startOfDay.toISOString();
+    const utcEnd = endOfDay.toISOString();
     
     const { data, error } = await supabase
       .from('premium_spread_usage')
       .select('spread_id')
       .eq('user_id', userId)
-      .gte('used_at', `${today}T00:00:00`)
-      .lt('used_at', `${today}T23:59:59`)
+      .gte('used_at', utcStart)
+      .lte('used_at', utcEnd)
       .maybeSingle();
     
     if (error) {
@@ -173,10 +215,15 @@ export async function recordPremiumSpreadUsage(
   
   try {
     const now = new Date();
+    // UTC로 통일하여 저장
+    const utcISOString = now.toISOString();
+    
     console.log('📝 [DB] DB에 저장 시도:', {
       user_id: userId,
       spread_id: spreadId,
-      used_at: now.toISOString()
+      used_at: utcISOString,
+      local_time: now.toLocaleString(),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     });
     
     const { data, error } = await supabase
@@ -184,7 +231,7 @@ export async function recordPremiumSpreadUsage(
       .insert({
         user_id: userId,
         spread_id: spreadId,
-        used_at: now.toISOString()
+        used_at: utcISOString  // UTC로 저장
       })
       .select();
     
@@ -202,6 +249,11 @@ export async function recordPremiumSpreadUsage(
       console.error('📝 [DB] Error recording premium spread usage:', error);
     } else {
       console.log('📝 [DB] 저장 성공!', data);
+      
+      // 저장 후 즉시 확인
+      console.log('🔍 [DB] 저장 확인을 위해 다시 조회...');
+      const verifyResult = await hasUsedPremiumSpreadToday(userId);
+      console.log('✅ [DB] 저장 후 확인 결과:', verifyResult ? '성공적으로 저장됨' : '⚠️ 저장 확인 실패');
     }
   } catch (error) {
     console.error('📝 [DB] Error recording premium spread usage:', error);

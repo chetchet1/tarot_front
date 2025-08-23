@@ -264,48 +264,101 @@ const checkMobile = () => {
 };
 
 // 프리미엄 사용 상태 체크 함수
-const checkPremiumUsageStatus = async () => {
-  console.log('[checkPremiumUsageStatus] 시작');
+const checkPremiumUsageStatus = async (forceRefresh = false) => {
+  console.log('[checkPremiumUsageStatus] 시작', {
+    user: userStore.currentUser?.email,
+    isPremium: userStore.isPremium,
+    isAnonymous: userStore.currentUser?.isAnonymous,
+    userId: userStore.currentUser?.id,
+    forceRefresh,
+    현재시간: new Date().toISOString()
+  });
+  
+  // 초기값 설정
+  const previousValue = hasPremiumUsageToday.value;
   
   // 테스트 계정이면 유료 배열 사용 여부 체크 생략
   const isTestAccount = userStore.currentUser?.email === 'test@example.com';
   
-  // 로그인한 사용자의 경우 유료 배열 사용 여부 체크
-  if (userStore.currentUser && !userStore.isPremium && !userStore.currentUser.isAnonymous && !isTestAccount) {
-    isCheckingPremiumUsage.value = true;
-    try {
-      const hasUsed = await hasUsedPremiumSpreadToday(userStore.currentUser.id);
-      console.log('[checkPremiumUsageStatus] 로그인 사용자 유료 배열 사용 여부:', hasUsed);
-      hasPremiumUsageToday.value = hasUsed;
-      freeUserMessage.value = await getFreeUserMessage(userStore.currentUser.id);
-    } catch (error) {
-      console.error('Error checking premium usage:', error);
-    } finally {
-      isCheckingPremiumUsage.value = false;
-    }
-  }
-  
-  // 익명 사용자의 경우 로컬 스토리지 사용
-  if (userStore.currentUser?.isAnonymous && !userStore.isPremium) {
-    // 기존 premiumSpreadTracker 함수 import 필요
-    const { hasUsedPremiumSpreadToday: hasUsedLocal, getFreeUserMessage: getMessageLocal } = await import('../utils/premiumSpreadTracker');
-    const hasUsed = hasUsedLocal();
-    console.log('[checkPremiumUsageStatus] 익명 사용자 유료 배열 사용 여부:', hasUsed);
-    hasPremiumUsageToday.value = hasUsed;
-    freeUserMessage.value = getMessageLocal();
+  // 프리미엄 사용자인 경우
+  if (userStore.isPremium) {
+    console.log('[checkPremiumUsageStatus] 프리미엄 사용자 - 체크 불필요');
+    hasPremiumUsageToday.value = false; // 프리미엄 사용자는 제한 없음
+    freeUserMessage.value = '';
+    return;
   }
   
   // 테스트 계정의 경우 특별 메시지 설정
-  if (isTestAccount && !userStore.isPremium) {
+  if (isTestAccount) {
+    console.log('[checkPremiumUsageStatus] 테스트 계정 처리');
     hasPremiumUsageToday.value = false; // 테스트 계정은 항상 사용 가능한 것처럼 표시
     freeUserMessage.value = '테스트 계정 - 유료 배열을 무제한 이용 가능';
+    return;
+  }
+  
+  // 사용자 정보가 없는 경우
+  if (!userStore.currentUser) {
+    console.log('[checkPremiumUsageStatus] 사용자 정보 없음');
+    hasPremiumUsageToday.value = false;
+    freeUserMessage.value = '';
+    return;
+  }
+  
+  isCheckingPremiumUsage.value = true;
+  
+  try {
+    // 로그인한 사용자의 경우
+    if (!userStore.currentUser.isAnonymous) {
+      console.log('[checkPremiumUsageStatus] 로그인 사용자 체크 시작');
+      console.log('[checkPremiumUsageStatus] DB에서 확인 중...');
+      
+      // 캐시를 무시하고 항상 최신 데이터 가져오기
+      const hasUsed = await hasUsedPremiumSpreadToday(userStore.currentUser.id);
+      console.log('[checkPremiumUsageStatus] DB 결과 - hasUsed:', hasUsed);
+      
+      hasPremiumUsageToday.value = hasUsed;
+      freeUserMessage.value = await getFreeUserMessage(userStore.currentUser.id);
+      
+      console.log('[checkPremiumUsageStatus] 업데이트 완료:', {
+        이전값: previousValue,
+        새값: hasUsed,
+        메시지: freeUserMessage.value
+      });
+    }
+    // 익명 사용자의 경우
+    else {
+      console.log('[checkPremiumUsageStatus] 익명 사용자 체크 시작');
+      console.log('[checkPremiumUsageStatus] 로컬 스토리지에서 확인 중...');
+      
+      const { hasUsedPremiumSpreadToday: hasUsedLocal, getFreeUserMessage: getMessageLocal } = await import('../utils/premiumSpreadTracker');
+      const hasUsed = await hasUsedLocal();
+      console.log('[checkPremiumUsageStatus] 로컬 스토리지 결과 - hasUsed:', hasUsed);
+      
+      hasPremiumUsageToday.value = hasUsed;
+      freeUserMessage.value = getMessageLocal();
+      
+      console.log('[checkPremiumUsageStatus] 업데이트 완료:', {
+        이전값: previousValue, 
+        새값: hasUsed,
+        메시지: freeUserMessage.value
+      });
+    }
+  } catch (error) {
+    console.error('[checkPremiumUsageStatus] 오류 발생:', error);
+    // 오류 발생 시 안전한 기본값 설정
+    hasPremiumUsageToday.value = false;
+    freeUserMessage.value = '';
+  } finally {
+    isCheckingPremiumUsage.value = false;
+    console.log('[checkPremiumUsageStatus] 완료 - 최종 hasPremiumUsageToday:', hasPremiumUsageToday.value);
   }
 };
 
 // 페이지가 포커스를 받을 때마다 상태 체크
 const handleVisibilityChange = async () => {
   if (!document.hidden) {
-    await checkPremiumUsageStatus();
+    console.log('[handleVisibilityChange] 페이지 포커스 - 강제 갱신');
+    await checkPremiumUsageStatus(true);
   }
 };
 
@@ -314,7 +367,8 @@ onMounted(async () => {
   window.addEventListener('resize', checkMobile);
   
   // 초기 프리미엄 사용 상태 체크
-  await checkPremiumUsageStatus();
+  console.log('[onMounted] 초기 체크');
+  await checkPremiumUsageStatus(true);
   
   // 페이지 포커스 이벤트 리스너 추가
   document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -327,15 +381,15 @@ onUnmounted(() => {
 
 // 컴포넌트가 다시 활성화될 때 (keep-alive에서 복원될 때)
 onActivated(async () => {
-  console.log('[ReadingSelect] 컴포넌트 활성화 - 프리미엄 사용 상태 재체크');
-  await checkPremiumUsageStatus();
+  console.log('[onActivated] 컴포넌트 활성화 - 강제 갱신');
+  await checkPremiumUsageStatus(true);
 });
 
 // 라우트 변경 감지 - 페이지로 돌아올 때 상태 재체크
 watch(() => route.path, async (newPath) => {
   if (newPath === '/reading-select') {
-    console.log('[ReadingSelect] 페이지로 돌아옴 - 프리미엄 사용 상태 재체크');
-    await checkPremiumUsageStatus();
+    console.log('[watch route] 페이지로 돌아옴 - 강제 갱신');
+    await checkPremiumUsageStatus(true);
   }
 }, { immediate: false });
 

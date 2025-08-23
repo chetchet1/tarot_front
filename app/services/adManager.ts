@@ -213,8 +213,28 @@ export class AdManager {
         // 유료 배열인 경우, 오늘 사용 여부 확인
         console.log('🔍 [AdManager.startReading] 유료 배열 사용 여부 확인 중...');
         console.log('🔍 [AdManager.startReading] 현재 날짜:', new Date().toLocaleDateString('ko-KR'));
-        const { hasUsedPremiumSpreadToday } = await import('../utils/premiumSpreadTracker');
-        const hasUsed = await hasUsedPremiumSpreadToday();
+        
+        // 사용자 정보 가져오기
+        const userStore = this.getUserStore();
+        const user = userStore.currentUser;
+        
+        let hasUsed = false;
+        
+        if (!user) {
+          console.error('🔍 [AdManager.startReading] 사용자 정보 없음');
+          hasUsed = false;
+        } else if (!user.isAnonymous) {
+          // 로그인 사용자는 DB에서 확인
+          console.log('🔍 [AdManager.startReading] 로그인 사용자 - DB에서 확인');
+          const { hasUsedPremiumSpreadToday } = await import('../services/premium/premiumSpreadService');
+          hasUsed = await hasUsedPremiumSpreadToday(user.id);
+        } else {
+          // 익명 사용자는 로컬 스토리지에서 확인  
+          console.log('🔍 [AdManager.startReading] 익명 사용자 - 로컬 스토리지에서 확인');
+          const { hasUsedPremiumSpreadToday } = await import('../utils/premiumSpreadTracker');
+          hasUsed = await hasUsedPremiumSpreadToday();
+        }
+        
         console.log('🔍 [AdManager.startReading] hasUsed:', hasUsed);
         console.log('🔍 [AdManager.startReading] 확인 완료 시간:', new Date().toISOString());
         
