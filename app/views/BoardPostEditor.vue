@@ -134,6 +134,39 @@
               <span class="checkbox-text">🎉 이벤트 관련 글</span>
             </label>
           </div>
+          
+          <!-- 이미지 업로드 (공지사항 또는 이벤트글일 때만) -->
+          <div v-if="form.isNotice || form.isEventPost" class="admin-option-row">
+            <label class="form-label-small">이미지 첨부</label>
+            <div class="image-upload-section">
+              <!-- 이미지 업로드 버튼 -->
+              <label class="image-upload-btn">
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  multiple
+                  @change="handleImageUpload"
+                  class="image-input-hidden"
+                />
+                <span class="upload-btn-content">
+                  <span class="upload-icon">📷</span>
+                  <span class="upload-text">이미지 선택</span>
+                </span>
+              </label>
+              
+              <!-- 업로드된 이미지 미리보기 -->
+              <div v-if="uploadedImages.length > 0" class="uploaded-images">
+                <div v-for="(image, index) in uploadedImages" :key="index" class="image-preview">
+                  <img :src="image.preview" :alt="`이미지 ${index + 1}`" />
+                  <button @click="removeImage(index)" class="remove-image-btn">
+                    <span>✕</span>
+                  </button>
+                </div>
+              </div>
+              
+              <span class="upload-help">최대 5개까지 업로드 가능 (각 5MB 이하)</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -204,6 +237,7 @@ const showNicknameModal = ref(false);
 const showReadingModal = ref(false);
 const isSubmitting = ref(false);
 const selectedReading = ref<any>(null);
+const uploadedImages = ref<Array<{ file: File; preview: string; url?: string }>>([]);
 
 const isEditMode = computed(() => !!route.params.id);
 const postId = computed(() => route.params.id as string);
@@ -340,6 +374,14 @@ const submitPost = async () => {
     if (isAdmin.value) {
       postData.is_notice = form.isNotice;
       postData.is_event_post = form.isEventPost;
+      
+      // 이미지 업로드 처리
+      if (uploadedImages.value.length > 0 && (form.isNotice || form.isEventPost)) {
+        const imageUrls = await uploadImagesToStorage();
+        if (imageUrls.length > 0) {
+          postData.image_urls = imageUrls;
+        }
+      }
     }
     
     console.log('[게시글 제출] postData:', JSON.stringify(postData));
@@ -666,6 +708,85 @@ const onEventChange = () => {
   if (form.isEventPost) {
     form.isNotice = false; // 이벤트 체크 시 공지사항 체크 해제
   }
+};
+
+// 이미지 업로드 처리
+const handleImageUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const files = target.files;
+  
+  if (!files) return;
+  
+  // 최대 5개 제한
+  if (uploadedImages.value.length + files.length > 5) {
+    await showAlert({
+      title: '⚠️ 업로드 제한',
+      message: '이미지는 최대 5개까지 업로드 가능합니다.',
+      confirmText: '확인'
+    });
+    return;
+  }
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    
+    // 파일 크기 체크 (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      await showAlert({
+        title: '⚠️ 파일 크기 초과',
+        message: `${file.name}는 5MB를 초과합니다.`,
+        confirmText: '확인'
+      });
+      continue;
+    }
+    
+    // 미리보기 생성
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedImages.value.push({
+        file: file,
+        preview: e.target?.result as string
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+// 이미지 제거
+const removeImage = (index: number) => {
+  uploadedImages.value.splice(index, 1);
+};
+
+// 이미지 업로드 (Supabase Storage)
+const uploadImagesToStorage = async () => {
+  const uploadedUrls: string[] = [];
+  
+  for (const image of uploadedImages.value) {
+    try {
+      const fileExt = image.file.name.split('.').pop();
+      const fileName = `board/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage
+        .from('board-images')
+        .upload(fileName, image.file);
+      
+      if (error) {
+        console.error('이미지 업로드 실패:', error);
+        continue;
+      }
+      
+      // 공개 URL 가져오기
+      const { data: { publicUrl } } = supabase.storage
+        .from('board-images')
+        .getPublicUrl(fileName);
+      
+      uploadedUrls.push(publicUrl);
+    } catch (error) {
+      console.error('이미지 업로드 중 오류:', error);
+    }
+  }
+  
+  return uploadedUrls;
 };
 
 
@@ -1121,6 +1242,100 @@ onMounted(async () => {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.5);
   margin-left: 8px;
+}
+
+/* 이미지 업로드 섹션 */
+.image-upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.image-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  max-width: 200px;
+}
+
+.image-upload-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.image-input-hidden {
+  display: none;
+}
+
+.upload-btn-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-icon {
+  font-size: 18px;
+}
+
+.upload-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.upload-help {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* 업로드된 이미지 미리보기 */
+.uploaded-images {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.image-preview {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.remove-image-btn:hover {
+  background: rgba(255, 0, 0, 0.8);
+  transform: scale(1.1);
 }
 
 /* 하단 버튼 */

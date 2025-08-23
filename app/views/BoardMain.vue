@@ -551,15 +551,17 @@ watch(selectedCategory, () => {
 
 /* 공지사항 게시글 */
 .post-item.notice-post {
-  background: rgba(168, 85, 247, 0.1);
-  border: 1px solid rgba(168, 85, 247, 0.3);
+  background: rgba(255, 193, 7, 0.15);
+  border: 1px solid rgba(255, 193, 7, 0.4);
   border-radius: 8px;
   margin-bottom: 8px;
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.2);
 }
 
 .post-item.notice-post:hover {
-  background: rgba(168, 85, 247, 0.15);
-  border-color: rgba(168, 85, 247, 0.4);
+  background: rgba(255, 193, 7, 0.2);
+  border-color: rgba(255, 193, 7, 0.5);
+  box-shadow: 0 0 15px rgba(255, 193, 7, 0.3);
 }
 
 /* 이벤트 게시글 */
@@ -587,9 +589,10 @@ watch(selectedCategory, () => {
 }
 
 .notice-badge {
-  background: rgba(168, 85, 247, 0.2);
-  color: #C084FC;
-  border: 1px solid rgba(168, 85, 247, 0.3);
+  background: rgba(255, 193, 7, 0.25);
+  color: #FFC107;
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
 }
 
 .event-badge {
