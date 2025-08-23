@@ -145,6 +145,15 @@ import { revenueCatService, type Subscription } from '@/services/RevenueCatServi
 import { useAuthStore } from '@/store/auth';
 import { showAlert, showConfirm } from '@/utils/alert';
 
+// Window\uc5d0 Capacitor \ud0c0\uc785 \ucd94\uac00
+declare global {
+  interface Window {
+    Capacitor?: {
+      isNativePlatform(): boolean;
+    };
+  }
+}
+
 const router = useRouter();
 const authStore = useAuthStore();
 
@@ -163,17 +172,68 @@ onMounted(async () => {
 const initialize = async () => {
   loading.value = true;
   try {
-    // 결제 서비스 초기화
-    await revenueCatService.initialize();
-    
-    // 현재 구독 상태 확인
-    currentSubscription.value = await revenueCatService.checkSubscription();
-    
-    // 상품 정보 가져오기
-    products.value = revenueCatService.getProducts();
+    // 웹 테스트 환경 체크
+    if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
+      console.log('웹 테스트 환경 - RevenueCat 초기화 스킵');
+      
+      // 테스트 계정의 프리미엄 상태 확인
+      const userEmail = authStore.user?.email;
+      if (userEmail === 'premium@example.com') {
+        // 프리미엄 테스트 계정은 이미 구독중으로 표시
+        const { useUserStore } = await import('@/store/user');
+        const userStore = useUserStore();
+        
+        if (userStore.isPremium) {
+          currentSubscription.value = {
+            id: 'test-premium-subscription',
+            user_id: authStore.user?.id || '',
+            product_id: 'monthly_premium',
+            platform: 'web-test',
+            status: 'active',
+            starts_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1년 후
+            price_amount: 4900,
+            currency: 'KRW',
+            auto_renew: true
+          };
+        }
+      }
+      
+      // 테스트용 상품 정보
+      products.value = [
+        {
+          id: 'monthly_premium',
+          identifier: 'monthly_premium',
+          priceString: '₩4,900',
+          priceAmount: 4900,
+          currency: 'KRW',
+          title: '월간 구독',
+          description: '매월 자동 갱신',
+          period: 'month'
+        },
+        {
+          id: 'yearly_premium',
+          identifier: 'yearly_premium',
+          priceString: '₩49,000',
+          priceAmount: 49000,
+          currency: 'KRW',
+          title: '연간 구독',
+          description: '매년 자동 갱신',
+          period: 'year'
+        }
+      ];
+    } else {
+      // 네이티브 앱 - RevenueCat 초기화
+      await revenueCatService.initialize();
+      currentSubscription.value = await revenueCatService.checkSubscription();
+      products.value = revenueCatService.getProducts();
+    }
   } catch (error) {
     console.error('Failed to initialize:', error);
-    await showAlert('오류', '결제 서비스 초기화에 실패했습니다.');
+    // 웹 환경에서는 오류 메시지 표시하지 않음
+    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+      await showAlert('오류', '결제 서비스 초기화에 실패했습니다.');
+    }
   } finally {
     loading.value = false;
   }
@@ -198,6 +258,59 @@ const purchase = async () => {
   }
 
   loading.value = true;
+  
+  // 웹 테스트 환경 처리
+  if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
+    console.log('웹 테스트 환경 감지 - 테스트 결제 처리');
+    
+    try {
+      // 테스트 계정 확인
+      const userEmail = authStore.user?.email;
+      const isTestAccount = userEmail === 'test@example.com' || userEmail === 'premium@example.com';
+      
+      if (isTestAccount) {
+        console.log('테스트 계정 결제 시뮬레이션 시작');
+        
+        // 결제 진행 시뮬레이션
+        console.log('결제 상태 : true');
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2초 대기
+        
+        // userStore를 통해 프리미엄 상태 업데이트
+        const { useUserStore } = await import('@/store/user');
+        const userStore = useUserStore();
+        
+        // 테스트 계정을 프리미엄으로 업그레이드
+        await userStore.upgradeToPremium();
+        
+        // 구독 정보 모의 생성
+        currentSubscription.value = {
+          id: 'test-subscription-' + Date.now(),
+          user_id: authStore.user?.id || '',
+          product_id: selectedPlan.value,
+          platform: 'web-test',
+          status: 'active',
+          starts_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30일 후
+          price_amount: selectedPlan.value === 'monthly_premium' ? 4900 : 49000,
+          currency: 'KRW',
+          auto_renew: true
+        };
+        
+        await showAlert('성공', '프리미엄 구독이 활성화되었습니다! (테스트 모드)');
+        router.push('/');
+      } else {
+        await showAlert('알림', '웹 브라우저에서는 실제 결제가 지원되지 않습니다. 모바일 앱을 사용해주세요.');
+      }
+    } catch (error: any) {
+      console.error('Test purchase failed:', error);
+      await showAlert('오류', error.message || '테스트 구매 중 오류가 발생했습니다.');
+    } finally {
+      loading.value = false;
+    }
+    return;
+  }
+  
+  // 네이티브 앱 결제 처리
   try {
     await revenueCatService.purchase(selectedPlan.value);
     

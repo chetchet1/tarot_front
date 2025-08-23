@@ -246,11 +246,11 @@ export const useUserStore = defineStore('user', () => {
   };
 
   // 프리미엄 다운그레이드 (테스트용)
-  const downgradeToPremium = async () => {
+  const downgradeToFree = async () => {
     if (currentUser.value && !currentUser.value.isAnonymous) {
       const success = await setTestAccountPremium(currentUser.value.id, false);
       if (success) {
-        console.log('프리미엄 다운그레이드 성공');
+        console.log('무료 계정으로 다운그레이드 성공');
       }
     } else if (currentUser.value) {
       // 익명 사용자의 경우 로컬에서만 다운그레이드
@@ -922,7 +922,7 @@ export const useUserStore = defineStore('user', () => {
     incrementFreeReading,
     resetFreeReadings,
     upgradeToPremium,
-    downgradeToPremium,
+    downgradeToFree,
     refreshPremiumStatus,
     setTestAccountPremium,
     checkPremiumStatus,

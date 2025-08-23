@@ -17,17 +17,17 @@
       
       <div class="actions">
         <button 
+          v-if="!isPremium"
           class="btn premium-btn" 
           @click="upgradeToPremium"
-          :disabled="isPremium"
         >
           ⬆️ 프리미엄 업그레이드
         </button>
         
         <button 
+          v-if="isPremium"
           class="btn downgrade-btn" 
           @click="downgradeToFree"
-          :disabled="!isPremium"
         >
           ⬇️ 무료로 다운그레이드
         </button>
@@ -102,7 +102,7 @@ const upgradeToPremium = async () => {
 const downgradeToFree = async () => {
   if (!userStore) return;
   try {
-    await userStore.downgradeToPremium();
+    await userStore.downgradeToFree();
     alert('무료 계정으로 다운그레이드되었습니다! 📱');
   } catch (error) {
     alert('다운그레이드 실패: ' + error);
