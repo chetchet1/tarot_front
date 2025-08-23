@@ -292,15 +292,15 @@ const processPurchase = async () => {
     } else {
       await showAlert({
         title: '결제 실패',
-        message: result.error || '결제에 실패했습니다. 다시 시도해주세요.'
+        message: result.error || '현재 결제 시스템이 구현되지 않았습니다. 빠른 시일 내에 구현 예정입니다.'
       });
       console.error('Purchase failed:', result.error);
     }
   } catch (error) {
     console.error('💳 Purchase error:', error);
     await showAlert({
-      title: '오류',
-      message: error.message || '결제 중 오류가 발생했습니다.'
+      title: '결제 실패',
+      message: '현재 결제 시스템이 구현되지 않았습니다. 빠른 시일 내에 구현 예정입니다.'
     });
   } finally {
     isLoading.value = false;

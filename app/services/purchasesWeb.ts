@@ -194,11 +194,10 @@ class WebSubscriptionService {
         // 일반 개발 모드 결제 모킹
         return new Promise(resolve => {
           setTimeout(() => {
-            // 80% 확률로 성공
-            const success = Math.random() > 0.2;
+            // 개발 모드에서는 항상 실패 (실제 결제 API 미구현)
             resolve({ 
-              success, 
-              error: success ? undefined : '개발 모드 테스트 결제 실패' 
+              success: false, 
+              error: '현재 결제 시스템이 구현되지 않았습니다. 빠른 시일 내에 구현 예정입니다.' 
             });
           }, 2000);
         });
@@ -208,9 +207,12 @@ class WebSubscriptionService {
       // const tossPayments = new TossPayments('YOUR_CLIENT_KEY');
       // const result = await tossPayments.requestPayment(paymentData.method, paymentData);
       
-      // 임시로 성공 반환 (실제 구현시 교체)
-      console.log('🌐 [Web] 프로덕션 모드 - 실제 결제 API 호출 필요');
-      return { success: true };
+      // 임시로 실패 반환 (실제 구현시 교체)
+      console.log('🌐 [Web] 프로덕션 모드 - 실제 결제 API 미구현');
+      return { 
+        success: false, 
+        error: '현재 결제 시스템이 구현되지 않았습니다. 빠른 시일 내에 구현 예정입니다.' 
+      };
     } catch (error) {
       return { success: false, error };
     }
