@@ -150,6 +150,14 @@ export const postService = {
     console.log('[postService] getPosts 호출', { page, limit, category });
     
     try {
+      // 현재 세션 확인
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('[postService] 현재 세션:', {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        email: session?.user?.email
+      });
+
       const offset = (page - 1) * limit;
 
       let query = supabase
@@ -169,13 +177,19 @@ export const postService = {
         .range(offset, offset + limit - 1);
 
       console.log('[postService] Supabase 응답', { 
-        data: data?.length || 0, 
+        dataLength: data?.length || 0, 
         count, 
-        error 
+        error,
+        firstPost: data?.[0] ? { id: data[0].id, title: data[0].title } : null
       });
 
       if (error) {
-        console.error('[postService] Supabase 오류:', error);
+        console.error('[postService] Supabase 오류 상세:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
         throw error;
       }
 
@@ -185,7 +199,11 @@ export const postService = {
         hasMore: offset + limit < (count || 0)
       };
       
-      console.log('[postService] getPosts 결과:', result);
+      console.log('[postService] getPosts 최종 결과:', {
+        postsCount: result.posts.length,
+        totalCount: result.totalCount,
+        hasMore: result.hasMore
+      });
       return result;
     } catch (error) {
       console.error('[postService] 게시글 목록 조회 실패:', error);

@@ -117,6 +117,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useBoardStore } from '../store/board';
+import { useUserStore } from '../store/user';
 import { showAlert } from '../utils/alerts';
 import BoardNicknameModal from '../components/BoardNicknameModal.vue';
 import AdBanner from '../components/AdBanner.vue';
@@ -264,6 +265,50 @@ onMounted(async () => {
   console.log('[BoardMain] onMounted 시작');
   
   try {
+    // 현재 사용자 정보 확인
+    const userStore = useUserStore();
+    console.log('[BoardMain] 현재 사용자:', {
+      id: userStore.currentUser?.id,
+      email: userStore.currentUser?.email,
+      isAdmin: userStore.isAdmin,
+      isPremium: userStore.isPremium
+    });
+    
+    // 관리자 계정인 경우 직접 테이블 조회 테스트
+    if (userStore.isAdmin) {
+      console.log('[BoardMain] 관리자 계정 감지, 직접 테이블 조회 테스트');
+      try {
+        const { supabase } = await import('../services/supabase');
+        
+        // board_posts 테이블 직접 조회
+        const { data: testPosts, error: testError } = await supabase
+          .from('board_posts')
+          .select('*')
+          .eq('is_deleted', false)
+          .limit(5);
+        
+        console.log('[BoardMain] 관리자 직접 조회 결과:', {
+          posts: testPosts,
+          error: testError,
+          postsCount: testPosts?.length || 0
+        });
+        
+        // board_profiles 테이블 확인
+        const { data: adminProfile, error: profileError } = await supabase
+          .from('board_profiles')
+          .select('*')
+          .eq('user_id', userStore.currentUser.id)
+          .maybeSingle();
+        
+        console.log('[BoardMain] 관리자 프로필 확인:', {
+          profile: adminProfile,
+          error: profileError
+        });
+      } catch (testError) {
+        console.error('[BoardMain] 관리자 테스트 조회 실패:', testError);
+      }
+    }
+    
     // 프로필 확인
     console.log('[BoardMain] 프로필 확인 시작');
     await boardStore.checkProfile();

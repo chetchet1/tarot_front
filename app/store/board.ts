@@ -62,10 +62,27 @@ export const useBoardStore = defineStore('board', () => {
       if (profileData) {
         profile.value = profileData;
         currentNickname.value = profileData.nickname;
+      } else if (userStore.isAdmin) {
+        // 관리자 계정인 경우 자동으로 프로필 생성
+        console.log('[boardStore] 관리자 계정 프로필 자동 생성');
+        try {
+          await nicknameService.saveOrUpdateNickname(userStore.currentUser.id, '관리자');
+          const newProfile = await nicknameService.getProfile(userStore.currentUser.id);
+          if (newProfile) {
+            profile.value = newProfile;
+            currentNickname.value = newProfile.nickname;
+          }
+        } catch (createError) {
+          console.error('[boardStore] 관리자 프로필 생성 실패:', createError);
+        }
       }
       return profileData;
     } catch (error) {
       console.error('[boardStore] 프로필 로드 실패:', error);
+      // 관리자인 경우 프로필 없어도 계속 진행
+      if (userStore.isAdmin) {
+        console.log('[boardStore] 관리자 계정, 프로필 없이 진행');
+      }
       return null;
     }
   }
