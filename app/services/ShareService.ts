@@ -83,8 +83,13 @@ export class ShareService {
       }
       
       // 1. 공유 데이터 준비
+      // 만료 날짜 설정 (30일 후)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+      
       const shareData = {
         spread_type: reading.spreadId,
+        expires_at: expiresAt.toISOString(),
         cards: reading.cards.map(card => {
           // 카드 ID 결정 - id가 메인 식별자
           let cardId = card.id;
@@ -296,8 +301,13 @@ export class ShareService {
         interpretationData = JSON.stringify(dailyCard.interpretation);
       }
       
+      // 만료 날짜 설정 (30일 후)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 30);
+      
       const shareData = {
         spread_type: 'daily_card',
+        expires_at: expiresAt.toISOString(),
         cards: [{
           cardNumber: dailyCard.card.id || dailyCard.card.number,
           nameKr: dailyCard.card.name_kr,

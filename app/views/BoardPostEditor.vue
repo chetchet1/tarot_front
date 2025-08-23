@@ -539,7 +539,7 @@ const processSelectedReading = async (reading: any) => {
       // shared_readings에 생성
       const sharedId = Math.random().toString(36).substring(2, 10); // 8자리 랜덤 ID
       const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 24); // 24시간 후 만료
+      expiresAt.setDate(expiresAt.getDate() + 30); // 30일 후 만료
       
       // 저장할 데이터 준비
       const sharedData = {
@@ -581,6 +581,13 @@ const processSelectedReading = async (reading: any) => {
         id: sharedId,
         basic_saved: !!sharedReading.basic_interpretation,
         ai_saved: !!sharedReading.ai_interpretation
+      });
+      
+      // 공유 점괘 생성 완료 알림
+      await showAlert({
+        title: '✅ 점괘 첨부 완료',
+        message: '공유된 점괘는 1달 후 게시판에서 자동 삭제됩니다.',
+        confirmText: '확인'
       });
     } catch (error) {
       console.error('점괘 공유 생성 실패:', error);
