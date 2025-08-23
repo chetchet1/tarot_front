@@ -98,6 +98,14 @@
             </div>
           </router-link>
 
+          <router-link to="/events" class="menu-card">
+            <div class="menu-icon">🎉</div>
+            <div class="menu-content">
+              <h3>이벤트</h3>
+              <p>진행 중인 이벤트에 참여하세요</p>
+            </div>
+          </router-link>
+
           <router-link v-if="!userStore.isPremium" to="/premium" class="menu-card premium-card">
             <div class="menu-icon">👑</div>
             <div class="menu-content">

@@ -20,6 +20,7 @@ import { DeepInterpretationService } from '../services/premium/deepInterpretatio
 import { CelticCrossAIInterpreter } from '../services/interpretation/CelticCrossAIInterpreter';
 import { SevenStarInterpreter } from '../services/interpretation/SevenStarInterpreter';
 import { CupOfRelationshipInterpreter } from '../services/interpretation/CupOfRelationshipInterpreter';
+import { eventService } from '../services/EventService';
 
 interface DailyCard {
   date: string;
@@ -29,6 +30,12 @@ interface DailyCard {
 
 export const useTarotStore = defineStore('tarot', () => {
   const userStore = useUserStore();
+  
+  // Helper function to check if current user is a test account
+  const isTestAccount = () => {
+    const email = userStore.currentUser?.email;
+    return email === 'test@example.com' || email === 'premium@example.com';
+  };
   
   // State
   const readings = ref<Reading[]>([]);
@@ -898,6 +905,23 @@ export const useTarotStore = defineStore('tarot', () => {
       // 무료 사용자 카운트 증가
       if (!userStore.isPremium) {
         userStore.incrementFreeReading();
+      }
+
+      // 이벤트 체크 (타로 점술 이벤트 자동 응모)
+      if (userStore.currentUser && !isTestAccount()) {
+        try {
+          const spreadData = {
+            spreadId: reading.spreadId,
+            cards: reading.cards,
+            topic: reading.topic,
+            customQuestion: reading.customQuestion
+          };
+          await eventService.checkSpreadEvent(userStore.currentUser.id, spreadData);
+          console.log('✅ 타로 점술 이벤트 체크 완료');
+        } catch (error) {
+          console.error('❌ 이벤트 체크 실패:', error);
+          // 이벤트 체크 실패는 무시하고 계속 진행
+        }
       }
 
       // 임시 카드 초기화

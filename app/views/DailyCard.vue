@@ -213,6 +213,7 @@ import { useAdvertisement } from '../composables/useAdvertisement';
 import { TarotInterpretationService } from '../services/tarotInterpretationService';
 import { saveDailyCardWithReading } from '../services/dailyCardService';
 import { getUnifiedCardImagePath } from '../utils/unifiedCardImage';
+import { eventService } from '../services/EventService';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -416,6 +417,62 @@ const loadTodayCard = async () => {
   }
 };
 
+// 이벤트 체크 및 알림
+const checkAndNotifyEvents = async (card: TarotCard) => {
+  try {
+    // 활성 이벤트 조회
+    const activeEvents = await eventService.getActiveEvents();
+    
+    // 오늘의 카드 관련 이벤트 확인
+    const dailyCardEvents = activeEvents.filter(
+      event => event.condition_data?.source === 'daily_card'
+    );
+    
+    for (const event of dailyCardEvents) {
+      const condition = event.condition_data;
+      let isQualified = false;
+      
+      // 조건 체크
+      switch (event.condition_type) {
+        case 'specific_card':
+          if (card.name === condition.card_name || 
+              card.name_kr === condition.card_name) {
+            isQualified = true;
+          }
+          break;
+          
+        case 'lucky_color_match':
+          // 해석이 생성된 후에 행운의 색상 체크
+          if (interpretation.value?.luckyItems?.color === condition.target_color) {
+            isQualified = true;
+          }
+          break;
+          
+        case 'lucky_number':
+          // 해석이 생성된 후에 행운의 숫자 체크
+          if (interpretation.value?.luckyItems?.number === condition.target_number) {
+            isQualified = true;
+          }
+          break;
+      }
+      
+      if (isQualified) {
+        // 자동 응모 성공 알림
+        setTimeout(async () => {
+          await showAlert({
+            title: '🎉 이벤트 자동 응모!',
+            message: `"${event.title}" 이벤트에 자동으로 응모되었습니다! 이벤트 페이지에서 응모 현황을 확인하세요.`
+          });
+        }, 2000);
+        break; // 한 번에 하나의 이벤트만 알림
+      }
+    }
+  } catch (error) {
+    console.error('이벤트 체크 실패:', error);
+    // 에러는 조용히 처리
+  }
+};
+
 // 카드 뽑기
 const drawCard = async () => {
   // 프리미엄 테스트 계정은 항상 새로운 카드 뽑기 가능
@@ -605,6 +662,11 @@ const drawCard = async () => {
     
     if (savedData) {
       todayCard.value = savedData;
+      
+      // 이벤트 체크 및 자동 응모 알림
+      if (!isPremiumTestAcc.value && !isTestAcc.value) {
+        checkAndNotifyEvents(card);
+      }
     } else {
       // 저장 실패 시 메모리에서만 사용
       todayCard.value = {

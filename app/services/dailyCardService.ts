@@ -1,6 +1,7 @@
 // 오늘의 카드 관련 서비스 함수들
 import { supabase } from './supabase';
 import type { TarotCard } from '../types/tarot';
+import { eventService } from './EventService';
 
 interface SaveDailyCardParams {
   userId: string;
@@ -235,7 +236,25 @@ export async function saveDailyCardWithReading(
       results.reading = existingReading;
     }
     
-    // 4. 결과 반환 - DailyCard.vue에서 기대하는 형식으로
+    // 4. 이벤트 체크 (오늘의 카드 이벤트 자동 응모)
+    if (!isTestAccount && results.dailyCard) {
+      console.log('🎉 이벤트 자동 체크 시작...');
+      try {
+        // 카드 데이터에 해석 정보가 있을 수 있으므로 전체 데이터 전달
+        const cardWithInterpretation = {
+          ...card,
+          interpretation: results.dailyCard.interpretation_data
+        };
+        
+        await eventService.checkDailyCardEvent(userId, cardWithInterpretation);
+        console.log('✅ 이벤트 체크 완료');
+      } catch (error) {
+        console.error('❌ 이벤트 체크 실패:', error);
+        // 이벤트 체크 실패는 무시하고 계속 진행
+      }
+    }
+    
+    // 5. 결과 반환 - DailyCard.vue에서 기대하는 형식으로
     if (results.errors.length > 0) {
       console.warn('일부 저장 실패:', results.errors);
     }

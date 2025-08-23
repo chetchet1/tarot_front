@@ -144,6 +144,19 @@ const routes = [
     component: () => import('../views/BoardPostEditor.vue'),
     meta: { requiresAuth: true }
   },
+  // 이벤트 라우트
+  {
+    path: '/events',
+    name: 'EventList',
+    component: () => import('../views/EventList.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/events/:id',
+    name: 'EventDetail',
+    component: () => import('../views/EventDetail.vue'),
+    meta: { requiresAuth: true }
+  },
 ];
 
 const router = createRouter({
