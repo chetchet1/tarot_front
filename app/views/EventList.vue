@@ -1,6 +1,13 @@
 <template>
   <div class="event-list-container">
-    <h1 class="page-title">🎉 진행 중인 이벤트</h1>
+    <!-- 헤더 -->
+    <header class="event-header-bar">
+      <button class="back-btn" @click="goBack">
+        <span class="back-icon">←</span>
+      </button>
+      <h1 class="header-title">🎉 진행 중인 이벤트</h1>
+      <div class="header-spacer"></div>
+    </header>
     
     <!-- 이벤트 참여 요약 -->
     <div v-if="userParticipations.length > 0" class="participation-summary">
@@ -115,6 +122,11 @@ const activeEvents = ref<Event[]>([]);
 const userParticipations = ref<any[]>([]);
 const userWinnings = ref<any[]>([]);
 
+// 뒤로가기
+const goBack = () => {
+  router.back();
+};
+
 // 총 응모권 수 계산
 const totalEntries = computed(() => {
   return userParticipations.value.reduce((sum, p) => sum + p.bonus_entries, 0);
@@ -227,7 +239,49 @@ onMounted(() => {
 .event-list-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* 헤더 */
+.event-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.header-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.header-spacer {
+  width: 40px;
 }
 
 .page-title {
@@ -243,7 +297,7 @@ onMounted(() => {
   color: white;
   border-radius: 12px;
   padding: 20px;
-  margin-bottom: 30px;
+  margin: 20px 20px 30px;
 }
 
 .participation-summary h3 {
@@ -297,6 +351,7 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 20px;
+  padding: 0 20px;
 }
 
 .event-card {

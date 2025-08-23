@@ -54,13 +54,19 @@
           v-for="(post, index) in posts"
           :key="post.id"
           class="post-item"
+          :class="{
+            'notice-post': post.is_notice,
+            'event-post': post.is_event_post
+          }"
           @click="viewPost(post.id)"
         >
           <span class="post-number">{{ getPostNumber(index) }}</span>
           
           <div class="post-left">
             <div class="post-header">
-              <span class="post-category">{{ getCategoryLabel(post.category) }}</span>
+              <span v-if="post.is_notice" class="special-badge notice-badge">📢 공지</span>
+              <span v-else-if="post.is_event_post" class="special-badge event-badge">🎉 이벤트</span>
+              <span v-else class="post-category">{{ getCategoryLabel(post.category) }}</span>
               <h3 class="post-title">{{ post.title }}</h3>
             </div>
             
@@ -541,6 +547,55 @@ watch(selectedCategory, () => {
 
 .post-item:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+/* 공지사항 게시글 */
+.post-item.notice-post {
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.post-item.notice-post:hover {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+/* 이벤트 게시글 */
+.post-item.event-post {
+  background: rgba(236, 72, 153, 0.1);
+  border: 1px solid rgba(236, 72, 153, 0.3);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.post-item.event-post:hover {
+  background: rgba(236, 72, 153, 0.15);
+  border-color: rgba(236, 72, 153, 0.4);
+}
+
+/* 특별 배지 */
+.special-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.notice-badge {
+  background: rgba(168, 85, 247, 0.2);
+  color: #C084FC;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.event-badge {
+  background: rgba(236, 72, 153, 0.2);
+  color: #F472B6;
+  border: 1px solid rgba(236, 72, 153, 0.3);
 }
 
 /* 게시글 왼쪽 영역 (카테고리, 제목, 작성자) */

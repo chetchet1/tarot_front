@@ -173,7 +173,8 @@ export const postService = {
 
       console.log('[postService] Supabase 쿼리 실행');
       const { data, error, count } = await query
-        .order('created_at', { ascending: false })
+        .order('is_notice', { ascending: false })  // 공지사항을 먼저 (true가 false보다 먼저)
+        .order('created_at', { ascending: false })  // 그 다음 최신순
         .range(offset, offset + limit - 1);
 
       console.log('[postService] Supabase 응답', { 
@@ -243,7 +244,9 @@ export const postService = {
     title: string,
     content: string,
     category: string = 'general',
-    sharedReadingId?: string
+    sharedReadingId?: string,
+    isNotice?: boolean,
+    isEventPost?: boolean
   ): Promise<BoardPost> {
     console.log('[boardService.createPost] 호출 매개변수:', {
       userId,
@@ -252,7 +255,9 @@ export const postService = {
       contentType: typeof content,
       contentLength: content?.length,
       category,
-      sharedReadingId
+      sharedReadingId,
+      isNotice,
+      isEventPost
     });
     
     try {
@@ -262,7 +267,7 @@ export const postService = {
         throw new Error('닉네임을 먼저 설정해주세요.');
       }
 
-      const insertData = {
+      const insertData: any = {
         user_id: userId,
         nickname,
         title,
@@ -270,6 +275,14 @@ export const postService = {
         category,
         shared_reading_id: sharedReadingId || null
       };
+      
+      // 관리자 옵션 추가
+      if (isNotice !== undefined) {
+        insertData.is_notice = isNotice;
+      }
+      if (isEventPost !== undefined) {
+        insertData.is_event_post = isEventPost;
+      }
       
       console.log('[boardService.createPost] DB에 삽입할 데이터:', JSON.stringify(insertData));
 
@@ -293,7 +306,14 @@ export const postService = {
   async updatePost(
     postId: string,
     userId: string,
-    updates: { title?: string; content?: string }
+    updates: { 
+      title?: string; 
+      content?: string;
+      category?: string;
+      shared_reading_id?: string | null;
+      is_notice?: boolean;
+      is_event_post?: boolean;
+    }
   ): Promise<boolean> {
     try {
       const { error } = await supabase

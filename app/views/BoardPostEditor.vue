@@ -101,6 +101,42 @@
         </div>
       </div>
 
+      <!-- 관리자 옵션 (관리자만 표시) -->
+      <div v-if="isAdmin" class="form-group admin-section">
+        <label class="form-label">
+          <span>⚙️ 관리자 옵션</span>
+        </label>
+        
+        <div class="admin-options">
+          <!-- 공지사항 설정 -->
+          <div class="admin-option-row">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                v-model="form.isNotice"
+                @change="onNoticeChange"
+                class="checkbox-input"
+              />
+              <span class="checkbox-text">📢 공지사항으로 설정</span>
+            </label>
+            <span class="option-help">공지사항은 게시판 최상단에 고정됩니다</span>
+          </div>
+          
+          <!-- 이벤트 관련 글 설정 -->
+          <div class="admin-option-row">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                v-model="form.isEventPost"
+                @change="onEventChange"
+                class="checkbox-input"
+              />
+              <span class="checkbox-text">🎉 이벤트 관련 글</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <!-- 작성자 정보 -->
       <div class="form-group">
         <label class="form-label">작성자</label>
@@ -171,12 +207,15 @@ const selectedReading = ref<any>(null);
 
 const isEditMode = computed(() => !!route.params.id);
 const postId = computed(() => route.params.id as string);
+const isAdmin = computed(() => userStore.isAdmin);
 
 const form = reactive({
   category: 'general' as BoardCategory,
   title: '',
   content: '',
-  shared_reading_id: null as string | null
+  shared_reading_id: null as string | null,
+  isNotice: false,
+  isEventPost: false
 });
 
 const categories = [
@@ -290,12 +329,18 @@ const submitPost = async () => {
     console.log('[게시글 제출] form.content:', form.content);
     console.log('[게시글 제출] form.content.trim():', form.content.trim());
     
-    const postData = {
+    const postData: any = {
       category: form.category,
       title: form.title.trim(),
       content: form.content.trim(),
       shared_reading_id: form.shared_reading_id || null
     };
+    
+    // 관리자 옵션 추가
+    if (isAdmin.value) {
+      postData.is_notice = form.isNotice;
+      postData.is_event_post = form.isEventPost;
+    }
     
     console.log('[게시글 제출] postData:', JSON.stringify(postData));
     console.log('[게시글 제출] content 길이:', postData.content.length);
@@ -609,6 +654,20 @@ const onContentInput = (e: Event) => {
   console.log('[내용 입력] form.content:', form.content);
 };
 
+// 공지사항 체크 변경 시
+const onNoticeChange = () => {
+  if (form.isNotice) {
+    form.isEventPost = false; // 공지사항 체크 시 이벤트 체크 해제
+  }
+};
+
+// 이벤트 체크 변경 시  
+const onEventChange = () => {
+  if (form.isEventPost) {
+    form.isNotice = false; // 이벤트 체크 시 공지사항 체크 해제
+  }
+};
+
 
 
 // 수정 모드일 때 기존 데이터 불러오기
@@ -635,7 +694,9 @@ const loadExistingPost = async () => {
       category: post.category,
       title: post.title,
       content: post.content,
-      shared_reading_id: post.shared_reading_id || null
+      shared_reading_id: post.shared_reading_id || null,
+      isNotice: post.is_notice || false,
+      isEventPost: post.is_event_post || false
     });
     
     // 공유 점괘가 있는 경우 로드
@@ -1013,6 +1074,53 @@ onMounted(async () => {
 .change-nickname-btn:hover {
   background: rgba(168, 85, 247, 0.3);
   border-color: rgba(168, 85, 247, 0.6);
+}
+
+/* 관리자 옵션 섹션 */
+.admin-section {
+  background: rgba(168, 85, 247, 0.05);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.admin-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-option-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-input {
+  width: 20px;
+  height: 20px;
+  accent-color: #A855F7;
+  cursor: pointer;
+}
+
+.checkbox-text {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.option-help {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-left: 8px;
 }
 
 /* 하단 버튼 */

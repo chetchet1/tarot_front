@@ -257,7 +257,14 @@ export const useBoardStore = defineStore('board', () => {
   /**
    * 게시글 작성
    */
-  async function createPost(postData: { title: string; content: string; category: string; shared_reading_id?: string | null }) {
+  async function createPost(postData: { 
+    title: string; 
+    content: string; 
+    category: string; 
+    shared_reading_id?: string | null;
+    is_notice?: boolean;
+    is_event_post?: boolean;
+  }) {
     const userStore = useUserStore();
     if (!userStore.currentUser) throw new Error('로그인이 필요합니다.');
 
@@ -277,7 +284,9 @@ export const useBoardStore = defineStore('board', () => {
         postData.title,
         postData.content,
         postData.category,
-        postData.shared_reading_id || undefined
+        postData.shared_reading_id || undefined,
+        postData.is_notice,
+        postData.is_event_post
       );
       
       // 목록 맨 앞에 추가
@@ -294,7 +303,14 @@ export const useBoardStore = defineStore('board', () => {
   /**
    * 게시글 수정
    */
-  async function updatePost(postId: string, updates: { title?: string; content?: string; category?: string; shared_reading_id?: string | null }) {
+  async function updatePost(postId: string, updates: { 
+    title?: string; 
+    content?: string; 
+    category?: string; 
+    shared_reading_id?: string | null;
+    is_notice?: boolean;
+    is_event_post?: boolean;
+  }) {
     const userStore = useUserStore();
     if (!userStore.currentUser) throw new Error('로그인이 필요합니다.');
 
