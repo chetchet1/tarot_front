@@ -458,10 +458,22 @@ export const useUserStore = defineStore('user', () => {
           // 프로필 존재 확인 및 생성
           await ensureProfileExists(user.id, user.email);
           
-          // 프리미엄 상태 확인
+          // 프리미엄 상태 및 관리자 권한 확인
           let isPremiumUser = false;
+          let isAdminUser = false;
+          
           try {
-            // DB에서 프리미엄 상태 확인 (테스트 계정 처리는 checkPremiumStatus 내부에서)
+            // DB에서 프로필 정보 확인
+            const { data: profile } = await authService.supabase
+              .from('profiles')
+              .select('is_premium, is_admin')
+              .eq('id', user.id)
+              .maybeSingle();
+            
+            isPremiumUser = profile?.is_premium || false;
+            isAdminUser = profile?.is_admin || false;
+            
+            // checkPremiumStatus로 추가 검증 (테스트 계정 처리 포함)
             isPremiumUser = await checkPremiumStatus(user.id);
           } catch (error) {
             console.warn('로그인 시 프리미엄 상태 확인 실패:', error);
