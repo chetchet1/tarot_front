@@ -9,7 +9,7 @@
       <div class="hero-section">
         <div class="premium-icon">👑</div>
         <h2>타로의 정원 프리미엄</h2>
-        <p class="hero-subtitle">광고 없는 깨끗한 환경에서<br>모든 타로 기능을 무제한으로 이용하세요</p>
+        <p class="hero-subtitle">광고 없는 깨끗한 환경에서<br>모든 타로 기능을 월 최대 1000회까지 이용하세요</p>
       </div>
 
       <div class="features-section">
@@ -43,7 +43,7 @@
             <ul class="plan-features">
               <li>✅ 모든 프리미엄 혜택</li>
               <li>✅ 광고 제거</li>
-              <li>✅ 무제한 점괘</li>
+              <li>✅ 월 최대 1000회 점괘</li>
               <li v-if="key === 'yearly'">✅ {{ calculateDiscount() }}% 할인 혜택</li>
               <li v-else>✅ 언제든지 해지 가능</li>
             </ul>
@@ -95,7 +95,7 @@
           <div v-if="userStore.isPremium" class="premium-status">
             <div class="status-icon">👑</div>
             <p><strong>프리미엄 회원</strong></p>
-            <p>모든 기능을 무제한으로 이용하고 계십니다!</p>
+            <p>모든 기능을 월 최대 1000회까지 이용하고 계십니다!</p>
             <div class="subscription-info">
               <p>프리미엄 기능을 모두 이용할 수 있습니다.</p>
               <button class="btn btn-outline" @click="manageSub">구독 관리</button>
@@ -153,8 +153,8 @@ const benefits = computed<Record<string, SubscriptionBenefit>>(() => ({
   },
   unlimitedReadings: {
     icon: '🔮',
-    title: '무제한 점괘',
-    description: '하루 제한 없이 원하는 만큼 타로 점을 볼 수 있습니다'
+    title: '월 1000회 점괘',
+    description: '하루 제한 없이 월 최대 1000회까지 타로 유료 배열 점괘를 볼 수 있습니다'
   },
   premiumSpreads: {
     icon: '⭐',
@@ -187,7 +187,7 @@ const faqs: FAQ[] = [
   {
     id: 2,
     question: '무료 버전과 프리미엄의 차이점은 무엇인가요?',
-    answer: '무료 버전은 하루 3회 제한과 광고가 있지만, 프리미엄은 무제한 이용과 광고 제거, 추가 스프레드를 제공합니다.'
+    answer: '무료 버전은 하루 1회 제한과 광고가 있지만, 프리미엄은 월 최대 1000회 이용과 광고 제거, 추가 스프레드를 제공합니다.'
   },
   {
     id: 3,
@@ -198,6 +198,11 @@ const faqs: FAQ[] = [
     id: 4,
     question: '환불이 가능한가요?',
     answer: '서비스 이용 후 7일 이내에 문의하시면 전액 환불해드립니다.'
+  },
+  {
+    id: 5,
+    question: '왜 1000회 제한이 있나요?',
+    answer: '악성 코드 방지를 위해 모든 사용자가 쾌적하게 이용할 수 있도록 서비스 품질을 유지하기 위한 안전장치입니다. 일반적인 사용에는 매우 충분한 양입니다. 사용하시다 모자라시면 연락주세요 ^0^;;'
   }
 ];
 
