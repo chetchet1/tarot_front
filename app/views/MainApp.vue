@@ -124,7 +124,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
-import { showAlert } from '../utils/alerts';
+import { showAlert, showConfirm } from '../utils/alerts';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -244,15 +244,18 @@ const goToPremium = () => {
 const showHistoryAlert = async () => {
   // 프리미엄 사용자 체크
   if (!userStore.isPremium) {
-    await showAlert({
+    const confirmed = await showConfirm({
       title: '프리미엄 전용 기능',
       message: '점괘 기록 보관은 프리미엄 구독자만 이용 가능합니다.\n\n프리미엄 구독 시 1년간 점괘를 안전하게 보관할 수 있습니다.',
       confirmText: '프리미엄 구독하기',
-      cancelText: '닫기',
-      onConfirm: () => {
-        router.push('/premium');
-      }
+      cancelText: '닫기'
     });
+    
+    // 사용자가 '프리미엄 구독하기' 버튼을 클릭한 경우
+    if (confirmed) {
+      console.log('프리미엄 페이지로 이동');
+      router.push('/premium');
+    }
     return;
   }
   
