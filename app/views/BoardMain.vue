@@ -107,6 +107,9 @@
         </button>
       </div>
     </div>
+    
+    <!-- 배너 광고 (프리미엄 사용자 제외) -->
+    <AdBanner />
   </div>
 </template>
 
@@ -116,6 +119,7 @@ import { useRouter } from 'vue-router';
 import { useBoardStore } from '../store/board';
 import { showAlert } from '../utils/alerts';
 import BoardNicknameModal from '../components/BoardNicknameModal.vue';
+import AdBanner from '../components/AdBanner.vue';
 import type { BoardCategory, BoardPost } from '../types/board';
 
 const router = useRouter();
@@ -287,6 +291,7 @@ watch(selectedCategory, () => {
   min-height: 100vh;
   background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
   color: white;
+  padding-bottom: 80px; /* 배너 광고 공간 확보 */
 }
 
 /* 헤더 */

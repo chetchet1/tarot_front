@@ -156,6 +156,9 @@
       :readingId="sharedReading?.id || null"
       @close="closeReadingModal"
     />
+    
+    <!-- 배너 광고 (프리미엄 사용자 제외) -->
+    <AdBanner />
   </div>
 </template>
 
@@ -171,6 +174,7 @@ import { getCardImageFromObject } from '../utils/cardImageUtils';
 import { defineAsyncComponent } from 'vue';
 const BoardComment = defineAsyncComponent(() => import('../components/BoardComment.vue'));
 const SharedReadingModal = defineAsyncComponent(() => import('../components/SharedReadingModal.vue'));
+import AdBanner from '../components/AdBanner.vue';
 // import DOMPurify from 'dompurify'; // 임시로 비활성화
 import type { BoardPost, BoardComment as BoardCommentType } from '../types/board';
 
@@ -578,7 +582,7 @@ onMounted(async () => {
   min-height: 100vh;
   background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
   color: white;
-  padding-bottom: 80px;
+  padding-bottom: 80px; /* 배너 광고 공간 확보 */
 }
 
 /* 헤더 */
