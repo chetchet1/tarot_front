@@ -71,7 +71,7 @@ export async function ensureTestAccountLoggedIn() {
     // 계정이 없으면 생성 시도
     try {
       console.log('테스트 계정 신규 생성 시도');
-      await userStore.register(TEST_ACCOUNT.email, TEST_ACCOUNT.password, 'Test User');
+      await userStore.signUp(TEST_ACCOUNT.email, TEST_ACCOUNT.password, { name: 'Test User' });
       
       // 생성 후 로그인
       await userStore.login(TEST_ACCOUNT.email, TEST_ACCOUNT.password);
@@ -171,7 +171,7 @@ export async function ensurePremiumTestAccountLoggedIn() {
     }
     
     // userStore의 프리미엄 상태도 업데이트
-    userStore.isPremium = true;
+    // 프리미엄 상태는 computed이므로 currentUser.isPremium으로 설정됨
     
     return true;
   }
@@ -193,7 +193,7 @@ export async function ensurePremiumTestAccountLoggedIn() {
     if (userStore.currentUser) {
       userStore.currentUser.isPremium = true;
     }
-    userStore.isPremium = true;
+    // 프리미엄 상태는 computed이므로 currentUser.isPremium으로 설정됨
     
     return true;
   } catch (error) {
@@ -202,7 +202,7 @@ export async function ensurePremiumTestAccountLoggedIn() {
     // 계정이 없으면 생성 시도
     try {
       console.log('프리미엄 테스트 계정 신규 생성 시도');
-      await userStore.register(PREMIUM_TEST_ACCOUNT.email, PREMIUM_TEST_ACCOUNT.password, 'Premium Test User');
+      await userStore.signUp(PREMIUM_TEST_ACCOUNT.email, PREMIUM_TEST_ACCOUNT.password, { name: 'Premium Test User' });
       
       // 생성 후 로그인
       await userStore.login(PREMIUM_TEST_ACCOUNT.email, PREMIUM_TEST_ACCOUNT.password);
@@ -217,7 +217,7 @@ export async function ensurePremiumTestAccountLoggedIn() {
       if (userStore.currentUser) {
         userStore.currentUser.isPremium = true;
       }
-      userStore.isPremium = true;
+      // 프리미엄 상태는 computed이므로 currentUser.isPremium으로 설정됨
       
       console.log('프리미엄 테스트 계정 생성 및 로그인 성공');
       return true;
@@ -253,7 +253,7 @@ export async function ensurePremiumTestAccountLoggedIn() {
         }
       };
       
-      userStore.isPremium = true;
+      // 프리미엄 상태는 computed이므로 currentUser.isPremium으로 설정됨
       PREMIUM_TEST_ACCOUNT.userId = localUserId;
       
       // 로컬 스토리지에 저장

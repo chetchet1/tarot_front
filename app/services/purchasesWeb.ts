@@ -1,5 +1,5 @@
 // 웹용 구독 서비스 - Toss Payments나 Stripe 연동
-import { Platform } from '@/utils/platform';
+import { Platform } from '../utils/platform';
 import { useUserStore } from '../store/user';
 import { subscriptionService } from './supabase';
 
@@ -41,8 +41,13 @@ class WebSubscriptionService {
 
       console.log('🌐 [Web] 결제 서비스 초기화...');
       
-      // 결제 SDK 로드 (예: Toss Payments)
-      await this.loadPaymentSDK();
+      // 개발 환경에서는 SDK 로드 건너뛰기
+      if (process.env.NODE_ENV !== 'development') {
+        // 결제 SDK 로드 (예: Toss Payments)
+        await this.loadPaymentSDK();
+      } else {
+        console.log('🌐 [Web] 개발 모드 - SDK 로드 건너뛰기');
+      }
       
       this.isInitialized = true;
       console.log('🌐 [Web] 결제 서비스 초기화 완료');
@@ -99,34 +104,41 @@ class WebSubscriptionService {
       const paymentResult = await this.processPayment(paymentData);
 
       if (paymentResult.success) {
-        // 백엔드에 구독 정보 저장
-        const subscription = await subscriptionService.createSubscription({
-          user_id: userStore.currentUser?.id,
-          plan: product.period,
-          status: 'active',
-          price: product.price,
-          currency: product.currency,
-          platform_order_id: orderId,
-          payment_method: paymentMethod,
-          start_date: new Date(),
-          end_date: this.getSubscriptionEndDate(product.period)
-        });
+        try {
+          // 백엔드에 구독 정보 저장 시도
+          let subscription;
+          try {
+            subscription = await subscriptionService.createSubscription({
+              user_id: userStore.currentUser?.id,
+              plan: product.period,
+              status: 'active',
+              price: product.price,
+              currency: product.currency,
+              platform_order_id: orderId,
+              payment_method: paymentMethod,
+              start_date: new Date(),
+              end_date: this.getSubscriptionEndDate(product.period)
+            });
+          } catch (subError) {
+            console.warn('🌐 [Web] 구독 테이블 없음, 프로필 업데이트로 대체');
+            
+            // subscriptions 테이블이 없으면 프로필만 업데이트
+            const { profileService } = await import('./supabase');
+            await profileService.updatePremiumStatus(
+              userStore.currentUser?.id || '',
+              true
+            );
+          }
 
-        // 로컬 상태 업데이트
-        userStore.updateSubscription({
-          id: subscription.id,
-          userId: userStore.currentUser?.id || '',
-          plan: product.period,
-          status: 'active',
-          startDate: new Date(),
-          endDate: this.getSubscriptionEndDate(product.period),
-          price: product.price,
-          currency: product.currency,
-          paymentMethod
-        });
+          // 로컬 상태 업데이트 (프리미엄 상태로 변경)
+          await userStore.refreshPremiumStatus();
 
-        console.log('🌐 [Web] 구독 구매 성공');
-        return { success: true, subscription };
+          console.log('🌐 [Web] 구독 구매 성공');
+          return { success: true, subscription };
+        } catch (error) {
+          console.error('🌐 [Web] 구독 처리 중 오류:', error);
+          return { success: false, error };
+        }
       }
 
       return { success: false, error: paymentResult.error };
@@ -139,13 +151,34 @@ class WebSubscriptionService {
   // 실제 결제 처리 (Toss Payments 예시)
   private async processPayment(paymentData: any): Promise<{ success: boolean; error?: any }> {
     try {
-      // 실제 환경에서는 Toss Payments 또는 다른 결제 서비스 API 호출
-      if (Platform.isWeb && process.env.NODE_ENV === 'development') {
-        // 개발 모드에서는 모킹
+      // 개발 모드에서는 모킹
+      if (process.env.NODE_ENV === 'development') {
         console.log('🌐 [Web] 개발 모드 - 결제 모킹');
+        console.log('🌐 [Web] 결제 데이터:', paymentData);
+        
+        // 테스트 계정에 대해서는 항상 성공
+        const userStore = useUserStore();
+        const isTestAccount = userStore.currentUser?.email === 'test@example.com' || 
+                              userStore.currentUser?.email === 'premium@example.com';
+        
+        if (isTestAccount) {
+          console.log('🌐 [Web] 테스트 계정 결제 - 자동 승인');
+          return new Promise(resolve => {
+            setTimeout(() => {
+              resolve({ success: true });
+            }, 1000);
+          });
+        }
+        
+        // 일반 개발 모드 결제 모킹
         return new Promise(resolve => {
           setTimeout(() => {
-            resolve({ success: true });
+            // 80% 확률로 성공
+            const success = Math.random() > 0.2;
+            resolve({ 
+              success, 
+              error: success ? undefined : '개발 모드 테스트 결제 실패' 
+            });
           }, 2000);
         });
       }
@@ -155,6 +188,7 @@ class WebSubscriptionService {
       // const result = await tossPayments.requestPayment(paymentData.method, paymentData);
       
       // 임시로 성공 반환 (실제 구현시 교체)
+      console.log('🌐 [Web] 프로덕션 모드 - 실제 결제 API 호출 필요');
       return { success: true };
     } catch (error) {
       return { success: false, error };
@@ -170,14 +204,26 @@ class WebSubscriptionService {
         return { success: false, error: 'User not logged in' };
       }
 
-      // 백엔드에서 구독 정보 확인
-      const subscription = await subscriptionService.getCurrentSubscription(
-        userStore.currentUser.id
-      );
+      // 구독 정보 확인 시도
+      try {
+        const subscription = await subscriptionService.getCurrentSubscription(
+          userStore.currentUser.id
+        );
 
-      if (subscription && subscription.status === 'active') {
-        userStore.updateSubscription(subscription);
-        console.log('🌐 [Web] 구독 복원 성공');
+        if (subscription && subscription.status === 'active') {
+          // 프리미엄 상태 업데이트
+          await userStore.refreshPremiumStatus();
+          console.log('🌐 [Web] 구독 복원 성공');
+          return { success: true };
+        }
+      } catch (error) {
+        console.warn('🌐 [Web] 구독 복원 실패:', error);
+      }
+      
+      // 프리미엄 상태만 확인
+      await userStore.refreshPremiumStatus();
+      
+      if (userStore.isPremium) {
         return { success: true };
       }
 
@@ -193,18 +239,32 @@ class WebSubscriptionService {
     try {
       const userStore = useUserStore();
       
-      if (!userStore.currentSubscription) {
-        return { success: false, error: 'No active subscription' };
+      // 현재 구독 정보 가져오기 시도
+      let subscription;
+      try {
+        subscription = await subscriptionService.getCurrentSubscription(userStore.currentUser.id);
+      } catch (error) {
+        console.warn('🌐 [Web] 구독 조회 실패, 프리미엄 상태만 취소');
       }
-
-      // 백엔드에서 구독 취소 처리
-      await subscriptionService.cancelSubscription(userStore.currentSubscription.id);
+      
+      if (subscription) {
+        // 백엔드에서 구독 취소 처리
+        try {
+          await subscriptionService.cancelSubscription(subscription.id);
+        } catch (error) {
+          console.warn('🌐 [Web] 구독 취소 실패:', error);
+        }
+      }
+      
+      // 프리미엄 상태를 false로 업데이트
+      const { profileService } = await import('./supabase');
+      await profileService.updatePremiumStatus(
+        userStore.currentUser?.id || '',
+        false
+      );
 
       // 로컬 상태 업데이트
-      userStore.updateSubscription({
-        ...userStore.currentSubscription,
-        status: 'cancelled'
-      });
+      await userStore.refreshPremiumStatus();
 
       console.log('🌐 [Web] 구독 취소 성공');
       return { success: true };

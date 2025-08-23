@@ -239,7 +239,7 @@ const processPurchase = async () => {
         message: '구독이 완료되었습니다! 🎉'
       });
       closePaymentModal();
-      await userStore.loadUserProfile();
+      await userStore.refreshPremiumStatus();
     } else {
       await showAlert({
         title: '결제 실패',
