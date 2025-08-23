@@ -208,8 +208,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, onUnmounted, onActivated, nextTick, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
 import { getSpreadsByTopic, getSpreadById } from '../data/spreads';
@@ -243,6 +243,7 @@ interface Spread {
 }
 
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 const tarotStore = useTarotStore();
 
@@ -264,6 +265,8 @@ const checkMobile = () => {
 
 // 프리미엄 사용 상태 체크 함수
 const checkPremiumUsageStatus = async () => {
+  console.log('[checkPremiumUsageStatus] 시작');
+  
   // 테스트 계정이면 유료 배열 사용 여부 체크 생략
   const isTestAccount = userStore.currentUser?.email === 'test@example.com';
   
@@ -271,7 +274,9 @@ const checkPremiumUsageStatus = async () => {
   if (userStore.currentUser && !userStore.isPremium && !userStore.currentUser.isAnonymous && !isTestAccount) {
     isCheckingPremiumUsage.value = true;
     try {
-      hasPremiumUsageToday.value = await hasUsedPremiumSpreadToday(userStore.currentUser.id);
+      const hasUsed = await hasUsedPremiumSpreadToday(userStore.currentUser.id);
+      console.log('[checkPremiumUsageStatus] 로그인 사용자 유료 배열 사용 여부:', hasUsed);
+      hasPremiumUsageToday.value = hasUsed;
       freeUserMessage.value = await getFreeUserMessage(userStore.currentUser.id);
     } catch (error) {
       console.error('Error checking premium usage:', error);
@@ -284,7 +289,9 @@ const checkPremiumUsageStatus = async () => {
   if (userStore.currentUser?.isAnonymous && !userStore.isPremium) {
     // 기존 premiumSpreadTracker 함수 import 필요
     const { hasUsedPremiumSpreadToday: hasUsedLocal, getFreeUserMessage: getMessageLocal } = await import('../utils/premiumSpreadTracker');
-    hasPremiumUsageToday.value = hasUsedLocal();
+    const hasUsed = hasUsedLocal();
+    console.log('[checkPremiumUsageStatus] 익명 사용자 유료 배열 사용 여부:', hasUsed);
+    hasPremiumUsageToday.value = hasUsed;
     freeUserMessage.value = getMessageLocal();
   }
   
@@ -317,6 +324,20 @@ onUnmounted(() => {
   window.removeEventListener('resize', checkMobile);
   document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
+
+// 컴포넌트가 다시 활성화될 때 (keep-alive에서 복원될 때)
+onActivated(async () => {
+  console.log('[ReadingSelect] 컴포넌트 활성화 - 프리미엄 사용 상태 재체크');
+  await checkPremiumUsageStatus();
+});
+
+// 라우트 변경 감지 - 페이지로 돌아올 때 상태 재체크
+watch(() => route.path, async (newPath) => {
+  if (newPath === '/reading-select') {
+    console.log('[ReadingSelect] 페이지로 돌아옴 - 프리미엄 사용 상태 재체크');
+    await checkPremiumUsageStatus();
+  }
+}, { immediate: false });
 
 // 주제 목록
 const topics = computed<Topic[]>(() => {
