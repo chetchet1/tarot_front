@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { getPositionMeaning } from '@/data/spreads/positionMeanings';
 
 interface Props {
@@ -52,6 +52,27 @@ const meaning = computed(() => {
 const handleClose = () => {
   emit('close');
 };
+
+// 컴포넌트 마운트 시 디버깅
+onMounted(() => {
+  console.log('[PositionMeaningInline] 마운트됨:', {
+    spreadId: props.spreadId,
+    position: props.position,
+    visible: props.visible,
+    meaning: meaning.value
+  });
+});
+
+// visible prop 변경 감지
+watch(() => props.visible, (newValue, oldValue) => {
+  console.log('[PositionMeaningInline] visible 변경:', {
+    spreadId: props.spreadId,
+    position: props.position,
+    old: oldValue,
+    new: newValue,
+    meaning: meaning.value
+  });
+});
 </script>
 
 <style scoped>

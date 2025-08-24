@@ -320,7 +320,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { nativeUtils } from '@/utils/capacitor';
 import { useUserStore } from '@/store/user';
 import { getUnifiedCardImagePath, handleUnifiedImageError } from '@/utils/unifiedCardImage';
@@ -398,6 +398,34 @@ const getCardImageUrl = (card: any) => {
 // 이미지 에러 핸들러 - 통합 함수 사용
 const onImageError = handleUnifiedImageError;
 
+// 디버깅용 생명주기 훅
+onMounted(() => {
+  console.log('[SevenStar] 컴포넌트 마운트됨:', {
+    isPremium: userStore.isPremium,
+    showPositionMeaning: showPositionMeaning.value,
+    selectedPosition: selectedPosition.value
+  });
+});
+
+// showPositionMeaning 변경 감지
+watch(showPositionMeaning, (newValue, oldValue) => {
+  console.log('[SevenStar] showPositionMeaning 변경:', {
+    old: oldValue,
+    new: newValue,
+    position: selectedPosition.value,
+    isPremium: userStore.isPremium
+  });
+  
+  // DOM 업데이트 후 확인
+  setTimeout(() => {
+    const positionMeaningEl = document.querySelector('.position-meaning-inline');
+    console.log('[SevenStar] DOM 체크:', {
+      exists: !!positionMeaningEl,
+      visible: positionMeaningEl ? window.getComputedStyle(positionMeaningEl).display : 'N/A',
+      zIndex: positionMeaningEl ? window.getComputedStyle(positionMeaningEl).zIndex : 'N/A'
+    });
+  }, 100);
+});
 
 </script>
 
@@ -812,9 +840,9 @@ const onImageError = handleUnifiedImageError;
 /* 액션 버튼 컨테이너 - 레이아웃 밖 */
 .action-buttons-container {
   position: fixed;
-  bottom: 200px;
+  bottom: 20px;
   left: 50%;
-  transform: translate(-50%, -600%);
+  transform: translateX(-50%);
   z-index: 100;
   display: flex;
   gap: 20px;

@@ -1340,10 +1340,9 @@ const onImageError = handleUnifiedImageError;
 
 /* 액션 버튼 컨테이너 */
 .action-buttons-container {
-  position: absolute;
-  bottom: 10px;
+  position: fixed;
+  bottom: 20px;
   left: 50%;
-  bottom: 60%;
   transform: translateX(-50%);
   z-index: 100;
   display: flex;
