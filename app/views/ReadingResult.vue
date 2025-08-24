@@ -2096,9 +2096,97 @@ onMounted(async () => {
   transform: rotate(180deg);
 }
 
+/* 역방향 카드 표시 - 점선 테두리로 변경 */
 .card-mini.reversed {
-  border-color: #DC2626;
-  box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+  border-style: dashed;
+  border-color: #EF4444;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.2);
+}
+
+/* 중요 카드 표시 (컵 오브 릴레이션십 특정 위치) */
+.cup-relationship-layout .cup-position-5 .card-mini,
+.cup-relationship-layout .cup-position-11 .card-mini {
+  border: 3px solid #FFD700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+  position: relative;
+}
+
+/* 중요 카드 표시 아이콘 (컵 오브 릴레이션십) */
+.cup-relationship-layout .cup-position-5 .card-mini::after,
+.cup-relationship-layout .cup-position-11 .card-mini::after {
+  content: '⭐';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #FFD700;
+  color: #1E1B4B;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 3;
+}
+
+/* 중요 카드 표시 (켈틱 크로스 특정 위치) */
+.celtic-cross-layout .position-1 .card-mini,
+.celtic-cross-layout .position-2 .card-mini,
+.celtic-cross-layout .position-10 .card-mini {
+  border: 3px solid #FFD700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+  position: relative;
+}
+
+/* 중요 카드 표시 아이콘 (켈틱 크로스) */
+.celtic-cross-layout .position-1 .card-mini::after,
+.celtic-cross-layout .position-2 .card-mini::after,
+.celtic-cross-layout .position-10 .card-mini::after {
+  content: '⭐';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #FFD700;
+  color: #1E1B4B;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 3;
+}
+
+/* 중요 카드 표시 (세븐 스타 특정 위치) */
+.seven-star-layout .star-position-1 .card-mini,
+.seven-star-layout .star-position-5 .card-mini {
+  border: 3px solid #FFD700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+  position: relative;
+}
+
+/* 중요 카드 표시 아이콘 (세븐 스타) */
+.seven-star-layout .star-position-1 .card-mini::after,
+.seven-star-layout .star-position-5 .card-mini::after {
+  content: '⭐';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #FFD700;
+  color: #1E1B4B;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 3;
 }
 
 .position-label {
