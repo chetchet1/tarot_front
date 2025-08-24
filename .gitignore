@@ -39,10 +39,23 @@ lerna-debug.log*
 *.swo
 
 # Capacitor
-/android
 /ios
 /.sourcemaps
 capacitor.log
+
+# Android - 키스토어 및 빌드 관련 제외
+/android/.gradle
+/android/.idea
+/android/app/build
+/android/build
+/android/local.properties
+/android/*.keystore
+/android/*.jks
+/android/keystore.properties
+/android/app/release
+/android/app/debug
+*.aab
+*.apk
 
 # OS files
 Thumbs.db
