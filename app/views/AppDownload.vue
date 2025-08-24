@@ -5,7 +5,7 @@
       <header class="header">
         <div class="logo">
           <span class="logo-icon">🔮</span>
-          <span class="logo-text">미스틱 포춘</span>
+          <span class="logo-text">타로의 정원</span>
         </div>
       </header>
 
@@ -13,26 +13,26 @@
       <main class="main-content">
         <!-- 앱 아이콘 -->
         <div class="app-icon">
-          <img src="/tarot-garden-icon.png" alt="미스틱 포춘" @error="onIconError">
+          <img src="/tarot-garden-icon.png" alt="타로의 정원" @error="onIconError">
         </div>
 
         <!-- 앱 정보 -->
         <div class="app-info">
-          <h1>미스틱 포춘</h1>
-          <p class="tagline">AI가 읽어주는 나만의 타로점</p>
+          <h1>타로의 정원</h1>
+          <p class="tagline">마법같은 타로 점술 앱</p>
           
           <div class="features">
             <div class="feature">
-              <span class="feature-icon">🎴</span>
-              <span>78장 정통 타로카드</span>
+              <span class="feature-icon">🔮</span>
+              <span>다양한 타로 배열법</span>
             </div>
             <div class="feature">
-              <span class="feature-icon">✨</span>
-              <span>AI 맞춤 해석</span>
+              <span class="feature-icon">☀️</span>
+              <span>매일 오늘의 카드</span>
             </div>
             <div class="feature">
-              <span class="feature-icon">📅</span>
-              <span>오늘의 운세</span>
+              <span class="feature-icon">🌿</span>
+              <span>익명 커뮤니티</span>
             </div>
           </div>
         </div>
@@ -47,8 +47,9 @@
             <span>{{ downloadButtonText }}</span>
           </button>
           
-          <button @click="continueInBrowser" class="download-button secondary">
-            웹에서 계속하기
+          <!-- 개발 환경에서만 표시 -->
+          <button v-if="isDevelopment" @click="continueInBrowser" class="download-button secondary">
+            웹에서 계속하기 (개발용)
           </button>
         </div>
 
@@ -96,7 +97,7 @@
 
       <!-- 푸터 -->
       <footer class="footer">
-        <p class="footer-text">© 2024 미스틱 포춘. All rights reserved.</p>
+        <p class="footer-text">© 2024 타로의 정원. All rights reserved.</p>
       </footer>
     </div>
   </div>
@@ -109,6 +110,9 @@ import { detectPlatform, getAppStoreUrl } from '../utils/platformDetector';
 
 const route = useRoute();
 const router = useRouter();
+
+// 개발 환경 체크
+const isDevelopment = import.meta.env.MODE !== 'production';
 
 // 플랫폼 정보
 const platform = ref(detectPlatform());
@@ -133,13 +137,13 @@ const downloadButtonText = computed(() => {
   }
 });
 
-// 앱 다운로드 (개발 중 - 더미 동작)
+// 앱 다운로드
 const downloadApp = () => {
-  // 개발 중이므로 알림만 표시
-  alert('🚧 앱 스토어 등록 준비 중입니다\n\n곧 Google Play에서 만나요!');
+  // Play Store URL (패키지명: com.tarotgarden.app)
+  const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.tarotgarden.app';
   
-  // 개발 테스트용: 웹에서 계속하기로 이동
-  // continueInBrowser();
+  // 스토어 링크로 이동
+  window.open(playStoreUrl, '_blank');
 };
 
 // 웹에서 계속하기

@@ -1,6 +1,6 @@
 // 환경 설정
-export const TEST_MODE = true; // 프로덕션에서는 false로 변경
-export const __DEV__ = true; // 개발 모드
+export const TEST_MODE = import.meta.env.MODE !== 'production'; // 프로덕션에서는 테스트 모드 비활성화
+export const __DEV__ = import.meta.env.MODE !== 'production'; // 개발 모드
 
 // 플랫폼 확인
 export const global = {
