@@ -291,16 +291,16 @@ const processPurchase = async () => {
       await userStore.refreshPremiumStatus();
     } else {
       await showAlert({
-        title: '결제 실패',
-        message: result.error || '현재 결제 시스템이 구현되지 않았습니다. 빠른 시일 내에 구현 예정입니다.'
+        title: '안내',
+        message: '현재 결제 서비스가 개발중입니다.\n곧 서비스를 이용하실 수 있습니다.'
       });
       console.error('Purchase failed:', result.error);
     }
   } catch (error) {
     console.error('💳 Purchase error:', error);
     await showAlert({
-      title: '결제 실패',
-      message: '현재 결제 시스템이 구현되지 않았습니다. 빠른 시일 내에 구현 예정입니다.'
+      title: '안내',
+      message: '현재 결제 서비스가 개발중입니다.\n곧 서비스를 이용하실 수 있습니다.'
     });
   } finally {
     isLoading.value = false;
