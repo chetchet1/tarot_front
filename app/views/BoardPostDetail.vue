@@ -549,9 +549,8 @@ const toggleLike = async () => {
     const liked = await boardStore.toggleLike(postId.value, 'post');
     hasLiked.value = liked;
     
-    if (post.value) {
-      post.value.like_count = (post.value.like_count || 0) + (hasLiked.value ? 1 : -1);
-    }
+    // boardStore.toggleLike에서 이미 like_count를 업데이트하므로
+    // 여기서는 중복 업데이트하지 않음
   } catch (error) {
     console.error('좋아요 실패:', error);
   }
