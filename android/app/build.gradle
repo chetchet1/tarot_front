@@ -1,5 +1,24 @@
 apply plugin: 'com.android.application'
 
+ext {
+    autoVersionCode = getVersionCode()
+}
+
+// 버전코드 자동 증가 함수
+def getVersionCode() {
+    def versionFile = file("${rootDir}/version.properties")
+    if (!versionFile.exists()) {
+        versionFile.write("VERSION_CODE=1")
+    }
+
+    def Properties props = new Properties()
+    versionFile.withInputStream { props.load(it) }
+    def code = props['VERSION_CODE'].toInteger() + 1
+    props['VERSION_CODE'] = code.toString()
+    versionFile.withOutputStream { props.store(it, null) }
+    return code
+}
+
 android {
     namespace "com.tarotgarden.app"
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -7,7 +26,7 @@ android {
         applicationId "com.tarotgarden.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
+        versionCode project.ext.autoVersionCode
         versionName "1.0.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
@@ -18,27 +37,27 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                    'proguard-rules.pro'
         }
         debug {
-            // 디버그 APK 파일명에 명확한 표시 추가
-            applicationIdSuffix ".debug"
+            // applicationIdSuffix 제거 - Google Play 버전과 같은 패키지명 사용
+            // applicationIdSuffix ".debug"
             versionNameSuffix "-DEBUG"
             debuggable true
         }
     }
-    
+
     // 빌드 타입별 출력 파일명 설정
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            if (variant.buildType.name == "debug") {
-                // 디버그 APK는 파일명에 명확히 표시
-                outputFileName = "app-DEBUG-DO-NOT-UPLOAD-${variant.versionName}.apk"
-            } else if (variant.buildType.name == "release") {
-                // 릴리즈 APK
+            if (variant.buildType.name == "release") {
+                // 릴리즈 APK만 파일명 변경
                 outputFileName = "tarot-garden-release-${variant.versionName}.apk"
             }
+            // 디버그는 기본 파일명 유지 (app-debug.apk)
         }
     }
 }
@@ -50,6 +69,7 @@ repositories {
 }
 
 dependencies {
+    implementation 'com.android.billingclient:billing:6.2.0'
     implementation fileTree(include: ['*.jar'], dir: 'libs')
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
