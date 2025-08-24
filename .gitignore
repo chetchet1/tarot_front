@@ -77,3 +77,7 @@ Desktop.ini
 .eslintcache
 
 .vercel
+
+# Windows/Debug files
+crash_log.txt
+nul
