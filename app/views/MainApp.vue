@@ -120,11 +120,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
 import { showAlert, showConfirm } from '../utils/alerts';
+import { nativeUtils } from '../utils/capacitor';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -136,6 +137,9 @@ const showTestButton = ref(import.meta.env.MODE !== 'production');
 const isTestPanelOpen = ref(false);
 const showTestMenu = ref(false);
 
+// 뒤로가기 버튼 처리
+let lastBackPressTime = 0;
+
 // 테스트 계정 확인
 const isTestAccount = computed(() => {
   return userStore.currentUser?.email === 'test@example.com' || 
@@ -145,6 +149,20 @@ const isTestAccount = computed(() => {
 const toggleTestPanel = () => {
   isTestPanelOpen.value = !isTestPanelOpen.value;
   window.dispatchEvent(new CustomEvent('toggle-test-panel'));
+};
+
+// 뒤로가기 버튼 핸들러
+const handleBackButton = async () => {
+  const currentTime = Date.now();
+  
+  // 2초 이내에 다시 누르면 앱 종료
+  if (currentTime - lastBackPressTime < 2000) {
+    await nativeUtils.exitApp();
+  } else {
+    // 첫 번째 누름 - 토스트 메시지 표시
+    lastBackPressTime = currentTime;
+    await nativeUtils.showToast('한번 더 누르면 앱이 종료됩니다', 'short');
+  }
 };
 
 onMounted(async () => {
@@ -162,6 +180,15 @@ onMounted(async () => {
   }
   
   document.addEventListener('click', handleClickOutside);
+  
+  // 네이티브 앱인 경우 뒤로가기 버튼 리스너 설정
+  nativeUtils.setupBackButtonListener(handleBackButton);
+});
+
+onUnmounted(() => {
+  // 뒤로가기 버튼 리스너 제거
+  nativeUtils.removeBackButtonListener();
+  document.removeEventListener('click', handleClickOutside);
 });
 
 const getGreetingMessage = () => {

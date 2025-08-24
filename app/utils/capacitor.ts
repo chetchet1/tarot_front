@@ -3,6 +3,8 @@ import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Keyboard } from '@capacitor/keyboard';
+import { Toast } from '@capacitor/toast';
+import { App } from '@capacitor/app';
 
 /**
  * 플랫폼 및 네이티브 기능 유틸리티
@@ -169,6 +171,60 @@ export class NativeUtils {
       console.warn('App state listener setup failed:', error);
     });
   }
+
+  /**
+   * Toast 메시지 표시
+   */
+  static async showToast(message: string, duration: 'short' | 'long' = 'short'): Promise<void> {
+    if (!this.isNative) {
+      console.log('Toast (Web):', message);
+      return;
+    }
+
+    try {
+      await Toast.show({
+        text: message,
+        duration: duration,
+        position: 'bottom'
+      });
+    } catch (error) {
+      console.warn('Toast not available:', error);
+    }
+  }
+
+  /**
+   * 앱 종료
+   */
+  static async exitApp(): Promise<void> {
+    if (!this.isNative) {
+      console.log('Exit app called on web platform');
+      return;
+    }
+
+    try {
+      await App.exitApp();
+    } catch (error) {
+      console.warn('Exit app not available:', error);
+    }
+  }
+
+  /**
+   * 뒤로가기 버튼 리스너 설정
+   */
+  static setupBackButtonListener(callback: () => void): void {
+    if (!this.isNative) return;
+
+    App.addListener('backButton', callback);
+  }
+
+  /**
+   * 뒤로가기 버튼 리스너 제거
+   */
+  static removeBackButtonListener(): void {
+    if (!this.isNative) return;
+
+    App.removeAllListeners();
+  }
 }
 
 // 웹에서 사용할 수 있는 Mock 함수들
@@ -180,6 +236,10 @@ export const webMockUtils = {
   setStatusBarStyle: () => Promise.resolve(),
   hideKeyboard: () => Promise.resolve(),
   initializeApp: () => Promise.resolve(),
+  showToast: (message: string) => { console.log('Toast:', message); return Promise.resolve(); },
+  exitApp: () => { console.log('Exit app called on web'); return Promise.resolve(); },
+  setupBackButtonListener: () => {},
+  removeBackButtonListener: () => {},
 };
 
 // 플랫폼에 따라 적절한 유틸리티 export
