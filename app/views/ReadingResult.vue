@@ -488,29 +488,6 @@
           <p>해석을 준비 중입니다...</p>
         </div>
         
-        <!-- 평점 시스템 -->
-        <div class="rating-section" v-if="reading.aiInterpretationId && !userRating">
-          <h4>이 해석이 도움이 되셨나요?</h4>
-          <div class="star-rating">
-            <button 
-              v-for="i in 5" 
-              :key="i"
-              @click="submitRating(i)"
-              class="star-btn"
-              :class="{ active: hoverRating >= i || selectedRating >= i }"
-              @mouseenter="hoverRating = i"
-              @mouseleave="hoverRating = 0"
-            >
-              ⭐
-            </button>
-          </div>
-          <p class="rating-hint">{{ getRatingHint() }}</p>
-        </div>
-        
-        <!-- 평점 제출 후 메시지 -->
-        <div class="rating-submitted" v-if="userRating">
-          <p>✅ 소중한 피드백 감사합니다!</p>
-        </div>
       </section>
 
 
@@ -641,10 +618,6 @@ const displayQuestion = computed(() => {
   return themeQuestion?.question || '오늘 나에게 필요한 메시지는 무엇일까요?';
 });
 
-// 평점 관련 상태
-const hoverRating = ref(0);
-const selectedRating = ref(0);
-const userRating = ref(0);
 
 // AI 해석 로딩 상태
 const isLoadingInterpretation = ref(false);
@@ -937,36 +910,6 @@ const shareReading = async () => {
   }
 };
 
-// 평점 제출
-const submitRating = async (rating: number) => {
-  if (!reading.value?.aiInterpretationId || userRating.value > 0) {
-    return;
-  }
-  
-  selectedRating.value = rating;
-  userRating.value = rating;
-  
-  try {
-    // AIInterpretationService를 직접 import해야 함
-    const { AIInterpretationService } = await import('../services/ai/AIInterpretationService');
-    const aiService = new AIInterpretationService(isSubscribed.value);
-    await aiService.submitRating(reading.value.aiInterpretationId, rating);
-  } catch (error) {
-    console.error('평점 제출 오류:', error);
-  }
-};
-
-// 평점 힌트 텍스트
-const getRatingHint = () => {
-  const rating = hoverRating.value || selectedRating.value;
-  if (rating === 0) return '별점을 클릭해주세요';
-  if (rating === 1) return '전혀 도움이 되지 않았어요';
-  if (rating === 2) return '별로 도움이 되지 않았어요';
-  if (rating === 3) return '보통이에요';
-  if (rating === 4) return '도움이 되었어요';
-  if (rating === 5) return '매우 도움이 되었어요!';
-  return '';
-};
 
 // 캘틱 크로스 카테고리별 해석 관련 헬퍼 함수들
 const hasCelticCategories = () => {
@@ -1570,7 +1513,6 @@ const saveReadingToDB = async () => {
         interpretation_text: aiInterpretationText,
         custom_question: customQuestion.value || null,
         probability_analysis: reading.value.probabilityAnalysis || null,
-        rating: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -2652,78 +2594,6 @@ onMounted(async () => {
   overflow-wrap: break-word;
 }
 
-/* 평점 시스템 스타일 */
-.rating-section {
-  margin-top: 30px;
-  padding-top: 25px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  text-align: center;
-}
-
-.rating-section h4 {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 20px;
-  font-weight: 500;
-}
-
-.star-rating {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 15px;
-}
-
-.star-btn {
-  background: none;
-  border: none;
-  font-size: 32px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  filter: grayscale(100%) opacity(0.5);
-  padding: 5px;
-}
-
-.star-btn:hover {
-  transform: scale(1.2);
-}
-
-.star-btn.active {
-  filter: grayscale(0%) opacity(1);
-  transform: scale(1.1);
-  animation: starPulse 0.3s ease;
-}
-
-@keyframes starPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.3); }
-  100% { transform: scale(1.1); }
-}
-
-.rating-hint {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0;
-  height: 20px;
-  transition: all 0.2s ease;
-}
-
-.rating-submitted {
-  margin-top: 25px;
-  padding: 20px;
-  background: rgba(34, 197, 94, 0.2);
-  border: 1px solid rgba(34, 197, 94, 0.4);
-  border-radius: 12px;
-  text-align: center;
-  animation: slideInUp 0.5s ease-out;
-}
-
-.rating-submitted p {
-  color: #22C55E;
-  font-size: 16px;
-  margin: 0;
-  font-weight: 500;
-}
 
 /* AI 해석 대기 상태 */
 .ai-interpretation-pending {
@@ -3031,13 +2901,6 @@ onMounted(async () => {
     font-size: 15px;
   }
   
-  .star-btn {
-    font-size: 28px;
-  }
-  
-  .rating-hint {
-    font-size: 13px;
-  }
   
   .actions {
     flex-direction: column;

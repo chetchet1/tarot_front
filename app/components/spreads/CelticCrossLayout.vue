@@ -562,13 +562,22 @@ const handleCardClick = async (index: number) => {
     
     // 프리미엄 사용자인 경우 포지션 의미 표시 (뒤집지 않은 카드도 클릭 시 의미 표시)
     if (userStore.isPremium) {
+      console.log('[CelticCross] 프리미엄 사용자 카드 클릭:', {
+        index,
+        currentVisible: showPositionMeaning.value,
+        currentPosition: selectedPosition.value,
+        isPremium: userStore.isPremium
+      });
+      
       // 이미 표시 중이고 같은 카드를 다시 클릭하면 숨김
       if (showPositionMeaning.value && selectedPosition.value === index + 1) {
         showPositionMeaning.value = false;
         selectedCardIndex.value = null;
+        console.log('[CelticCross] 포지션 의미 숨김');
       } else {
         selectedPosition.value = index + 1;
         showPositionMeaning.value = true;
+        console.log('[CelticCross] 포지션 의미 표시:', selectedPosition.value);
       }
     }
   }

@@ -260,7 +260,7 @@ import { getAdManager } from '../services/adManagerSingleton';
 import { customInterpretationService } from '../services/ai/customInterpretationService';
 import { showAlert, showConfirm } from '../utils/alerts';
 import { getUnifiedCardImagePath, handleUnifiedImageError } from '../utils/unifiedCardImage';
-import { showInterstitialAd } from '../services/admob'; // 직접 import 추가
+import { showRewardedAd } from '../services/admob'; // 유료 배열용 강제 시청 광고
 import { interceptPremiumSpreadCalls, interceptAdManager } from '../utils/debugPremiumSpread'; // 디버그 도구
 import { monitorSupabaseAPICalls } from '../utils/supabaseMonitor'; // Supabase API 모니터링
 
@@ -956,11 +956,11 @@ const goToResult = async () => {
     console.log('📺 [goToResult] isTestAccount:', isTestAccount);
     console.log('📺 [goToResult] hasTempPremium:', hasTempPremium);
     
-    // 광고 표시 확인
+    // 광고 표시 확인  
     try {
       const confirmed = await showConfirm({
         title: '광고 시청',
-        message: '해석을 보려면 광고를 시청해야 합니다.\n계속하시겠습니까?'
+        message: '해석을 보려면 15초 광고를 시청해야 합니다.\n(광고는 스킵할 수 없습니다)\n\n계속하시겠습니까?'
       });
       
       console.log('📺 [goToResult] confirm 결과:', confirmed);
@@ -983,9 +983,9 @@ const goToResult = async () => {
       // adService 초기화 상태 재설정을 위해 약간의 딜레이 추가
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      // 광고 서비스에서 직접 전면 광고 표시
-      const adWatched = await showInterstitialAd();
-      console.log('📺 [goToResult] 광고 표시 결과:', adWatched);
+      // 광고 서비스에서 직접 강제 시청 광고 표시 (유료 배열은 리워드 광고)
+      const adWatched = await showRewardedAd();
+      console.log('📺 [goToResult] 강제 시청 광고 표시 결과:', adWatched);
       console.log('📺 [goToResult] 광고 표시 후 시간:', new Date().toISOString());
       
       if (!adWatched) {
@@ -2054,8 +2054,6 @@ const checkFreeReadingStatus = () => {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  /* 모바일에서 너비 제한 */
-  overflow-x: hidden;
   position: relative;
 }
 
@@ -2082,8 +2080,6 @@ const checkFreeReadingStatus = () => {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  /* 모바일에서 너비 제한 */
-  overflow-x: hidden;
   position: relative;
 }
 

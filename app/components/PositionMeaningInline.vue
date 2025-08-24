@@ -39,7 +39,14 @@ const props = defineProps<Props>();
 const emit = defineEmits(['close']);
 
 const meaning = computed(() => {
-  return getPositionMeaning(props.spreadId, props.position);
+  const result = getPositionMeaning(props.spreadId, props.position);
+  console.log('[PositionMeaningInline] computed meaning:', {
+    spreadId: props.spreadId,
+    position: props.position,
+    visible: props.visible,
+    meaning: result
+  });
+  return result;
 });
 
 const handleClose = () => {
@@ -61,7 +68,7 @@ const handleClose = () => {
   padding: 20px;
   backdrop-filter: blur(10px);
   box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  z-index: 9999;
 }
 
 .close-button {
