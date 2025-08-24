@@ -258,7 +258,13 @@ const purchase = async () => {
   }
 
   // 구글 플레이 앱 등록 전 임시 비활성화
-  await showAlert('알림', '준비중입니다.');
+  loading.value = true;
+  
+  // 결제 진행중 표시 (1초)
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  loading.value = false;
+  await showAlert('안내', '현재 결제 서비스가 개발중입니다.\n곧 서비스를 이용하실 수 있습니다.');
   return;
 
   loading.value = true;
@@ -303,11 +309,13 @@ const purchase = async () => {
         await showAlert('성공', '프리미엄 구독이 활성화되었습니다! (테스트 모드)');
         router.push('/');
       } else {
-        await showAlert('알림', '웹 브라우저에서는 실제 결제가 지원되지 않습니다. 모바일 앱을 사용해주세요.');
+        // 일반 계정도 개발중 메시지 표시
+        await showAlert('안내', '현재 결제 서비스가 개발중입니다.\n곧 서비스를 이용하실 수 있습니다.');
       }
     } catch (error: any) {
       console.error('Test purchase failed:', error);
-      await showAlert('오류', error.message || '테스트 구매 중 오류가 발생했습니다.');
+      // 테스트 구매 실패시에도 개발중 메시지
+      await showAlert('안내', '현재 결제 서비스가 개발중입니다.\n곧 서비스를 이용하실 수 있습니다.');
     } finally {
       loading.value = false;
     }
@@ -328,7 +336,8 @@ const purchase = async () => {
     router.push('/');
   } catch (error: any) {
     console.error('Purchase failed:', error);
-    await showAlert('오류', error.message || '구매 중 오류가 발생했습니다.');
+    // 개발중 메시지로 변경
+    await showAlert('안내', '현재 결제 서비스가 개발중입니다.\n곧 서비스를 이용하실 수 있습니다.');
   } finally {
     loading.value = false;
   }
@@ -350,7 +359,8 @@ const restorePurchases = async () => {
     }
   } catch (error) {
     console.error('Restore failed:', error);
-    await showAlert('오류', '구매 복원에 실패했습니다.');
+    // 구매 복원도 개발중 메시지
+    await showAlert('안내', '현재 결제 서비스가 개발중입니다.\n곧 서비스를 이용하실 수 있습니다.');
   } finally {
     loading.value = false;
   }
@@ -381,7 +391,8 @@ const cancelSubscription = async () => {
     }
   } catch (error) {
     console.error('Cancel failed:', error);
-    await showAlert('오류', '구독 취소에 실패했습니다.');
+    // 구독 취소도 개발중 메시지
+    await showAlert('안내', '현재 결제 서비스가 개발중입니다.\n곧 서비스를 이용하실 수 있습니다.');
   } finally {
     loading.value = false;
   }
