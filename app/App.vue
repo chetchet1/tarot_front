@@ -12,6 +12,7 @@ import { Capacitor } from '@capacitor/core';
 import { useUserStore } from './store/user';
 import { oauthService } from './services/oauth';
 import { revenueCatService } from './services/RevenueCatService';
+import { updateChecker } from './services/updateChecker';
 import './styles/main.scss';
 
 const route = useRoute();
@@ -40,6 +41,11 @@ onMounted(async () => {
     // OAuth 리스너 설정 (네이티브 앱에서만)
     if (Capacitor.isNativePlatform()) {
       await oauthService.setupDeepLinkListener();
+      
+      // 앱 업데이트 체크 (비동기로 실행)
+      updateChecker.checkForUpdate().catch(error => {
+        console.error('⚠️ Update check failed:', error);
+      });
       
       // RevenueCat 초기화 (네이티브 앱에서만)
       try {

@@ -108,6 +108,9 @@
             <button @click="rateApp" class="action-button" v-if="isNative">
               ⭐ 앱 평가하기
             </button>
+            <button @click="checkForUpdate" class="action-button" v-if="isNative">
+              🔄 업데이트 확인
+            </button>
           </div>
         </section>
 
@@ -122,7 +125,7 @@
 
         <!-- 앱 정보 -->
         <div class="app-info">
-          <p>타로의 정원 v1.0.0</p>
+          <p>타로의 정원 {{ appVersion }}</p>
           <p class="copyright">© 2025 Tarot Garden. All rights reserved.</p>
         </div>
       </div>
@@ -138,6 +141,8 @@ import { NativeUtils } from '@/utils/capacitor';
 import { showAlert, showConfirm } from '@/utils/alerts';
 import { useSubscriptionStatus } from '@/composables/useSubscriptionStatus';
 import { supabase } from '@/services/supabase';
+import { updateChecker } from '@/services/updateChecker';
+import { Capacitor } from '@capacitor/core';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -158,10 +163,26 @@ const settings = ref<AppSettings>({
   animations: true,
 });
 
-onMounted(() => {
+// 앱 버전 정보
+const appVersion = ref('v1.0.0');
+
+onMounted(async () => {
   const savedSettings = localStorage.getItem('appSettings');
   if (savedSettings) {
     settings.value = { ...settings.value, ...JSON.parse(savedSettings) };
+  }
+  
+  // 앱 버전 정보 가져오기
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const versionInfo = await updateChecker.getCurrentVersion();
+      appVersion.value = `v${versionInfo.version} (${versionInfo.build})`;
+    } catch (error) {
+      console.error('버전 정보 가져오기 실패:', error);
+      appVersion.value = 'v1.0.2';
+    }
+  } else {
+    appVersion.value = 'v1.0.2 (Web)';
   }
 });
 
@@ -282,6 +303,22 @@ const rateApp = async (): Promise<void> => {
     window.open('https://apps.apple.com/app/tarot-garden', '_blank');
   } else if (NativeUtils.platform === 'android') {
     window.open('https://play.google.com/store/apps/details?id=com.tarotgarden', '_blank');
+  }
+};
+
+// 업데이트 체크
+const checkForUpdate = async (): Promise<void> => {
+  await NativeUtils.buttonTapHaptic();
+  
+  try {
+    // 업데이트 체커 실행
+    await updateChecker.checkForUpdate();
+  } catch (error) {
+    console.error('업데이트 체크 실패:', error);
+    await showAlert({
+      title: '⚠️ 오류',
+      message: '업데이트 확인 중 오류가 발생했습니다.'
+    });
   }
 };
 

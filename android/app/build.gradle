@@ -16,6 +16,9 @@ def getVersionCode() {
     def code = props['VERSION_CODE'].toInteger() + 1
     props['VERSION_CODE'] = code.toString()
     versionFile.withOutputStream { props.store(it, null) }
+    
+    // 빌드 시 버전 정보 출력
+    println "Building with VERSION_CODE: ${code} (auto-incremented from ${code-1})"
     return code
 }
 
@@ -27,7 +30,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode project.ext.autoVersionCode
-        versionName "1.0.1"
+        versionName "1.0.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -55,7 +58,7 @@ android {
         variant.outputs.all { output ->
             if (variant.buildType.name == "release") {
                 // 릴리즈 APK만 파일명 변경
-                outputFileName = "tarot-garden-release-${variant.versionName}.apk"
+                outputFileName = "tarot-garden-release-${variant.versionName}-${variant.versionCode}.apk"
             }
             // 디버그는 기본 파일명 유지 (app-debug.apk)
         }
