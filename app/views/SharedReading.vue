@@ -621,7 +621,8 @@ onMounted(async () => {
   
   try {
     // Supabase REST API 직접 호출
-    const url = `https://yxywzsmggvxxujuplyly.supabase.co/rest/v1/shared_readings?id=eq.${shareId}&is_active=eq.true`;
+    // is_active 조건 제거 - 기존 데이터도 표시되도록
+    const url = `https://yxywzsmggvxxujuplyly.supabase.co/rest/v1/shared_readings?id=eq.${shareId}`;
     const response = await fetch(url, {
       headers: {
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4eXd6c21nZ3Z4eHVqdXBseWx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1NTk2ODUsImV4cCI6MjA2OTEzNTY4NX0.8w3JYOmbmJKdzz9H0_GfgspIfb0SfjjOvkyxPNvFVSM',
@@ -637,12 +638,17 @@ onMounted(async () => {
     if (data && data.length > 0) {
       const reading = data[0];
       
-      // 만료 체크
+      // 만료 체크 (expires_at이 있는 경우만)
+      // 기존 데이터는 expires_at이 없을 수 있음
       if (reading.expires_at) {
         const expiresAt = new Date(reading.expires_at);
         const now = new Date();
         
         if (expiresAt < now) {
+          console.log('⏰ 공유 기간 만료:', {
+            expires_at: reading.expires_at,
+            now: now.toISOString()
+          });
           expired.value = true;
           loading.value = false;
           return;
