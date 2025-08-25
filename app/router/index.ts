@@ -174,6 +174,13 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
     meta: to.meta
   });
   
+  // 공유 페이지는 무조건 허용
+  if (to.path.startsWith('/s/')) {
+    console.log('🔗 [Router Guard] 공유 페이지 접근 허용:', to.path);
+    next();
+    return;
+  }
+  
   // 웹 프로덕션 환경에서 앱 사용 차단 (공유 페이지와 다운로드 페이지 제외)
   const platform = detectPlatform();
   const isProduction = import.meta.env.MODE === 'production';
@@ -182,6 +189,7 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
   
   if (isProduction && isWeb && !allowedPages.includes(to.name as string)) {
     console.log('🚫 [Router Guard] 웹 프로덕션 환경 - 앱 다운로드 페이지로 리다이렉트');
+    console.log('🚫 [Router Guard] 현재 페이지:', to.name, '허용된 페이지:', allowedPages);
     next({
       name: 'AppDownload',
       query: {
