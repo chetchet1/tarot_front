@@ -123,7 +123,7 @@ const isIOS = computed(() => platform.value.isIOS);
 // 공유 콘텐츠 여부
 const hasSharedContent = computed(() => {
   // 이전 경로가 공유 페이지인지 체크
-  return route.query.from === 'share' || route.query.shareId;
+  return route.query.from === 'share' || route.query.from === 'shared-reading' || route.query.shareId;
 });
 
 // 다운로드 버튼 텍스트
