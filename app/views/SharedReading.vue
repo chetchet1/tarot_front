@@ -604,7 +604,10 @@ const getShortInterpretation = () => {
 // 데이터 로드
 onMounted(async () => {
   const shareId = route.params.id;
-  console.log('📝 Loading shared reading:', shareId);
+  console.log('🔍 [SharedReading] 페이지 마운트됨');
+  console.log('🔍 [SharedReading] URL:', window.location.href);
+  console.log('🔍 [SharedReading] 공유 ID:', shareId);
+  console.log('🔍 [SharedReading] 환경:', import.meta.env.MODE);
   
   if (!shareId) {
     error.value = 'ID가 없습니다';

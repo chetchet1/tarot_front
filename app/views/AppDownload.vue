@@ -53,7 +53,7 @@
           </button>
         </div>
 
-        <!-- 스토어 배지 (데스크톱용) -->
+        <!-- Google Play 배지 (데스크톱용) -->
         <div v-if="isDesktop" class="store-badges">
           <a href="#" 
              @click.prevent="downloadApp"
@@ -72,20 +72,6 @@
               <text x="55" y="42" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">Google Play</text>
             </svg>
           </a>
-          <!-- iOS 출시 후 추가
-          <a href="https://apps.apple.com/app/id1234567890" 
-             target="_blank" 
-             class="store-badge">
-            <svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
-              <rect width="200" height="60" rx="8" fill="#000000"/>
-              <g transform="translate(25, 18)">
-                <path d="M12 2C11.5 0.8 10.3 0 9 0C7.7 0 6.5 0.8 6 2C4 2.5 2.5 4 2 6C0.8 6.5 0 7.7 0 9C0 10.3 0.8 11.5 2 12C2.5 14 4 15.5 6 16C6.5 17.2 7.7 18 9 18C10.3 18 11.5 17.2 12 16C14 15.5 15.5 14 16 12C17.2 11.5 18 10.3 18 9C18 7.7 17.2 6.5 16 6C15.5 4 14 2.5 12 2Z" fill="white"/>
-              </g>
-              <text x="55" y="25" fill="white" font-family="Arial, sans-serif" font-size="11">다음에서 다운로드</text>
-              <text x="55" y="42" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">App Store</text>
-            </svg>
-          </a>
-          -->
         </div>
 
         <!-- 공유 콘텐츠 미리보기 -->
@@ -118,7 +104,6 @@ const isDevelopment = import.meta.env.MODE !== 'production';
 const platform = ref(detectPlatform());
 const isDesktop = computed(() => platform.value.isDesktop);
 const isAndroid = computed(() => platform.value.isAndroid);
-const isIOS = computed(() => platform.value.isIOS);
 
 // 공유 콘텐츠 여부
 const hasSharedContent = computed(() => {
@@ -128,12 +113,10 @@ const hasSharedContent = computed(() => {
 
 // 다운로드 버튼 텍스트
 const downloadButtonText = computed(() => {
-  if (isIOS.value) {
-    return 'App Store에서 다운로드';
-  } else if (isAndroid.value) {
+  if (isAndroid.value) {
     return 'Google Play에서 다운로드';
   } else {
-    return '앱 다운로드';
+    return 'Google Play에서 다운로드';
   }
 });
 
@@ -173,7 +156,7 @@ const onBadgeError = (event: Event) => {
   // 텍스트 링크로 대체
   const link = img.parentElement;
   if (link) {
-    link.innerHTML = isAndroid.value ? 'Google Play에서 다운로드' : 'App Store에서 다운로드';
+    link.innerHTML = 'Google Play에서 다운로드';
     link.classList.add('text-badge');
   }
 };
