@@ -20,7 +20,8 @@ const userStore = useUserStore();
 
 console.log('🚀 App.vue initialized:', {
   href: window.location.href,
-  isNative: Capacitor.isNativePlatform()
+  isNative: Capacitor?.isNativePlatform ? Capacitor.isNativePlatform() : false,
+  hasCapacitor: typeof Capacitor !== 'undefined'
 });
 
 onMounted(async () => {
@@ -39,7 +40,7 @@ onMounted(async () => {
   
   try {
     // OAuth 리스너 설정 (네이티브 앱에서만)
-    if (Capacitor.isNativePlatform()) {
+    if (Capacitor?.isNativePlatform && Capacitor.isNativePlatform()) {
       await oauthService.setupDeepLinkListener();
       
       // 앱 업데이트 체크 (비동기로 실행)
