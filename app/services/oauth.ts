@@ -196,12 +196,9 @@ export const oauthService = {
       this.isOAuthInProgress = true;
       
       if (Capacitor.isNativePlatform()) {
-        // 모바일 환경 - 웹 브리지 페이지로 리다이렉트
-        // 배포 환경에서는 Vercel URL, 로컬에서는 localhost 사용
-        const baseUrl = window.location.hostname === 'localhost' 
-          ? 'http://localhost:8082' 
-          : 'https://tarot-garden.vercel.app';
-        const redirectUrl = `${baseUrl}/oauth-bridge`;
+        // 모바일 환경 - Supabase 기본 콜백 사용 + 자동 리다이렉트
+        // Supabase가 세션을 만들고 자동으로 앱으로 돌아오도록 함
+        const redirectUrl = 'https://yxywzsmggvxxujuplyly.supabase.co/auth/v1/callback';
         
         console.log('📱 [OAuth] 모바일 Google OAuth 시작');
         console.log('📱 [OAuth] Redirect URL:', redirectUrl);
@@ -262,8 +259,7 @@ export const oauthService = {
               access_type: 'offline',
               prompt: 'select_account' // 매번 계정 선택 화면 표시
             },
-            skipBrowserRedirect: true, // 모바일에서는 자동 리다이렉트 방지
-            flowType: 'pkce' // PKCE flow 사용
+            skipBrowserRedirect: false // 브라우저 리다이렉트 허용
           }
         });
         
@@ -274,6 +270,18 @@ export const oauthService = {
         // 브라우저가 닫힐 때를 감지하기 위한 리스너 추가
         Browser.addListener('browserFinished', async () => {
           console.log('🔚 [OAuth] Browser 닫힘 감지!');
+          browserClosed = true;
+          
+          // 브라우저가 닫힌 후 즉시 세션 확인
+          setTimeout(async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              console.log('✅ [OAuth] 브라우저 닫힌 후 세션 확인!');
+              pollingSuccess = true;
+              const event = new CustomEvent('oauth-success');
+              window.dispatchEvent(event);
+            }
+          }, 1000);
           
           // OAuth 완료 플래그 설정
           this.isOAuthInProgress = false;
@@ -289,14 +297,17 @@ export const oauthService = {
           toolbarColor: '#1E1B4B'
         });
         
-        // 즉시 적극적인 폴링 시작
+        // 폴링 시작 전에 브라우저 상태 확인
+        let browserClosed = false;
+        
+        // 즉시 적극적인 폴링 시작  
         pollingActive = true;
         const startPolling = async () => {
-          // 브라우저 열린 직후 충분한 지연
-          await new Promise(resolve => setTimeout(resolve, 5000));
+          // 브라우저 열린 직후 지연
+          await new Promise(resolve => setTimeout(resolve, 3000));
           
           let retryCount = 0;
-          const maxRetries = 120; // 최대 120초 (1초 x 120회)
+          const maxRetries = 60; // 최대 60초 (1초 x 60회)
           const retryDelay = 1000; // 1초 간격
           
           while (pollingActive && !pollingSuccess && retryCount < maxRetries) {
