@@ -176,7 +176,9 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
   
   // 웹 환경에서 앱 사용 차단 (공유 페이지와 다운로드 페이지 제외)
   const platform = detectPlatform();
-  const isProduction = import.meta.env.MODE === 'production';
+  // Vercel 배포 환경도 감지 (도메인 체크)
+  const isVercelProduction = window.location.hostname.includes('vercel.app');
+  const isProduction = import.meta.env.MODE === 'production' || isVercelProduction;
   const isWeb = !platform.isCapacitor && !platform.isInApp;
   const allowedPaths = ['/s/', '/download', '/auth/callback']; // 허용된 경로 패턴
   const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback']; // 허용된 라우트 이름
@@ -186,7 +188,9 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
   const isAllowedName = allowedNames.includes(to.name as string);
   
   console.log('🔍 [Router Guard] 플랫폼 체크:', {
+    hostname: window.location.hostname,
     mode: import.meta.env.MODE,
+    isVercelProduction,
     isProduction,
     isWeb,
     isCapacitor: platform.isCapacitor,
@@ -197,8 +201,9 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
     isAllowedName
   });
   
-  // 웹 프로덕션 환경에서 허용되지 않은 페이지 차단
-  if (isProduction && isWeb && !isAllowedPath && !isAllowedName) {
+  // 웹 프로덕션 환경에서 허용되지 않은 페이지 차단 (localhost 제외)
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (!isLocalhost && isProduction && isWeb && !isAllowedPath && !isAllowedName) {
     console.log('🚫 [Router Guard] 웹 프로덕션 환경 - 앱 다운로드 페이지로 리다이렉트');
     console.log('🚫 [Router Guard] 차단된 페이지:', to.name || to.path);
     next({
