@@ -108,6 +108,12 @@ const routes = [
     component: AuthCallback,
   },
   {
+    path: '/auth/mobile-callback',
+    name: 'MobileCallback',
+    component: () => import('../pages/auth/mobile-callback.vue'),
+    meta: { requiresAuth: false, isPublic: true }
+  },
+  {
     path: '/test-premium',
     name: 'TestPremium',
     component: () => import('../views/TestPremium.vue'),
