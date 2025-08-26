@@ -323,6 +323,7 @@ export default {
 
     // Google 로그인 처리
     const handleGoogleLogin = async () => {
+      console.log('🔵 [LoginModal] Google 로그인 시작');
       isLoading.value = true;
       errorMessage.value = '';
       
@@ -333,7 +334,8 @@ export default {
       try {
         // OAuth 성공/실패 이벤트 리스너 등록
         handleOAuthSuccess = async () => {
-          console.log('🎉 OAuth success event received!');
+          console.log('🎉 [LoginModal] oauth-success 이벤트 수신!');
+          console.log('🎉 [LoginModal] 이벤트 수신 시각:', new Date().toISOString());
           successMessage.value = '로그인 성공! 잠시만 기다려주세요...';
           isLoading.value = false;
           
@@ -359,7 +361,8 @@ export default {
         };
         
         handleOAuthError = (event) => {
-          console.error('🔴 OAuth error event:', event.detail);
+          console.error('🔴 [LoginModal] oauth-error 이벤트 수신:', event.detail);
+          console.error('🔴 [LoginModal] 이벤트 수신 시각:', new Date().toISOString());
           errorMessage.value = event.detail?.message || 'Google 로그인 중 오류가 발생했습니다.';
           isLoading.value = false;
           
@@ -371,16 +374,25 @@ export default {
           window.removeEventListener('oauth-error', handleOAuthError);
         };
         
+        console.log('👂 [LoginModal] OAuth 이벤트 리스너 등록');
         window.addEventListener('oauth-success', handleOAuthSuccess);
         window.addEventListener('oauth-error', handleOAuthError);
+        console.log('✅ [LoginModal] 이벤트 리스너 등록 완료');
+        
+        // 현재 등록된 리스너 수 확인 (디버깅용)
+        const listeners = window.getEventListeners ? window.getEventListeners(window) : 'getEventListeners not available';
+        console.log('📊 [LoginModal] 현재 window 이벤트 리스너:', listeners);
         
         // Google 로그인 시작
+        console.log('🚀 [LoginModal] userStore.signInWithGoogle() 호출');
         await userStore.signInWithGoogle();
+        console.log('✅ [LoginModal] userStore.signInWithGoogle() 완료');
         
-        // 타임아웃 설정 (60초 - OAuth 세션 재시도 시간 고려)
+        // 타임아웃 설정 (35초 - OAuth 세션 재시도 시간 고려)
+        console.log('⏱️ [LoginModal] 35초 타임아웃 설정');
         timeoutId = setTimeout(() => {
           if (isLoading.value) {
-            console.log('⏰ OAuth timeout - resetting loading state');
+            console.log('⏰ [LoginModal] OAuth 타임아웃 발생 - 로딩 상태 리셋');
             isLoading.value = false;
             errorMessage.value = '로그인 시간이 초과되었습니다. 다시 시도해주세요.';
             
@@ -388,10 +400,11 @@ export default {
             window.removeEventListener('oauth-success', handleOAuthSuccess);
             window.removeEventListener('oauth-error', handleOAuthError);
           }
-        }, 60000);
+        }, 35000);
         
       } catch (error) {
-        console.error('Google 로그인 에러:', error);
+        console.error('❌ [LoginModal] Google 로그인 에러:', error);
+        console.error('❌ [LoginModal] 에러 상세:', error.stack);
         errorMessage.value = 'Google 로그인 중 오류가 발생했습니다.';
         isLoading.value = false;
         

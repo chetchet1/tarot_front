@@ -6,14 +6,18 @@ import { App as CapacitorApp } from '@capacitor/app';
 export const oauthService = {
   // OAuth URL 리스너 설정
   async setupDeepLinkListener() {
+    console.log('🎯 [OAuth] setupDeepLinkListener 호출됨');
     if (Capacitor.isNativePlatform()) {
+      console.log('📱 [OAuth] Native platform 감지 - 리스너 등록');
       // 앱 URL 리스너 등록
       CapacitorApp.addListener('appUrlOpen', async (event: any) => {
-        console.log('🔗 Deep link received:', event.url);
+        console.log('🔗 [OAuth] Deep link received:', event.url);
+        console.log('🔗 [OAuth] Deep link event 전체:', JSON.stringify(event));
         
         // OAuth 콜백 URL인지 확인
         if (event.url.includes('auth/callback') || event.url.includes('login-callback')) {
-          console.log('🔎 Processing OAuth callback...');
+          console.log('🔎 [OAuth] OAuth callback URL 감지!');
+          console.log('🔎 [OAuth] URL 내용:', event.url);
           
           try {
             // URL 파싱 시도
@@ -36,9 +40,11 @@ export const oauthService = {
               refresh_token = params.get('refresh_token');
             }
             
-            console.log('🔑 Tokens found:', { 
+            console.log('🔑 [OAuth] Tokens found:', { 
               access_token: access_token ? 'Yes' : 'No', 
-              refresh_token: refresh_token ? 'Yes' : 'No' 
+              refresh_token: refresh_token ? 'Yes' : 'No',
+              fragment: event.url.includes('#') ? event.url.split('#')[1] : 'none',
+              query: event.url.includes('?') ? event.url.split('?')[1] : 'none'
             });
             
             if (access_token && refresh_token) {
@@ -53,8 +59,10 @@ export const oauthService = {
               await this.setSession(access_token, refresh_token);
               
               // OAuth 성공 이벤트 발생
-              console.log('🎉 Dispatching oauth-success event');
-              window.dispatchEvent(new CustomEvent('oauth-success'));
+              console.log('🎉 [OAuth] 토큰으로 세션 설정 성공, oauth-success 이벤트 발생');
+              const event = new CustomEvent('oauth-success');
+              window.dispatchEvent(event);
+              console.log('✅ [OAuth] oauth-success 이벤트 발생 완료');
               
               // 성공 콜백 실행
               if (this.authSuccessCallback) {
@@ -62,7 +70,8 @@ export const oauthService = {
               }
             } else {
               // 토큰이 없으면 항상 세션 체크 (OAuth 리다이렉트 후일 가능성)
-              console.log('🔄 No tokens in URL, checking session...');
+              console.log('🔄 [OAuth] URL에 토큰 없음, 세션 확인 시작');
+              console.log('🔄 [OAuth] 이는 OAuth 프로바이더가 세션 쿠키로 인증한 경우일 수 있음');
               
               // 브라우저 닫기 시도
               try {
@@ -71,39 +80,52 @@ export const oauthService = {
                 console.log('🚨 Browser already closed');
               }
               
-              // 세션 확인을 여러 번 재시도 (최대 5초)
+              // 세션 확인을 여러 번 재시도 (최대 30초)
               let session = null;
               let retryCount = 0;
-              const maxRetries = 5;
-              const retryDelay = 1000; // 1초
+              const maxRetries = 10;
+              const retryDelay = 3000; // 3초
               
               while (!session && retryCount < maxRetries) {
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
-                console.log(`🔄 세션 확인 시도 ${retryCount + 1}/${maxRetries}`);
+                console.log(`🔄 [OAuth] 세션 확인 시도 ${retryCount + 1}/${maxRetries}`);
                 session = await this.restoreSession();
+                console.log(`🔄 [OAuth] 세션 확인 결과:`, session ? '세션 있음' : '세션 없음');
                 retryCount++;
               }
               
               if (session) {
-                console.log('🎉 Session restored after', retryCount, 'attempts');
-                window.dispatchEvent(new CustomEvent('oauth-success'));
+                console.log('🎉 [OAuth] 세션 복원 성공! 시도 횟수:', retryCount);
+                console.log('🎉 [OAuth] 복원된 세션 사용자:', session.user?.email);
+                const event = new CustomEvent('oauth-success');
+                window.dispatchEvent(event);
+                console.log('✅ [OAuth] oauth-success 이벤트 발생 완료');
                 
                 if (this.authSuccessCallback) {
                   this.authSuccessCallback();
                 }
               } else {
-                console.log('❌ No session found after', retryCount, 'attempts');
+                console.log('❌ [OAuth] 세션 복원 실패! 시도 횟수:', retryCount);
+                console.log('❌ [OAuth] oauth-error 이벤트 발생');
                 // 세션이 없으면 에러 이벤트 발생
-                window.dispatchEvent(new CustomEvent('oauth-error', { 
+                const errorEvent = new CustomEvent('oauth-error', { 
                   detail: { message: '로그인 세션을 생성할 수 없습니다. 다시 시도해주세요.' }
-                }));
+                });
+                window.dispatchEvent(errorEvent);
+                console.log('✅ [OAuth] oauth-error 이벤트 발생 완료');
               }
             }
           } catch (error) {
-            console.error('❌ OAuth callback processing error:', error);
+            console.error('❌ [OAuth] 콜백 처리 중 에러 발생:', error);
+            console.error('❌ [OAuth] 에러 상세:', error.stack);
           }
+        } else {
+          console.log('⚠️ [OAuth] OAuth 콜백 URL이 아님:', event.url);
         }
       });
+      console.log('✅ [OAuth] Deep link 리스너 등록 완료');
+    } else {
+      console.log('🌐 [OAuth] Web platform - Deep link 리스너 필요 없음');
     }
   },
 

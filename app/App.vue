@@ -25,8 +25,8 @@ console.log('🚀 App.vue initialized:', {
 });
 
 onMounted(async () => {
-  console.log('🚀 App mounted');
-  console.log('📍 Current route:', {
+  console.log('🚀 [App.vue] App mounted');
+  console.log('📍 [App.vue] Current route:', {
     path: route.path,
     name: route.name,
     params: route.params
@@ -34,14 +34,21 @@ onMounted(async () => {
   
   // 공유 페이지는 사용자 초기화 건너뛰기 (라우트 기반으로 확인)
   if (route.path.startsWith('/s/')) {
-    console.log('🔗 Shared page detected - skipping user initialization');
+    console.log('🔗 [App.vue] Shared page detected - skipping user initialization');
     return;
   }
   
   try {
     // OAuth 리스너 설정 (네이티브 앱에서만)
+    console.log('🎯 [App.vue] Capacitor 확인:', {
+      hasCapacitor: typeof Capacitor !== 'undefined',
+      isNativePlatform: Capacitor?.isNativePlatform ? Capacitor.isNativePlatform() : false
+    });
+    
     if (Capacitor?.isNativePlatform && Capacitor.isNativePlatform()) {
+      console.log('📱 [App.vue] Native platform 감지 - OAuth 리스너 설정 시작');
       await oauthService.setupDeepLinkListener();
+      console.log('✅ [App.vue] OAuth 리스너 설정 완료');
       
       // 앱 업데이트 체크 (비동기로 실행)
       updateChecker.checkForUpdate().catch(error => {
@@ -59,10 +66,13 @@ onMounted(async () => {
     }
     
     // 사용자 초기화 (공유 페이지가 아닌 경우만)
+    console.log('👤 [App.vue] 사용자 초기화 시작');
     await userStore.initializeUser();
+    console.log('✅ [App.vue] 사용자 초기화 완료');
     
   } catch (error) {
-    console.error('❌ App initialization error:', error);
+    console.error('❌ [App.vue] App initialization error:', error);
+    console.error('❌ [App.vue] Error stack:', error.stack);
   }
 });
 </script>
