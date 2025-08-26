@@ -13,6 +13,7 @@ import { useUserStore } from './store/user';
 import { oauthService } from './services/oauth';
 import { revenueCatService } from './services/RevenueCatService';
 import { updateChecker } from './services/updateChecker';
+import { supabase } from './services/supabase';
 import './styles/main.scss';
 
 const route = useRoute();
@@ -31,6 +32,57 @@ onMounted(async () => {
     name: route.name,
     params: route.params
   });
+  console.log('🔗 [App.vue] Current URL:', window.location.href);
+  console.log('🔗 [App.vue] URL Hash:', window.location.hash);
+  
+  // URL Fragment에서 OAuth 토큰 확인
+  if (window.location.hash && window.location.hash.includes('access_token')) {
+    console.log('🔑 [App.vue] OAuth tokens detected in URL fragment');
+    
+    try {
+      // Fragment에서 토큰 추출
+      const fragment = window.location.hash.substring(1);
+      const params = new URLSearchParams(fragment);
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      
+      console.log('🔐 [App.vue] Tokens found:', { 
+        hasAccessToken: !!accessToken, 
+        hasRefreshToken: !!refreshToken 
+      });
+      
+      if (accessToken && refreshToken) {
+        console.log('🔄 [App.vue] Setting OAuth session from URL fragment');
+        
+        // 세션 설정
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+        
+        if (!error && data.session) {
+          console.log('✅ [App.vue] OAuth session set successfully:', data.session.user?.email);
+          
+          // URL fragment 제거
+          window.history.replaceState(null, '', window.location.pathname);
+          
+          // 사용자 스토어 업데이트
+          await userStore.initializeUser();
+          
+          // OAuth 성공 이벤트 발생
+          const event = new CustomEvent('oauth-success');
+          window.dispatchEvent(event);
+          
+          console.log('🎉 [App.vue] OAuth login completed');
+          return;
+        } else {
+          console.error('❌ [App.vue] Failed to set session:', error);
+        }
+      }
+    } catch (error) {
+      console.error('❌ [App.vue] Failed to process OAuth tokens from URL:', error);
+    }
+  }
   
   // 공유 페이지는 사용자 초기화 건너뛰기 (라우트 기반으로 확인)
   if (route.path.startsWith('/s/')) {

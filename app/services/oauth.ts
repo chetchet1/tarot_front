@@ -185,8 +185,8 @@ export const oauthService = {
   async signInWithGoogle() {
     try {
       if (Capacitor.isNativePlatform()) {
-        // 모바일 환경 - 웹 URL로 리다이렉트 후 앱으로 돌아오도록 변경
-        const redirectUrl = 'https://tarotgarden.netlify.app/auth/mobile-callback';
+        // 모바일 환경 - 다시 custom scheme으로 변경
+        const redirectUrl = 'com.tarotgarden.app://auth/callback';
         
         console.log('📱 [OAuth] 모바일 Google OAuth 시작, redirectUrl:', redirectUrl);
         
@@ -197,7 +197,8 @@ export const oauthService = {
             queryParams: {
               access_type: 'offline',
               prompt: 'consent'
-            }
+            },
+            skipBrowserRedirect: true // 브라우저 리다이렉트 스킵
           }
         });
         
@@ -216,7 +217,7 @@ export const oauthService = {
         // LoginModal의 타임아웃 내에서 처리됨
         setTimeout(() => {
           this.checkSessionAfterOAuth();
-        }, 5000); // 5초 후부터 세션 체크 시작
+        }, 3000); // 3초 후부터 세션 체크 시작
         
         return { success: true, url: data.url };
       } else {
