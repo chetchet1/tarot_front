@@ -198,12 +198,13 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
     return;
   }
   
-  // 웹 프로덕션에서 허용되지 않은 페이지 차단
-  if (isProduction && isWeb && !allowedPages.includes(to.name as string)) {
-    console.log('🚫 [Router Guard] 웹 프로덕션 환경 - 앱 다운로드 페이지로 리다이렉트');
+  // 웹 프로덕션에서 허용되지 않은 페이지 차단 (개발 환경 포함하도록 수정)
+  const isDevOrProd = import.meta.env.MODE === 'production' || import.meta.env.MODE === 'development';
+  if (isDevOrProd && isWeb && !allowedPages.includes(to.name as string)) {
+    console.log('🚫 [Router Guard] 웹 환경 - 앱 다운로드 페이지로 리다이렉트');
     console.log('🚫 [Router Guard] 현재 페이지:', to.name, '허용된 페이지:', allowedPages);
     next({
-      name: 'AppDownload',
+      name: 'AppDownload', 
       query: {
         from: to.name as string,
         ...to.query
