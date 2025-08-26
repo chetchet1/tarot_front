@@ -39,7 +39,7 @@ export default defineConfig({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true,
+        drop_console: false, // 디버깅을 위해 임시로 콘솔 유지
         drop_debugger: true,
       },
     },

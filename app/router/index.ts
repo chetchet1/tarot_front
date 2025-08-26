@@ -174,39 +174,38 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
     meta: to.meta
   });
   
-  // 웹 프로덕션 환경에서 앱 사용 차단 (공유 페이지와 다운로드 페이지 제외)
+  // 웹 환경에서 앱 사용 차단 (공유 페이지와 다운로드 페이지 제외)
   const platform = detectPlatform();
   const isProduction = import.meta.env.MODE === 'production';
   const isWeb = !platform.isCapacitor && !platform.isInApp;
-  const allowedPages = ['SharedReading', 'AppDownload', 'AuthCallback']; // 허용된 페이지 이름
-  const isSharePath = to.path.startsWith('/s/'); // 공유 페이지 경로 체크
+  const allowedPaths = ['/s/', '/download', '/auth/callback']; // 허용된 경로 패턴
+  const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback']; // 허용된 라우트 이름
   
-  console.log('🔍 [Router Guard] 플랫폼 정보:', {
+  // 경로 체크 (공유 페이지 등)
+  const isAllowedPath = allowedPaths.some(path => to.path.startsWith(path));
+  const isAllowedName = allowedNames.includes(to.name as string);
+  
+  console.log('🔍 [Router Guard] 플랫폼 체크:', {
+    mode: import.meta.env.MODE,
     isProduction,
     isWeb,
     isCapacitor: platform.isCapacitor,
     isInApp: platform.isInApp,
     path: to.path,
     name: to.name,
-    isSharePath
+    isAllowedPath,
+    isAllowedName
   });
   
-  // 공유 페이지는 경로로도 체크
-  if (isSharePath) {
-    console.log('✅ [Router Guard] 공유 페이지 접근 허용 (경로 체크):', to.path);
-    next();
-    return;
-  }
-  
-  // 웹 프로덕션에서 허용되지 않은 페이지 차단 (개발 환경 포함하도록 수정)
-  const isDevOrProd = import.meta.env.MODE === 'production' || import.meta.env.MODE === 'development';
-  if (isDevOrProd && isWeb && !allowedPages.includes(to.name as string)) {
-    console.log('🚫 [Router Guard] 웹 환경 - 앱 다운로드 페이지로 리다이렉트');
-    console.log('🚫 [Router Guard] 현재 페이지:', to.name, '허용된 페이지:', allowedPages);
+  // 웹 프로덕션 환경에서 허용되지 않은 페이지 차단
+  if (isProduction && isWeb && !isAllowedPath && !isAllowedName) {
+    console.log('🚫 [Router Guard] 웹 프로덕션 환경 - 앱 다운로드 페이지로 리다이렉트');
+    console.log('🚫 [Router Guard] 차단된 페이지:', to.name || to.path);
     next({
       name: 'AppDownload', 
       query: {
-        from: to.name as string,
+        from: to.name as string || 'unknown',
+        path: to.path,
         ...to.query
       }
     });
