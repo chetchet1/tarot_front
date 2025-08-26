@@ -196,9 +196,12 @@ export const oauthService = {
       this.isOAuthInProgress = true;
       
       if (Capacitor.isNativePlatform()) {
-        // 모바일 환경 - 다시 기본 URL로
-        // Supabase의 공식 리다이렉트 URL을 사용해야 세션이 생성됨
-        const redirectUrl = 'https://yxywzsmggvxxujuplyly.supabase.co/auth/v1/callback';
+        // 모바일 환경 - 웹 브리지 페이지로 리다이렉트
+        // 배포 환경에서는 Vercel URL, 로컬에서는 localhost 사용
+        const baseUrl = window.location.hostname === 'localhost' 
+          ? 'http://localhost:8082' 
+          : 'https://tarot-garden.vercel.app';
+        const redirectUrl = `${baseUrl}/oauth-bridge`;
         
         console.log('📱 [OAuth] 모바일 Google OAuth 시작');
         console.log('📱 [OAuth] Redirect URL:', redirectUrl);

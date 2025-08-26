@@ -84,7 +84,12 @@ class UpdateChecker {
         .single();
       
       if (error) {
-        console.error('버전 정보 조회 실패:', error);
+        // 404는 테이블이 없거나 권한이 없는 경우 - 조용히 무시
+        if (error.code === 'PGRST200' || error.code === '42P01' || error.message?.includes('404')) {
+          console.log('버전 테이블 없음 - 업데이트 체크 스킵');
+        } else {
+          console.error('버전 정보 조회 실패:', error);
+        }
         return null;
       }
       

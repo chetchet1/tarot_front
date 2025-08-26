@@ -11,6 +11,7 @@ import Premium from '../views/Premium.vue';
 import History from '../views/History.vue';
 import TarotDictionary from '../views/TarotDictionary.vue';
 import AuthCallback from '../views/AuthCallback.vue';
+import OAuthBridge from '../views/OAuthBridge.vue';
 // 공유 페이지 컴포넌트 import
 import SharedReading from '../views/SharedReading.vue';
 import AppDownload from '../views/AppDownload.vue';
@@ -108,6 +109,12 @@ const routes = [
     component: AuthCallback,
   },
   {
+    path: '/oauth-bridge',
+    name: 'OAuthBridge',
+    component: OAuthBridge,
+    meta: { requiresAuth: false, isPublic: true }
+  },
+  {
     path: '/auth/mobile-callback',
     name: 'MobileCallback',
     component: () => import('../pages/auth/mobile-callback.vue'),
@@ -186,8 +193,8 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
   const isVercelProduction = window.location.hostname.includes('vercel.app');
   const isProduction = import.meta.env.MODE === 'production' || isVercelProduction;
   const isWeb = !platform.isCapacitor && !platform.isInApp;
-  const allowedPaths = ['/s/', '/download', '/auth/callback']; // 허용된 경로 패턴
-  const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback']; // 허용된 라우트 이름
+  const allowedPaths = ['/s/', '/download', '/auth/callback', '/oauth-bridge']; // 허용된 경로 패턴
+  const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback', 'OAuthBridge']; // 허용된 라우트 이름
   
   // 경로 체크 (공유 페이지 등)
   const isAllowedPath = allowedPaths.some(path => to.path.startsWith(path));
