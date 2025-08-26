@@ -6,6 +6,7 @@ import { App as CapacitorApp } from '@capacitor/app';
 export const oauthService = {
   // OAuth 진행 중 플래그
   isOAuthInProgress: false,
+  oauthStartTime: null as Date | null,
   
   // OAuth URL 리스너 설정
   async setupDeepLinkListener() {
@@ -188,12 +189,20 @@ export const oauthService = {
   async signInWithGoogle() {
     // 이미 OAuth가 진행 중이면 무시
     if (this.isOAuthInProgress) {
-      console.log('⚠️ [OAuth] 이미 OAuth 진행 중 - 중복 실행 방지');
-      return { success: false, message: '로그인이 이미 진행 중입니다.' };
+      // 10초 이상 지난 경우에만 리셋
+      if (this.oauthStartTime && Date.now() - this.oauthStartTime.getTime() > 10000) {
+        console.log('🔄 [OAuth] 10초 경과 - 플래그 리셋');
+        this.isOAuthInProgress = false;
+        this.oauthStartTime = null;
+      } else {
+        console.log('⚠️ [OAuth] 이미 OAuth 진행 중 - 중복 실행 방지');
+        return { success: false, message: '로그인이 이미 진행 중입니다.' };
+      }
     }
     
     try {
       this.isOAuthInProgress = true;
+      this.oauthStartTime = new Date();
       
       if (Capacitor.isNativePlatform()) {
         // 모바일 환경 - Supabase 기본 콜백 사용 + 자동 리다이렉트
@@ -259,7 +268,7 @@ export const oauthService = {
               access_type: 'offline',
               prompt: 'select_account' // 매번 계정 선택 화면 표시
             },
-            skipBrowserRedirect: false // 브라우저 리다이렉트 허용
+            skipBrowserRedirect: true // 모바일에서는 수동으로 열기
           }
         });
         
@@ -285,6 +294,7 @@ export const oauthService = {
           
           // OAuth 완료 플래그 설정
           this.isOAuthInProgress = false;
+          this.oauthStartTime = null;
           
           // 리스너 제거
           await Browser.removeAllListeners();
@@ -412,12 +422,8 @@ export const oauthService = {
     } catch (error) {
       console.error('❌ Google OAuth 실패:', error);
       this.isOAuthInProgress = false;
+      this.oauthStartTime = null;
       throw error;
-    } finally {
-      // 에러가 발생하면 플래그 리셋
-      setTimeout(() => {
-        this.isOAuthInProgress = false;
-      }, 5000);
     }
   },
 
