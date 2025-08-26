@@ -682,6 +682,10 @@ export const useUserStore = defineStore('user', () => {
       
       // 모바일: Chrome Custom Tabs로 브라우저 열림
       // 웹: OAuth 리다이렉트가 일어나며, 콜백에서 로그인 처리
+      
+      // 모바일에서는 브라우저가 열리고 함수가 종료되므로 로딩 상태 해제
+      // OAuth 성공 시 oauth-success 이벤트에서 다시 처리됨
+      isLoading.value = false;
     } catch (error) {
       console.error('Google 로그인 실패:', error);
       isLoading.value = false;

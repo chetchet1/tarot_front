@@ -37,42 +37,59 @@ export const oauthService = {
             }
             
             console.log('🔑 Tokens found:', { 
-            access_token: access_token ? 'Yes' : 'No', 
-            refresh_token: refresh_token ? 'Yes' : 'No' 
+              access_token: access_token ? 'Yes' : 'No', 
+              refresh_token: refresh_token ? 'Yes' : 'No' 
             });
             
             if (access_token && refresh_token) {
-            // 브라우저 먼저 닫기
-            try {
-              await Browser.close();
-            } catch (e) {
-              console.log('🚨 Browser already closed');
-            }
-            
-            // 세션 설정
-            await this.setSession(access_token, refresh_token);
-            
-            // OAuth 성공 이벤트 발생
-            console.log('🎉 Dispatching oauth-success event');
-            window.dispatchEvent(new CustomEvent('oauth-success'));
-            
-              // 성공 콜백 실행
-            if (this.authSuccessCallback) {
-              this.authSuccessCallback();
-            }
-            } else {
-            // 토큰이 없으면 세션 체크
-            console.log('🔄 No tokens in URL, checking session...');
-              const session = await this.restoreSession();
-            if (session) {
-              console.log('🎉 Session restored, dispatching oauth-success event');
+              // 브라우저 먼저 닫기
+              try {
+                await Browser.close();
+              } catch (e) {
+                console.log('🚨 Browser already closed');
+              }
+              
+              // 세션 설정
+              await this.setSession(access_token, refresh_token);
+              
+              // OAuth 성공 이벤트 발생
+              console.log('🎉 Dispatching oauth-success event');
               window.dispatchEvent(new CustomEvent('oauth-success'));
               
+              // 성공 콜백 실행
               if (this.authSuccessCallback) {
                 this.authSuccessCallback();
               }
+            } else {
+              // 토큰이 없으면 항상 세션 체크 (OAuth 리다이렉트 후일 가능성)
+              console.log('🔄 No tokens in URL, checking session...');
+              
+              // 브라우저 닫기 시도
+              try {
+                await Browser.close();
+              } catch (e) {
+                console.log('🚨 Browser already closed');
+              }
+              
+              // 잠시 대기 후 세션 확인 (Supabase가 세션을 설정할 시간 필요)
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              const session = await this.restoreSession();
+              if (session) {
+                console.log('🎉 Session restored, dispatching oauth-success event');
+                window.dispatchEvent(new CustomEvent('oauth-success'));
+                
+                if (this.authSuccessCallback) {
+                  this.authSuccessCallback();
+                }
+              } else {
+                console.log('❌ No session found after OAuth callback');
+                // 세션이 없으면 에러 이벤트 발생
+                window.dispatchEvent(new CustomEvent('oauth-error', { 
+                  detail: { message: '로그인 세션을 생성할 수 없습니다. 다시 시도해주세요.' }
+                }));
+              }
             }
-          }
           } catch (error) {
             console.error('❌ OAuth callback processing error:', error);
           }
