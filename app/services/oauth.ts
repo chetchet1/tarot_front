@@ -71,19 +71,28 @@ export const oauthService = {
                 console.log('🚨 Browser already closed');
               }
               
-              // 잠시 대기 후 세션 확인 (Supabase가 세션을 설정할 시간 필요)
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              // 세션 확인을 여러 번 재시도 (최대 5초)
+              let session = null;
+              let retryCount = 0;
+              const maxRetries = 5;
+              const retryDelay = 1000; // 1초
               
-              const session = await this.restoreSession();
+              while (!session && retryCount < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                console.log(`🔄 세션 확인 시도 ${retryCount + 1}/${maxRetries}`);
+                session = await this.restoreSession();
+                retryCount++;
+              }
+              
               if (session) {
-                console.log('🎉 Session restored, dispatching oauth-success event');
+                console.log('🎉 Session restored after', retryCount, 'attempts');
                 window.dispatchEvent(new CustomEvent('oauth-success'));
                 
                 if (this.authSuccessCallback) {
                   this.authSuccessCallback();
                 }
               } else {
-                console.log('❌ No session found after OAuth callback');
+                console.log('❌ No session found after', retryCount, 'attempts');
                 // 세션이 없으면 에러 이벤트 발생
                 window.dispatchEvent(new CustomEvent('oauth-error', { 
                   detail: { message: '로그인 세션을 생성할 수 없습니다. 다시 시도해주세요.' }
@@ -110,23 +119,8 @@ export const oauthService = {
       
       console.log('✅ 세션 설정 성공:', data.user?.email);
       
-      // 모바일에서는 localStorage 정리 (브라우저 세션과 분리)
-      if (Capacitor.isNativePlatform()) {
-        console.log('🧹 모바일 OAuth: localStorage 정리');
-        const savedUser = localStorage.getItem('tarot_user');
-        if (savedUser) {
-          try {
-            const userData = JSON.parse(savedUser);
-            if (!userData.isAnonymous) {
-              // 브라우저의 로그인 상태 제거
-              localStorage.removeItem('tarot_user');
-              console.log('🗑️ 브라우저 로그인 상태 제거됨');
-            }
-          } catch (e) {
-            console.error('⚠️ localStorage 파싱 오류:', e);
-          }
-        }
-      }
+      // localStorage 정리 코드 제거 - 세션 관리에 문제를 일으킴
+      // 모바일과 웹 세션은 Supabase가 자체적으로 관리함
       
       return data;
     } catch (error) {
@@ -192,34 +186,26 @@ export const oauthService = {
     this.authSuccessCallback = callback;
   },
 
-  // 세션 복원 (모바일에서는 명시적 로그인 후에만)
+  // 세션 복원
   async restoreSession() {
     try {
-      // 모바일에서는 OAuth 후에만 세션 확인
-      if (Capacitor.isNativePlatform()) {
-        console.log('📱 모바일 환경: OAuth 세션 확인');
-        
-        // 현재 세션만 확인 (refresh 시도 안함)
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (session) {
-          console.log('✅ OAuth 세션 확인:', session.user?.email);
-          return session;
-        }
-        console.log('⚠️ 모바일: 세션 없음');
-        return null;
-      }
+      console.log('🔄 세션 복원 시도...');
       
-      // 웹 환경에서는 기존 방식 사용
+      // 먼저 현재 세션 확인
       const { data: { session }, error } = await supabase.auth.getSession();
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ getSession 에러:', error);
+        throw error;
+      }
       
       if (session) {
-        console.log('✅ 세션 복원 성공:', session.user?.email);
+        console.log('✅ 세션 확인 성공:', session.user?.email);
         return session;
       }
       
-      // 웹에서만 refresh 시도
+      // 세션이 없으면 refresh 시도 (모바일에서도)
+      console.log('🔄 세션이 없음 - refresh 시도');
       const { data, error: refreshError } = await supabase.auth.refreshSession();
       
       if (refreshError) {
@@ -227,8 +213,13 @@ export const oauthService = {
         return null;
       }
       
-      console.log('✅ 세션 refresh 성공:', data.session?.user?.email);
-      return data.session;
+      if (data.session) {
+        console.log('✅ 세션 refresh 성공:', data.session.user?.email);
+        return data.session;
+      }
+      
+      console.log('❌ 세션을 복원할 수 없음');
+      return null;
     } catch (error) {
       console.error('❌ 세션 복원 실패:', error);
       return null;

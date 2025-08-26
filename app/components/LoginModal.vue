@@ -377,7 +377,7 @@ export default {
         // Google 로그인 시작
         await userStore.signInWithGoogle();
         
-        // 타임아웃 설정 (30초 후 자동으로 로딩 해제)
+        // 타임아웃 설정 (60초 - OAuth 세션 재시도 시간 고려)
         timeoutId = setTimeout(() => {
           if (isLoading.value) {
             console.log('⏰ OAuth timeout - resetting loading state');
@@ -388,7 +388,7 @@ export default {
             window.removeEventListener('oauth-success', handleOAuthSuccess);
             window.removeEventListener('oauth-error', handleOAuthError);
           }
-        }, 30000);
+        }, 60000);
         
       } catch (error) {
         console.error('Google 로그인 에러:', error);
