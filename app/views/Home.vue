@@ -109,6 +109,7 @@ import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import LoginModal from '../components/LoginModal.vue';
 import EmailVerificationModal from '../components/EmailVerificationModal.vue';
+import { Capacitor } from '@capacitor/core';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -121,6 +122,14 @@ const verificationEmail = ref('');
 
 onMounted(async () => {
   console.log('🏠 홈 페이지 초기화');
+  
+  // OAuth 리스너 재등록 (모바일에서만) - 로그아웃 후 다시 등록 필요
+  if (Capacitor?.isNativePlatform && Capacitor.isNativePlatform()) {
+    console.log('🔄 [Home] OAuth 리스너 재등록 시작');
+    const { oauthService } = await import('../services/oauth');
+    await oauthService.setupDeepLinkListener();
+    console.log('✅ [Home] OAuth 리스너 재등록 완료');
+  }
   
   if (!userStore.isInitialized) {
     await userStore.initializeUser();

@@ -12,7 +12,7 @@ let isListenerSetup = false;
 export const oauthService = {
   // OAuth URL 리스너 설정
   async setupDeepLinkListener() {
-    console.log('🎯 [OAuth] setupDeepLinkListener 호출됨');
+    console.log('🎯 [OAuth] setupDeepLinkListener 호출됨 - BUILD 20250826-1435');
     
     // 이미 리스너가 설정되어 있으면 다시 등록하지 않음
     if (isListenerSetup) {
@@ -202,12 +202,13 @@ export const oauthService = {
   // Google OAuth 개선된 버전
   async signInWithGoogle() {
     try {
-      console.log('🔵 [OAuth] signInWithGoogle 시작');
+      console.log('🔵 [OAuth] signInWithGoogle 시작 - BUILD 20250826-1435');
       
-      // OAuth 시작 전 리스너 확인 및 재등록
-      console.log('🔎 [OAuth] 리스너 확인 및 재등록 시작...');
-      await this.ensureListenersSetup();
-      console.log('✅ [OAuth] 리스너 확인 및 재등록 완료');
+      // 항상 리스너를 재등록 (안전을 위해)
+      console.log('🔄 [OAuth] 리스너 강제 재등록 시작');
+      isListenerSetup = false; // 강제로 false로 설정
+      await this.setupDeepLinkListener();
+      console.log('✅ [OAuth] 리스너 강제 재등록 완료');
       
       if (Capacitor.isNativePlatform()) {
         // 모바일 환경 - 실제 Supabase에 등록된 URL 사용 (Vercel)
@@ -258,8 +259,7 @@ export const oauthService = {
             this.checkSessionAfterOAuth();
           }
           
-          // 리스너 제거
-          await Browser.removeAllListeners();
+          // Browser 리스너만 제거 (OAuth 리스너는 유지)
         });
         
         // Chrome Custom Tabs로 열기
@@ -411,7 +411,7 @@ export const oauthService = {
     }
   },
   
-  // 리스너 정리
+  // 리스너 정리 
   async cleanupListeners() {
     console.log('🧹 [OAuth] 리스너 정리 시작');
     
@@ -422,26 +422,12 @@ export const oauthService = {
       console.log('✅ Auth state 리스너 제거');
     }
     
-    // App URL 리스너 제거 (네이티브)
-    if (Capacitor.isNativePlatform()) {
-      try {
-        await CapacitorApp.removeAllListeners();
-        console.log('✅ App URL 리스너 제거');
-      } catch (e) {
-        console.log('⚠️ App 리스너 제거 실패:', e);
-      }
-      
-      try {
-        await Browser.removeAllListeners();
-        console.log('✅ Browser 리스너 제거');
-      } catch (e) {
-        console.log('⚠️ Browser 리스너 제거 실패:', e);
-      }
-    }
+    // 중요: removeAllListeners를 호출하면 OAuth 리스너도 제거되므로
+    // 특정 리스너만 제거하거나 리스너 재등록이 필요
+    // 현재는 리스너 재등록 방식으로 처리
     
-    // 리스너 설정 상태 초기화
-    isListenerSetup = false;
-    console.log('✅ [OAuth] 리스너 정리 완료');
+    // 리스너 설정 상태는 초기화하지 않음 (리스너는 유지)
+    console.log('✅ [OAuth] Auth state 리스너 정리 완료 (OAuth 리스너는 유지)');
   },
   
   // OAuth 시작 시 리스너 재등록

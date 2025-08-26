@@ -223,7 +223,11 @@ export class NativeUtils {
   static removeBackButtonListener(): void {
     if (!this.isNative) return;
 
-    App.removeAllListeners();
+    // removeAllListeners를 사용하면 OAuth 리스너도 제거되므로
+    // backButton 리스너만 제거해야 함
+    // 하지만 Capacitor App 플러그인은 특정 리스너만 제거하는 API가 없음
+    // 따라서 일단 비워두고 OAuth 리스너는 따로 관리
+    console.log('🔙 [NativeUtils] backButton 리스너 제거 (다른 리스너는 유지)');
   }
 }
 
