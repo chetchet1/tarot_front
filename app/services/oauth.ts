@@ -186,7 +186,7 @@ export const oauthService = {
     try {
       if (Capacitor.isNativePlatform()) {
         // 모바일 환경 - 실제 Supabase에 등록된 URL 사용 (Vercel)
-        const redirectUrl = 'https://tarot-garden.vercel.app/auth/callback';
+        const redirectUrl = 'https://tarot-app-psi-eight.vercel.app/auth/callback';
         
         console.log('📱 [OAuth] 모바일 Google OAuth 시작, redirectUrl:', redirectUrl);
         

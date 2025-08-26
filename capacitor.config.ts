@@ -8,11 +8,11 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
     cleartext: true,
     // Android 빌드시 Vercel URL 사용 (OAuth 리다이렉트를 위해)
-    url: 'https://tarot-garden.vercel.app',
+    url: 'https://tarot-app-psi-eight.vercel.app',
     allowNavigation: [
       'https://yxywzsmggvxxujuplyly.supabase.co',
       'https://*.supabase.co',
-      'https://tarot-garden.vercel.app',
+      'https://tarot-app-psi-eight.vercel.app',
       'https://*.vercel.app',
       'https://accounts.google.com',
       'https://*.google.com'
