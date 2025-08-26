@@ -61,7 +61,8 @@ class RevenueCatService {
       const apiKey = platform === 'ios' ? this.API_KEYS.ios : this.API_KEYS.android;
 
       if (!apiKey) {
-        throw new Error('RevenueCat API key not configured');
+        console.warn('RevenueCat API key not configured - skipping initialization');
+        return;
       }
 
       // RevenueCat 초기화
@@ -83,7 +84,8 @@ class RevenueCatService {
       console.log('RevenueCat initialized successfully');
     } catch (error) {
       console.error('Failed to initialize RevenueCat:', error);
-      throw error;
+      // RevenueCat 초기화 실패해도 앱은 계속 동작해야 함
+      // throw error를 제거하여 앱이 중단되지 않도록 함
     }
   }
 
@@ -124,6 +126,8 @@ class RevenueCatService {
       }
     } catch (error) {
       console.error('Failed to load offerings:', error);
+      // 에러가 발생해도 앱은 계속 동작해야 함
+      // RevenueCat 초기화 실패는 결제 기능에만 영향
     }
   }
 
