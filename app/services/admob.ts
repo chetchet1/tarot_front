@@ -21,12 +21,13 @@ interface AdMobService {
 }
 
 // AdMob 설정
+// 프로덕션에서도 테스트 ID 사용 (실제 광고 ID가 없기 때문)
 const adMobConfig: AdMobConfig = {
-  appId: TEST_MODE ? 'ca-app-pub-3940256099942544~3347511713' : 'YOUR_REAL_APP_ID',
-  bannerAdId: TEST_MODE ? 'ca-app-pub-3940256099942544/6300978111' : 'YOUR_REAL_BANNER_ID',
-  interstitialAdId: TEST_MODE ? 'ca-app-pub-3940256099942544/1033173712' : 'YOUR_REAL_INTERSTITIAL_ID',
-  rewardedAdId: TEST_MODE ? 'ca-app-pub-3940256099942544/5224354917' : 'YOUR_REAL_REWARDED_ID',
-  testMode: TEST_MODE
+  appId: 'ca-app-pub-3940256099942544~3347511713', // 항상 테스트 ID
+  bannerAdId: 'ca-app-pub-3940256099942544/6300978111', // 항상 테스트 ID
+  interstitialAdId: 'ca-app-pub-3940256099942544/1033173712', // 항상 테스트 ID
+  rewardedAdId: 'ca-app-pub-3940256099942544/5224354917', // 항상 테스트 ID
+  testMode: true // 항상 테스트 모드
 };
 
 // 웹용 모킹 클래스

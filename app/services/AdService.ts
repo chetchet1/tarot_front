@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { TEST_MODE } from '../config/env';
 
 class AdService {
   private initialized = false;
@@ -6,7 +7,7 @@ class AdService {
   private isFirstLoad = true; // 첫 번째 광고 로드 여부
   private initRetryCount = 0; // 초기화 재시도 횟수
   private maxInitRetries = 3; // 최대 재시도 횟수
-  private isTestMode = true; // 개발 중에는 테스트 모드
+  private isTestMode = TEST_MODE; // 환경변수에서 테스트 모드 설정
   
   // 광고 ID (나중에 실제 ID로 교체)
   private adIds = {
@@ -88,7 +89,9 @@ class AdService {
         
         await Promise.race([initPromise, timeoutPromise]);
         
-        console.log('🎯 AdMob 테스트 모드:', this.isTestMode);
+        console.log('🎯 AdMob 초기화 - 테스트 모드:', this.isTestMode);
+        console.log('🎯 빌드 모드:', import.meta.env.MODE);
+        console.log('🎯 플랫폼:', platform);
         
         this.initialized = true;
         this.initializing = false;
@@ -138,6 +141,12 @@ class AdService {
       
       AdMob.addListener('onAdFailedToLoad', (error: any) => {
         console.error('전면 광고 로드 실패:', error);
+        console.error('광고 로드 실패 상세:', {
+          code: error.code,
+          message: error.message,
+          testMode: this.isTestMode,
+          platform: this.getPlatform()
+        });
         this.isAdReady.value = false;
         this.isLoading.value = false;
       });
@@ -280,7 +289,12 @@ class AdService {
           isTesting: this.isTestMode
         };
         
-        console.log('📡 광고 로드 옵션:', options);
+        console.log('📡 광고 로드 옵션:', {
+          ...options,
+          buildMode: import.meta.env.MODE,
+          actualTestMode: this.isTestMode,
+          platform: platform
+        });
         
         // 타임아웃 설정 (첫 로드는 10초, 이후는 8초)
         const timeout = this.isFirstLoad ? 10000 : 8000;
@@ -479,12 +493,26 @@ class AdService {
       if (typeof (window as any).Capacitor !== 'undefined' && (window as any).Capacitor.Plugins?.AdMob) {
         const AdMob = (window as any).Capacitor.Plugins.AdMob;
         
+        // 초기화 확인
+        if (!this.initialized) {
+          console.log('📺 리워드 광고 - 초기화 필요');
+          await this.initialize();
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
         const options = {
           adId: platform === 'ios' 
             ? this.adIds.ios.rewarded 
             : this.adIds.android.rewarded,
           isTesting: this.isTestMode
         };
+        
+        console.log('📺 리워드 광고 옵션:', {
+          ...options,
+          buildMode: import.meta.env.MODE,
+          actualTestMode: this.isTestMode,
+          platform: platform
+        });
         
         await AdMob.prepareRewardVideoAd(options);
         const reward = await AdMob.showRewardVideoAd();
@@ -497,8 +525,14 @@ class AdService {
       
       return true; // 시뮬레이션 모드에서도 true 반환
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('리워드 광고 실패:', error);
+      console.error('리워드 광고 실패 상세:', {
+        code: error.code,
+        message: error.message,
+        testMode: this.isTestMode,
+        platform: this.getPlatform()
+      });
       return true; // 오류가 나도 true 반환
     }
   }

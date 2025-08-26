@@ -1,5 +1,6 @@
 // 환경 설정
-export const TEST_MODE = import.meta.env.MODE !== 'production'; // 프로덕션에서는 테스트 모드 비활성화
+// 실제 광고 ID가 없으므로 항상 테스트 모드 사용
+export const TEST_MODE = true; // 항상 테스트 모드
 export const __DEV__ = import.meta.env.MODE !== 'production'; // 개발 모드
 
 // 플랫폼 확인
