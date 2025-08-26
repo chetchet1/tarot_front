@@ -12,7 +12,7 @@
     "build:cap": "vite build --config vite.config.capacitor.ts",
     "preview": "vite preview",
     "vercel-build": "vite build",
-    "build:android": "npm run build:cap && npx cap sync android",
+    "build:android": "npm run build:cap && npx cap sync android --config capacitor.config.android.ts",
     "cap:init": "cap init",
     "cap:add:android": "cap add android",
     "cap:add:ios": "cap add ios",

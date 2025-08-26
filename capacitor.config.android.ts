@@ -1,14 +1,15 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
+// Android 전용 설정 - 프로덕션 URL 사용
 const config: CapacitorConfig = {
   appId: 'com.tarotgarden.app',
   appName: '타로의 정원',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
-    cleartext: true,
     // Android 빌드시 Vercel URL 사용 (OAuth 리다이렉트를 위해)
     url: 'https://tarot-garden.vercel.app',
+    androidScheme: 'https',
+    cleartext: true,
     allowNavigation: [
       'https://yxywzsmggvxxujuplyly.supabase.co',
       'https://*.supabase.co',

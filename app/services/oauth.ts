@@ -4,10 +4,6 @@ import { Browser } from '@capacitor/browser';
 import { App as CapacitorApp } from '@capacitor/app';
 
 export const oauthService = {
-  // OAuth 진행 중 플래그
-  isOAuthInProgress: false,
-  oauthStartTime: null as Date | null,
-  
   // OAuth URL 리스너 설정
   async setupDeepLinkListener() {
     console.log('🎯 [OAuth] setupDeepLinkListener 호출됨');
@@ -187,31 +183,12 @@ export const oauthService = {
 
   // Google OAuth 개선된 버전
   async signInWithGoogle() {
-    // 이미 OAuth가 진행 중이면 무시
-    if (this.isOAuthInProgress) {
-      // 10초 이상 지난 경우에만 리셋
-      if (this.oauthStartTime && Date.now() - this.oauthStartTime.getTime() > 10000) {
-        console.log('🔄 [OAuth] 10초 경과 - 플래그 리셋');
-        this.isOAuthInProgress = false;
-        this.oauthStartTime = null;
-      } else {
-        console.log('⚠️ [OAuth] 이미 OAuth 진행 중 - 중복 실행 방지');
-        return { success: false, message: '로그인이 이미 진행 중입니다.' };
-      }
-    }
-    
     try {
-      this.isOAuthInProgress = true;
-      this.oauthStartTime = new Date();
-      
       if (Capacitor.isNativePlatform()) {
-        // 모바일 환경 - Supabase 기본 콜백 사용 + 자동 리다이렉트
-        // Supabase가 세션을 만들고 자동으로 앱으로 돌아오도록 함
-        const redirectUrl = 'https://yxywzsmggvxxujuplyly.supabase.co/auth/v1/callback';
+        // 모바일 환경 - 실제 Supabase에 등록된 URL 사용 (Vercel)
+        const redirectUrl = 'https://tarot-garden.vercel.app/auth/callback';
         
-        console.log('📱 [OAuth] 모바일 Google OAuth 시작');
-        console.log('📱 [OAuth] Redirect URL:', redirectUrl);
-        console.log('📱 [OAuth] 현재 시간:', new Date().toISOString());
+        console.log('📱 [OAuth] 모바일 Google OAuth 시작, redirectUrl:', redirectUrl);
         
         // 세션을 먼저 완전히 정리
         try {
@@ -221,45 +198,6 @@ export const oauthService = {
           console.log('⚠️ [OAuth] 세션 정리 스킵:', e);
         }
         
-        // 폴링 중인지 여부 플래그
-        let pollingActive = false;
-        let pollingSuccess = false;
-        
-        // 이벤트 리스너 먼저 등록 (OAuth 전에)
-        console.log('👂 [OAuth] Auth state change 리스너 등록');
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-          console.log('🔔 [OAuth] Auth state 변경 감지:', event, session?.user?.email);
-          
-          if (event === 'SIGNED_IN' && session) {
-            console.log('🎉 [OAuth] SIGNED_IN 이벤트 발생!');
-            console.log('🎉 [OAuth] 세션 사용자:', session.user?.email);
-            
-            // 폴링 중단
-            pollingSuccess = true;
-            
-            // 브라우저 닫기
-            try {
-              await Browser.close();
-              console.log('✅ [OAuth] Browser 닫기 성공');
-            } catch (e) {
-              console.log('⚠️ [OAuth] Browser 이미 닫혀있음');
-            }
-            
-            // OAuth 성공 이벤트 발생
-            const event = new CustomEvent('oauth-success');
-            window.dispatchEvent(event);
-            console.log('✅ [OAuth] oauth-success 이벤트 발생');
-            
-            // 성공 콜백 실행
-            if (this.authSuccessCallback) {
-              this.authSuccessCallback();
-            }
-            
-            // 리스너 정리
-            subscription.unsubscribe();
-          }
-        });
-        
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -267,8 +205,7 @@ export const oauthService = {
             queryParams: {
               access_type: 'offline',
               prompt: 'select_account' // 매번 계정 선택 화면 표시
-            },
-            skipBrowserRedirect: true // 모바일에서는 수동으로 열기
+            }
           }
         });
         
@@ -279,22 +216,22 @@ export const oauthService = {
         // 브라우저가 닫힐 때를 감지하기 위한 리스너 추가
         Browser.addListener('browserFinished', async () => {
           console.log('🔚 [OAuth] Browser 닫힘 감지!');
-          browserClosed = true;
           
-          // 브라우저가 닫힌 후 즉시 세션 확인
-          setTimeout(async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-              console.log('✅ [OAuth] 브라우저 닫힌 후 세션 확인!');
-              pollingSuccess = true;
-              const event = new CustomEvent('oauth-success');
-              window.dispatchEvent(event);
+          // 브라우저가 닫히면 바로 세션 확인
+          const session = await this.restoreSession();
+          if (session) {
+            console.log('✅ [OAuth] Browser 닫힌 후 세션 확인 성공!');
+            const event = new CustomEvent('oauth-success');
+            window.dispatchEvent(event);
+            
+            if (this.authSuccessCallback) {
+              this.authSuccessCallback();
             }
-          }, 1000);
-          
-          // OAuth 완료 플래그 설정
-          this.isOAuthInProgress = false;
-          this.oauthStartTime = null;
+          } else {
+            console.log('⚠️ [OAuth] Browser 닫힌 후 세션 없음, 계속 체크...');
+            // 세션 체크 계속
+            this.checkSessionAfterOAuth();
+          }
           
           // 리스너 제거
           await Browser.removeAllListeners();
@@ -307,100 +244,10 @@ export const oauthService = {
           toolbarColor: '#1E1B4B'
         });
         
-        // 폴링 시작 전에 브라우저 상태 확인
-        let browserClosed = false;
-        
-        // 즉시 적극적인 폴링 시작  
-        pollingActive = true;
-        const startPolling = async () => {
-          // 브라우저 열린 직후 지연
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          
-          let retryCount = 0;
-          const maxRetries = 60; // 최대 60초 (1초 x 60회)
-          const retryDelay = 1000; // 1초 간격
-          
-          while (pollingActive && !pollingSuccess && retryCount < maxRetries) {
-            console.log(`🔍 [OAuth] 세션 폴링 ${retryCount + 1}/${maxRetries}`);
-            
-            // 먼저 getSession으로 직접 확인
-            const { data: { session: currentSession } } = await supabase.auth.getSession();
-            if (currentSession) {
-              console.log('🎉 [OAuth] 폴링으로 세션 확인 성공!');
-              pollingSuccess = true;
-              pollingActive = false;
-              
-              // 브라우저 닫기
-              try {
-                await Browser.close();
-              } catch (e) {
-                console.log('⚠️ [OAuth] Browser 이미 닫혀있음');
-              }
-              
-              const event = new CustomEvent('oauth-success');
-              window.dispatchEvent(event);
-              
-              if (this.authSuccessCallback) {
-                this.authSuccessCallback();
-              }
-              
-              // OAuth 완료 플래그 설정
-              this.isOAuthInProgress = false;
-              
-              // auth state 리스너 정리
-              subscription.unsubscribe();
-              break;
-            }
-            
-            // 기존 세션 복원 시도
-            const session = await this.restoreSession();
-            
-            if (session) {
-              console.log('🎉 [OAuth] 폴링으로 세션 확인 성공!');
-              pollingSuccess = true;
-              pollingActive = false;
-              
-              // 브라우저 닫기
-              try {
-                await Browser.close();
-              } catch (e) {
-                console.log('⚠️ [OAuth] Browser 이미 닫혀있음');
-              }
-              
-              const event = new CustomEvent('oauth-success');
-              window.dispatchEvent(event);
-              
-              if (this.authSuccessCallback) {
-                this.authSuccessCallback();
-              }
-              
-              // OAuth 완료 플래그 설정
-              this.isOAuthInProgress = false;
-              
-              // auth state 리스너 정리
-              subscription.unsubscribe();
-              break;
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
-            retryCount++;
-          }
-          
-          if (!pollingSuccess && pollingActive) {
-            console.error('❌ [OAuth] 세션 확인 타임아웃');
-            // OAuth 완료 플래그 설정
-            this.isOAuthInProgress = false;
-            
-            // 타임아웃 에러 이벤트
-            const errorEvent = new CustomEvent('oauth-error', {
-              detail: { message: '로그인 시간이 초과되었습니다. 다시 시도해주세요.' }
-            });
-            window.dispatchEvent(errorEvent);
-          }
-        };
-        
-        // 폴링 시작 (비동기로)
-        startPolling();
+        // 백업: 3초 후에도 세션 체크 시작
+        setTimeout(() => {
+          this.checkSessionAfterOAuth();
+        }, 3000);
         
         return { success: true, url: data.url };
       } else {
@@ -421,8 +268,6 @@ export const oauthService = {
       }
     } catch (error) {
       console.error('❌ Google OAuth 실패:', error);
-      this.isOAuthInProgress = false;
-      this.oauthStartTime = null;
       throw error;
     }
   },
@@ -473,32 +318,17 @@ export const oauthService = {
     this.authSuccessCallback = callback;
   },
 
-  // 세션 복원 (더 적극적인 버전)
+  // 세션 복원
   async restoreSession() {
     try {
       console.log('🔄 세션 복원 시도...');
       
-      // 먼저 refreshSession 시도 (가장 효과적)
-      try {
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        
-        if (refreshData?.session) {
-          console.log('✅ 세션 refresh 성공:', refreshData.session.user?.email);
-          return refreshData.session;
-        }
-        
-        if (refreshError) {
-          console.log('⚠️ refresh 실패:', refreshError.message);
-        }
-      } catch (e) {
-        console.log('⚠️ refresh 예외:', e);
-      }
-      
-      // 현재 세션 확인
+      // 먼저 현재 세션 확인
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
         console.error('❌ getSession 에러:', error);
+        // 에러가 있어도 계속 시도
       }
       
       if (session) {
@@ -506,62 +336,23 @@ export const oauthService = {
         return session;
       }
       
-      // 사용자 정보 확인
-      console.log('🔄 사용자 정보 확인');
-      try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+      // 세션이 없으면 사용자 정보 확인
+      console.log('🔄 세션이 없음 - 사용자 정보 확인');
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (user) {
+        console.log('✅ 사용자 정보 확인됨:', user.email);
+        // 사용자가 있으면 세션 refresh 시도
+        const { data, error: refreshError } = await supabase.auth.refreshSession();
         
-        if (user) {
-          console.log('✅ 사용자 정보 확인됨:', user.email);
-          
-          // 다시 세션 확인 (getUser 호출 후 세션이 복원될 수 있음)
-          const { data: { session: newSession } } = await supabase.auth.getSession();
-          if (newSession) {
-            console.log('✅ getUser 후 세션 확인 성공:', newSession.user?.email);
-            return newSession;
-          }
+        if (data?.session) {
+          console.log('✅ 세션 refresh 성공:', data.session.user?.email);
+          return data.session;
         }
-      } catch (e) {
-        console.log('⚠️ getUser 예외:', e);
       }
       
-      // 쿠키나 로컬 스토리지에서 토큰 직접 확인
-      console.log('🔄 저장된 토큰 확인');
-      try {
-        // Supabase는 기본적으로 localStorage를 사용
-        const storageKey = `sb-${supabase.supabaseUrl.split('//')[1].split('.')[0]}-auth-token`;
-        const storedData = localStorage.getItem(storageKey);
-        
-        if (storedData) {
-          const parsed = JSON.parse(storedData);
-          console.log('💾 저장된 토큰 발견, 유효성 확인 중...');
-          
-          // 저장된 토큰으로 세션 설정 시도
-          if (parsed?.currentSession) {
-            const { access_token, refresh_token } = parsed.currentSession;
-            if (access_token && refresh_token) {
-              try {
-                const { data: sessionData, error: setError } = await supabase.auth.setSession({
-                  access_token,
-                  refresh_token
-                });
-                
-                if (sessionData?.session) {
-                  console.log('✅ 저장된 토큰으로 세션 복원 성공!');
-                  return sessionData.session;
-                }
-              } catch (e) {
-                console.log('⚠️ 저장된 토큰으로 세션 설정 실패:', e);
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.log('⚠️ 토큰 확인 예외:', e);
-      }
-      
-      // 마지막으로 한 번 더 세션 확인
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // 마지막으로 한 번 더 세션 확인 (OAuth 후 약간의 지연이 있을 수 있음)
+      await new Promise(resolve => setTimeout(resolve, 1000));
       const { data: { session: finalSession } } = await supabase.auth.getSession();
       
       if (finalSession) {
