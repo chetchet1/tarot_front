@@ -21,7 +21,7 @@ function getPlatformCheckConfig(): PlatformCheckConfig {
   return {
     enabled: import.meta.env.VITE_PLATFORM_CHECK_ENABLED === 'true',
     message: import.meta.env.VITE_PLATFORM_CHECK_MESSAGE || '이 앱은 모바일 기기에서만 이용 가능합니다.',
-    allowedPaths: ['/share', '/reading'] // 공유 페이지는 웹에서도 접속 가능
+    allowedPaths: ['/s/', '/download', '/auth/callback'] // 공유 페이지, 다운로드, 인증 콜백은 웹에서도 접속 가능
   };
 }
 
