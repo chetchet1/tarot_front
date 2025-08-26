@@ -185,10 +185,18 @@ export const oauthService = {
   async signInWithGoogle() {
     try {
       if (Capacitor.isNativePlatform()) {
-        // 모바일 환경 - 다시 custom scheme으로 변경
-        const redirectUrl = 'com.tarotgarden.app://auth/callback';
+        // 모바일 환경 - Supabase 대시보드에 등록된 URL 사용
+        const redirectUrl = 'https://tarotgarden.netlify.app/auth/callback';
         
         console.log('📱 [OAuth] 모바일 Google OAuth 시작, redirectUrl:', redirectUrl);
+        
+        // 세션을 먼저 완전히 정리
+        try {
+          await supabase.auth.signOut();
+          console.log('🧹 [OAuth] 기존 세션 정리 완료');
+        } catch (e) {
+          console.log('⚠️ [OAuth] 세션 정리 스킵:', e);
+        }
         
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
@@ -197,14 +205,37 @@ export const oauthService = {
             queryParams: {
               access_type: 'offline',
               prompt: 'select_account' // 매번 계정 선택 화면 표시
-            },
-            skipBrowserRedirect: true // 브라우저 리다이렉트 스킵
+            }
           }
         });
         
         if (error) throw error;
         
         console.log('🌐 [OAuth] OAuth URL 생성:', data.url);
+        
+        // 브라우저가 닫힐 때를 감지하기 위한 리스너 추가
+        Browser.addListener('browserFinished', async () => {
+          console.log('🔚 [OAuth] Browser 닫힘 감지!');
+          
+          // 브라우저가 닫히면 바로 세션 확인
+          const session = await this.restoreSession();
+          if (session) {
+            console.log('✅ [OAuth] Browser 닫힌 후 세션 확인 성공!');
+            const event = new CustomEvent('oauth-success');
+            window.dispatchEvent(event);
+            
+            if (this.authSuccessCallback) {
+              this.authSuccessCallback();
+            }
+          } else {
+            console.log('⚠️ [OAuth] Browser 닫힌 후 세션 없음, 계속 체크...');
+            // 세션 체크 계속
+            this.checkSessionAfterOAuth();
+          }
+          
+          // 리스너 제거
+          await Browser.removeAllListeners();
+        });
         
         // Chrome Custom Tabs로 열기
         await Browser.open({
@@ -213,11 +244,10 @@ export const oauthService = {
           toolbarColor: '#1E1B4B'
         });
         
-        // 브라우저를 열고 나서 바로 세션 체크 시작
-        // LoginModal의 타임아웃 내에서 처리됨
+        // 백업: 3초 후에도 세션 체크 시작
         setTimeout(() => {
           this.checkSessionAfterOAuth();
-        }, 3000); // 3초 후부터 세션 체크 시작
+        }, 3000);
         
         return { success: true, url: data.url };
       } else {

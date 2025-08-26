@@ -24,6 +24,43 @@ onMounted(async () => {
   console.log('현재 URL:', window.location.href);
   
   try {
+    // 모바일 브라우저에서 접속한 경우 (웹 콜백으로 온 경우)
+    const isMobileBrowser = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobileBrowser && window.location.hash.includes('access_token')) {
+      console.log('📱 모바일 브라우저에서 OAuth 콜백 감지');
+      
+      // 토큰을 가지고 앱으로 리다이렉트 시도
+      const hash = window.location.hash;
+      const appUrl = `com.tarotgarden.app://auth/callback${hash}`;
+      
+      console.log('🚀 앱으로 리다이렉트 시도:', appUrl);
+      window.location.href = appUrl;
+      
+      // 3초 후에도 페이지에 있다면 수동으로 처리
+      setTimeout(async () => {
+        console.log('⚠️ 앱 리다이렉트 실패, 웹에서 처리');
+        // 웹에서 직접 세션 처리
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const access_token = hashParams.get('access_token');
+        const refresh_token = hashParams.get('refresh_token');
+        
+        if (access_token && refresh_token) {
+          const { data, error } = await authService.supabase.auth.setSession({
+            access_token,
+            refresh_token
+          });
+          
+          if (!error && data.session) {
+            console.log('✅ 웹에서 세션 설정 성공');
+            await userStore.initializeUser();
+            await router.push('/');
+          }
+        }
+      }, 3000);
+      
+      return;
+    }
+    
     // 모바일 환경인지 확인
     if (Capacitor.isNativePlatform()) {
       console.log('📱 모바일 환경 감지 - 딥링크로 처리됨');
