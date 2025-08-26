@@ -718,6 +718,7 @@ export const useUserStore = defineStore('user', () => {
       const userId = currentUser.value?.id;
       const wasPremium = currentUser.value?.isPremium;
       
+      
       // 먼저 로컬 상태 초기화
       currentUser.value = null;
       isInitialized.value = false; // 초기화 상태도 리셋

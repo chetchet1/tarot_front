@@ -196,7 +196,7 @@ export const oauthService = {
             redirectTo: redirectUrl,
             queryParams: {
               access_type: 'offline',
-              prompt: 'consent'
+              prompt: 'select_account' // 매번 계정 선택 화면 표시
             },
             skipBrowserRedirect: true // 브라우저 리다이렉트 스킵
           }
