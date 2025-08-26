@@ -3,14 +3,29 @@ import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { App as CapacitorApp } from '@capacitor/app';
 
+// OAuth 리스너 상태 관리
+let authStateSubscription: any = null;
+let appUrlListener: any = null;
+let browserFinishedListener: any = null;
+let isListenerSetup = false;
+
 export const oauthService = {
   // OAuth URL 리스너 설정
   async setupDeepLinkListener() {
     console.log('🎯 [OAuth] setupDeepLinkListener 호출됨');
     
+    // 이미 리스너가 설정되어 있으면 다시 등록하지 않음
+    if (isListenerSetup) {
+      console.log('⚠️ [OAuth] 리스너가 이미 설정되어 있음');
+      return;
+    }
+    
+    // 기존 리스너 정리
+    await this.cleanupListeners();
+    
     // Supabase auth state change 리스너 추가 (모든 플랫폼에서)
     console.log('🔄 [OAuth] Auth state change 리스너 등록');
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    authStateSubscription = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔔 [OAuth] Auth state changed:', event, session?.user?.email);
       
       if (event === 'SIGNED_IN' && session) {
@@ -36,6 +51,9 @@ export const oauthService = {
         }
       }
     });
+    
+    // 리스너 등록 완료 표시
+    isListenerSetup = true;
     
     if (Capacitor.isNativePlatform()) {
       console.log('📱 [OAuth] Native platform 감지 - Deep link 리스너 등록');
@@ -184,6 +202,9 @@ export const oauthService = {
   // Google OAuth 개선된 버전
   async signInWithGoogle() {
     try {
+      // OAuth 시작 전 리스너 확인 및 재등록
+      await this.ensureListenersSetup();
+      
       if (Capacitor.isNativePlatform()) {
         // 모바일 환경 - 실제 Supabase에 등록된 URL 사용 (Vercel)
         const redirectUrl = 'https://tarot-app-psi-eight.vercel.app/auth/callback';
@@ -383,6 +404,47 @@ export const oauthService = {
     } catch (error) {
       console.error('❌ 인증 상태 확인 실패:', error);
       return { isAuthenticated: false, user: null };
+    }
+  },
+  
+  // 리스너 정리
+  async cleanupListeners() {
+    console.log('🧹 [OAuth] 리스너 정리 시작');
+    
+    // Auth state 리스너 제거
+    if (authStateSubscription) {
+      authStateSubscription.data?.subscription?.unsubscribe();
+      authStateSubscription = null;
+      console.log('✅ Auth state 리스너 제거');
+    }
+    
+    // App URL 리스너 제거 (네이티브)
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await CapacitorApp.removeAllListeners();
+        console.log('✅ App URL 리스너 제거');
+      } catch (e) {
+        console.log('⚠️ App 리스너 제거 실패:', e);
+      }
+      
+      try {
+        await Browser.removeAllListeners();
+        console.log('✅ Browser 리스너 제거');
+      } catch (e) {
+        console.log('⚠️ Browser 리스너 제거 실패:', e);
+      }
+    }
+    
+    // 리스너 설정 상태 초기화
+    isListenerSetup = false;
+    console.log('✅ [OAuth] 리스너 정리 완료');
+  },
+  
+  // OAuth 시작 시 리스너 재등록
+  async ensureListenersSetup() {
+    if (!isListenerSetup) {
+      console.log('🔄 [OAuth] 리스너 재등록 필요');
+      await this.setupDeepLinkListener();
     }
   }
 };

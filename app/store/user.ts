@@ -718,6 +718,18 @@ export const useUserStore = defineStore('user', () => {
       const userId = currentUser.value?.id;
       const wasPremium = currentUser.value?.isPremium;
       
+      // OAuth 리스너 정리 (모바일에서만)
+      if (Capacitor.isNativePlatform()) {
+        console.log('🧹 OAuth 리스너 정리 시작');
+        try {
+          const { oauthService } = await import('../services/oauth');
+          await oauthService.cleanupListeners();
+          console.log('✅ OAuth 리스너 정리 완료');
+        } catch (error) {
+          console.warn('OAuth 리스너 정리 실패:', error);
+        }
+      }
+      
       
       // 먼저 로컬 상태 초기화
       currentUser.value = null;
