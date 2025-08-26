@@ -14,8 +14,13 @@ export interface PlatformInfo {
 export function detectPlatform(): PlatformInfo {
   const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
   
-  // Capacitor 환경 체크
-  const isCapacitor = !!(window as any).Capacitor;
+  // Capacitor 환경 체크 - 더 엄격하게 체크
+  const capacitorWindow = window as any;
+  const isCapacitor = !!(
+    capacitorWindow.Capacitor && 
+    capacitorWindow.Capacitor.isNativePlatform && 
+    capacitorWindow.Capacitor.isNativePlatform()
+  );
   
   // Android 체크
   const isAndroid = /android/i.test(userAgent);
@@ -31,6 +36,14 @@ export function detectPlatform(): PlatformInfo {
   
   // 앱 내부 WebView 체크 (Capacitor 환경이면 앱 내부)
   const isInApp = isCapacitor;
+  
+  console.log('🔍 Platform detection:', {
+    isCapacitor,
+    isInApp,
+    userAgent: userAgent.substring(0, 50) + '...',
+    hasCapacitorObj: !!(capacitorWindow.Capacitor),
+    isNativePlatform: capacitorWindow.Capacitor?.isNativePlatform?.()
+  });
   
   return {
     isAndroid,
