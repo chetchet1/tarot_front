@@ -728,12 +728,12 @@ export const useUserStore = defineStore('user', () => {
       const supabaseKey = 'sb-' + SUPABASE_CONFIG.url.replace('https://', '').split('.')[0] + '-auth-token';
       localStorage.removeItem(supabaseKey);
       
-      // 프리미엄 사용자였다면 기록 삭제
+      // 프리미엄 사용자였다면 기록 삭제 (readings 테이블에서)
       if (userId && wasPremium && !userId.startsWith('anon_')) {
         try {
           console.log('프리미엄 사용자 기록 삭제 시작:', userId);
           const { error } = await authService.supabase
-            .from('reading_history')
+            .from('readings')  // reading_history가 아닌 readings 테이블
             .delete()
             .eq('user_id', userId);
           
@@ -855,7 +855,7 @@ export const useUserStore = defineStore('user', () => {
       // 2. 기록 삭제
       console.log('구독 취소 - 기록 삭제 시작:', userId);
       const { error: deleteError } = await authService.supabase
-        .from('reading_history')
+        .from('readings')
         .delete()
         .eq('user_id', userId);
       
