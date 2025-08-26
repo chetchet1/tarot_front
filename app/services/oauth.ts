@@ -202,8 +202,12 @@ export const oauthService = {
   // Google OAuth 개선된 버전
   async signInWithGoogle() {
     try {
+      console.log('🔵 [OAuth] signInWithGoogle 시작');
+      
       // OAuth 시작 전 리스너 확인 및 재등록
+      console.log('🔎 [OAuth] 리스너 확인 및 재등록 시작...');
       await this.ensureListenersSetup();
+      console.log('✅ [OAuth] 리스너 확인 및 재등록 완료');
       
       if (Capacitor.isNativePlatform()) {
         // 모바일 환경 - 실제 Supabase에 등록된 URL 사용 (Vercel)
@@ -442,9 +446,13 @@ export const oauthService = {
   
   // OAuth 시작 시 리스너 재등록
   async ensureListenersSetup() {
+    console.log('🔍 [OAuth] 리스너 상태 확인:', isListenerSetup ? '등록됨' : '미등록');
     if (!isListenerSetup) {
-      console.log('🔄 [OAuth] 리스너 재등록 필요');
+      console.log('🔄 [OAuth] 리스너 재등록 필요 - setupDeepLinkListener 호출');
       await this.setupDeepLinkListener();
+      console.log('✅ [OAuth] 리스너 재등록 완료');
+    } else {
+      console.log('ℹ️ [OAuth] 리스너가 이미 등록되어 있음');
     }
   }
 };

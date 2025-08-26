@@ -212,7 +212,7 @@ const clearHistory = async (): Promise<void> => {
   try {
     if (userStore.currentUser?.id) {
       const { error } = await supabase
-        .from('reading_history')
+        .from('readings')
         .delete()
         .eq('user_id', userStore.currentUser.id);
       
@@ -240,7 +240,7 @@ const exportData = async (): Promise<void> => {
     
     if (userStore.currentUser?.id) {
       const { data, error } = await supabase
-        .from('reading_history')
+        .from('readings')
         .select(`
           *,
           cards:reading_cards(
