@@ -50,15 +50,21 @@ class OAuthManager {
 const oauthManager = OAuthManager.getInstance();
 
 export const oauthService = {
-  // OAuth URL 리스너 설정
+  // OAuth URL 리스너 설정 - App.vue에서만 호출
   async setupDeepLinkListener() {
-    logger.log('[OAuth] setupDeepLinkListener 시작 - BUILD 20250827-03');
+    logger.log('[OAuth] setupDeepLinkListener 시작 - BUILD 20250827-06');
     
     // 이미 설정 중이면 기다림
     const existingPromise = oauthManager.getSetupPromise();
     if (existingPromise) {
       logger.log('[OAuth] 이미 리스너 설정 중, 기다림...');
       await existingPromise;
+      return;
+    }
+    
+    // 이미 설정되어 있다면 그냥 리턴 (재설정 하지 않음)
+    if (oauthManager.getListenerStatus()) {
+      logger.log('[OAuth] 리스너가 이미 설정되어 있음, 스킵');
       return;
     }
     
@@ -260,14 +266,16 @@ export const oauthService = {
   // Google OAuth 개선된 버전
   async signInWithGoogle() {
     try {
-      logger.log('[OAuth] signInWithGoogle 시작 - BUILD 20250827-03');
+      logger.log('[OAuth] signInWithGoogle 시작 - BUILD 20250827-06');
       
-      // 리스너가 설정되어 있지 않으면 설정
+      // 리스너는 App.vue에서 이미 설정되어 있어야 함
+      // 여기서는 설정 상태만 확인
       if (!oauthManager.getListenerStatus()) {
-        logger.log('[OAuth] 리스너 미등록 상태, 새로 등록');
+        logger.log('[OAuth] 경고: 리스너가 설정되지 않음!');
+        // 비상시에만 설정 시도
         await this.setupDeepLinkListener();
       } else {
-        logger.log('[OAuth] 리스너 이미 등록됨');
+        logger.log('[OAuth] 리스너 확인: OK');
       }
       
       if (Capacitor.isNativePlatform()) {
@@ -279,7 +287,7 @@ export const oauthService = {
         
         // 세션 정리는 하지 않음 (로그아웃 시 이미 정리됨)
         // 로그아웃 직후 바로 로그인 시도하면 세션 정리가 충돌할 수 있음
-        logger.log('[OAuth] 세션 정리 스킵 (로그아웃 시 이미 정리됨)');
+        logger.log('[OAuth] 세션 정리 스킵 (로그아웃 시 이미 정리됨) - BUILD 20250827-06');
         
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
@@ -468,7 +476,7 @@ export const oauthService = {
     }
   },
   
-  // 리스너 정리 
+  // 리스너 정리 - 로그아웃 시에만 호출
   async cleanupListeners() {
     logger.log('[OAuth] 리스너 정리 시작');
     
@@ -480,12 +488,12 @@ export const oauthService = {
       logger.log('[OAuth] Auth state 리스너 제거');
     }
     
-    // Deep Link 리스너는 제거하지 않음 (앱 전체에서 하나만 존재해야 함)
-    // 단, 리스너 내부 로직은 세션 상태에 따라 동작하도록 함
+    // Deep Link 리스너는 제거하지 않음
+    // App.vue에서 한 번만 등록하고 계속 유지
     
-    // 리스너 설정 상태 초기화
-    oauthManager.setListenerStatus(false);
-    logger.log('[OAuth] 리스너 정리 완료, 상태 초기화');
+    // 로그아웃 시 상태만 초기화 (리스너는 유지)
+    // oauthManager.setListenerStatus(false); // 제거하지 않음
+    logger.log('[OAuth] Auth state 리스너 정리 완료');
   },
   
   // OAuth 시작 시 리스너 재등록
@@ -506,7 +514,7 @@ export const oauthService = {
   async fullCleanup() {
     logger.log('[OAuth] 완전 초기화 시작');
     
-    // 모든 리스너 정리
+    // Auth state 리스너만 정리 (Deep Link는 유지)
     await this.cleanupListeners();
     
     // 브라우저 닫기 시도
