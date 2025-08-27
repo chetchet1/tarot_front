@@ -266,13 +266,30 @@ export const oauthService = {
   // Google OAuth 개선된 버전
   async signInWithGoogle() {
     try {
-      logger.log('[OAuth] signInWithGoogle 시작 - BUILD 20250827-06');
+      logger.log('[OAuth] signInWithGoogle 시작 - BUILD 20250827-07');
       
-      // 리스너는 App.vue에서 이미 설정되어 있어야 함
-      // 여기서는 설정 상태만 확인
+      // 기존 세션 강제 정리 (중요!)
+      logger.log('[OAuth] 기존 세션 강제 정리 시작');
+      try {
+        // 모든 인증 관련 로컬스토리지 데이터 정리
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.includes('supabase') || key.includes('auth')) {
+            localStorage.removeItem(key);
+            logger.log(`[OAuth] 로컬스토리지 정리: ${key}`);
+          }
+        });
+        
+        // Supabase 세션 정리
+        await supabase.auth.signOut({ scope: 'local' });
+        logger.log('[OAuth] Supabase 세션 정리 완료');
+      } catch (e) {
+        logger.log('[OAuth] 세션 정리 중 에러 (무시): ' + e);
+      }
+      
+      // 리스너 상태 확인 (App.vue에서 설정되어 있어야 함)
       if (!oauthManager.getListenerStatus()) {
-        logger.log('[OAuth] 경고: 리스너가 설정되지 않음!');
-        // 비상시에만 설정 시도
+        logger.log('[OAuth] 경고: 리스너가 설정되지 않음! 재설정 시도');
         await this.setupDeepLinkListener();
       } else {
         logger.log('[OAuth] 리스너 확인: OK');
@@ -285,9 +302,8 @@ export const oauthService = {
         logger.log('[OAuth] 모바일 환경 감지');
         logger.log(`[OAuth] Redirect URL: ${redirectUrl}`);
         
-        // 세션 정리는 하지 않음 (로그아웃 시 이미 정리됨)
-        // 로그아웃 직후 바로 로그인 시도하면 세션 정리가 충돌할 수 있음
-        logger.log('[OAuth] 세션 정리 스킵 (로그아웃 시 이미 정리됨) - BUILD 20250827-06');
+        // 세션 정리는 이미 signInWithGoogle 시작 부분에서 처리됨
+        logger.log('[OAuth] 세션 정리 스킵 (이미 처리됨) - BUILD 20250827-07');
         
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',

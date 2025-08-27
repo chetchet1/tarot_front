@@ -235,7 +235,7 @@ export default {
     const resetEmail = ref('');
     
     // 디버깅 로그
-    const debugLogs = ref<string[]>([]);
+    const debugLogs = ref([]);
 
     // 폼 데이터
     const formData = ref({

@@ -100,6 +100,11 @@
       @close="closeEmailVerification"
       @go-to-login="goToLoginFromVerification"
     />
+    
+    <!-- 버전 정보 표시 (하단 고정) -->
+    <div class="version-info">
+      v{{ appVersion }} (Build {{ buildVersion }})
+    </div>
   </div>
 </template>
 
@@ -110,9 +115,14 @@ import { useUserStore } from '../store/user';
 import LoginModal from '../components/LoginModal.vue';
 import EmailVerificationModal from '../components/EmailVerificationModal.vue';
 import { Capacitor } from '@capacitor/core';
+import packageInfo from '../../package.json';
 
 const router = useRouter();
 const userStore = useUserStore();
+
+// 버전 정보
+const appVersion = ref(packageInfo.version || '1.0.0');
+const buildVersion = ref('97'); // Android 빌드 버전
 
 // 모달 상태
 const loginModalVisible = ref(false);
@@ -521,5 +531,19 @@ const goToLoginFromVerification = () => {
   .cta-button:hover {
     transform: none;
   }
+}
+
+/* 버전 정보 스타일 */
+.version-info {
+  position: fixed;
+  bottom: 5px;
+  right: 10px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  z-index: 10;
+  font-family: monospace;
 }
 </style>
