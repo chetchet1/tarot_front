@@ -4,23 +4,83 @@ import { Browser } from '@capacitor/browser';
 import { App as CapacitorApp } from '@capacitor/app';
 import { logger } from './debugLogger';
 
-// OAuth 리스너 상태 관리
-let authStateSubscription: any = null;
-let appUrlListener: any = null;
-let browserFinishedListener: any = null;
-let isListenerSetup = false;
+// 싱글톤 인스턴스를 위한 전역 변수
+class OAuthManager {
+  private static instance: OAuthManager;
+  private authStateSubscription: any = null;
+  private appUrlListener: any = null;
+  private browserFinishedListener: any = null;
+  private isListenerSetup = false;
+  private setupPromise: Promise<void> | null = null;
+  
+  private constructor() {}
+  
+  static getInstance(): OAuthManager {
+    if (!OAuthManager.instance) {
+      OAuthManager.instance = new OAuthManager();
+    }
+    return OAuthManager.instance;
+  }
+  
+  getListenerStatus(): boolean {
+    return this.isListenerSetup;
+  }
+  
+  setListenerStatus(status: boolean): void {
+    this.isListenerSetup = status;
+  }
+  
+  getAuthSubscription(): any {
+    return this.authStateSubscription;
+  }
+  
+  setAuthSubscription(subscription: any): void {
+    this.authStateSubscription = subscription;
+  }
+  
+  getSetupPromise(): Promise<void> | null {
+    return this.setupPromise;
+  }
+  
+  setSetupPromise(promise: Promise<void> | null): void {
+    this.setupPromise = promise;
+  }
+}
+
+const oauthManager = OAuthManager.getInstance();
 
 export const oauthService = {
   // OAuth URL 리스너 설정
   async setupDeepLinkListener() {
-    logger.log('[OAuth] setupDeepLinkListener 시작 - BUILD 20250827-02');
+    logger.log('[OAuth] setupDeepLinkListener 시작 - BUILD 20250827-03');
     
-    // 항상 기존 리스너 정리 후 재등록
+    // 이미 설정 중이면 기다림
+    const existingPromise = oauthManager.getSetupPromise();
+    if (existingPromise) {
+      logger.log('[OAuth] 이미 리스너 설정 중, 기다림...');
+      await existingPromise;
+      return;
+    }
+    
+    // 설정 시작
+    const setupPromise = this.doSetupListeners();
+    oauthManager.setSetupPromise(setupPromise);
+    
+    try {
+      await setupPromise;
+    } finally {
+      oauthManager.setSetupPromise(null);
+    }
+  },
+  
+  // 실제 리스너 설정 로직
+  async doSetupListeners() {
+    // 기존 리스너 정리
     await this.cleanupListeners();
     
     // Supabase auth state change 리스너 추가 (모든 플랫폼에서)
     console.log('🔄 [OAuth] Auth state change 리스너 등록');
-    authStateSubscription = supabase.auth.onAuthStateChange(async (event, session) => {
+    const authSubscription = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔔 [OAuth] Auth state changed:', event, session?.user?.email);
       
       if (event === 'SIGNED_IN' && session) {
@@ -47,8 +107,11 @@ export const oauthService = {
       }
     });
     
+    // 리스너 저장
+    oauthManager.setAuthSubscription(authSubscription);
+    
     // 리스너 등록 완료 표시
-    isListenerSetup = true;
+    oauthManager.setListenerStatus(true);
     
     if (Capacitor.isNativePlatform()) {
       console.log('📱 [OAuth] Native platform 감지 - Deep link 리스너 등록');
@@ -197,13 +260,15 @@ export const oauthService = {
   // Google OAuth 개선된 버전
   async signInWithGoogle() {
     try {
-      logger.log('[OAuth] signInWithGoogle 시작 - BUILD 20250827-01');
+      logger.log('[OAuth] signInWithGoogle 시작 - BUILD 20250827-03');
       
-      // 항상 리스너를 재등록 (안전을 위해)
-      logger.log('[OAuth] 리스너 강제 재등록 시작');
-      isListenerSetup = false; // 강제로 false로 설정
-      await this.setupDeepLinkListener();
-      logger.log('[OAuth] 리스너 강제 재등록 완료');
+      // 리스너가 설정되어 있지 않으면 설정
+      if (!oauthManager.getListenerStatus()) {
+        logger.log('[OAuth] 리스너 미등록 상태, 새로 등록');
+        await this.setupDeepLinkListener();
+      } else {
+        logger.log('[OAuth] 리스너 이미 등록됨');
+      }
       
       if (Capacitor.isNativePlatform()) {
         // 모바일 환경 - Vercel URL 사용
@@ -408,26 +473,54 @@ export const oauthService = {
     logger.log('[OAuth] 리스너 정리 시작');
     
     // Auth state 리스너 제거
-    if (authStateSubscription) {
-      authStateSubscription.data?.subscription?.unsubscribe();
-      authStateSubscription = null;
+    const authSubscription = oauthManager.getAuthSubscription();
+    if (authSubscription) {
+      authSubscription.data?.subscription?.unsubscribe();
+      oauthManager.setAuthSubscription(null);
       logger.log('[OAuth] Auth state 리스너 제거');
     }
     
-    // 중요: 리스너 설정 상태 초기화
-    isListenerSetup = false;
-    logger.log('[OAuth] 리스너 정리 완료, isListenerSetup = false');
+    // Deep Link 리스너는 제거하지 않음 (앱 전체에서 하나만 존재해야 함)
+    // 단, 리스너 내부 로직은 세션 상태에 따라 동작하도록 함
+    
+    // 리스너 설정 상태 초기화
+    oauthManager.setListenerStatus(false);
+    logger.log('[OAuth] 리스너 정리 완료, 상태 초기화');
   },
   
   // OAuth 시작 시 리스너 재등록
   async ensureListenersSetup() {
-    console.log('🔍 [OAuth] 리스너 상태 확인:', isListenerSetup ? '등록됨' : '미등록');
-    if (!isListenerSetup) {
+    const isSetup = oauthManager.getListenerStatus();
+    console.log('🔍 [OAuth] 리스너 상태 확인:', isSetup ? '등록됨' : '미등록');
+    
+    if (!isSetup) {
       console.log('🔄 [OAuth] 리스너 재등록 필요 - setupDeepLinkListener 호출');
       await this.setupDeepLinkListener();
       console.log('✅ [OAuth] 리스너 재등록 완료');
     } else {
       console.log('ℹ️ [OAuth] 리스너가 이미 등록되어 있음');
     }
+  },
+  
+  // 완전한 초기화 (로그아웃 시 사용)
+  async fullCleanup() {
+    logger.log('[OAuth] 완전 초기화 시작');
+    
+    // 모든 리스너 정리
+    await this.cleanupListeners();
+    
+    // 브라우저 닫기 시도
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await Browser.close();
+      } catch (e) {
+        // 무시
+      }
+    }
+    
+    // 콜백 초기화
+    this.authSuccessCallback = null;
+    
+    logger.log('[OAuth] 완전 초기화 완료');
   }
 };

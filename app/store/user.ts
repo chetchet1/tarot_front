@@ -720,16 +720,14 @@ export const useUserStore = defineStore('user', () => {
       const userId = currentUser.value?.id;
       const wasPremium = currentUser.value?.isPremium;
       
-      // OAuth 리스너 정리 (모바일에서만)
-      if (Capacitor.isNativePlatform()) {
-        logger.log('[UserStore] OAuth 리스너 정리 시작');
-        try {
-          // 정적 import 사용 (이미 상단에 import됨)
-          await oauthService.cleanupListeners();
-          logger.log('[UserStore] OAuth 리스너 정리 완료');
-        } catch (error) {
-          logger.log('[UserStore] OAuth 리스너 정리 실패: ' + error);
-        }
+      // OAuth 완전 정리 (모바일과 웹 모두)
+      logger.log('[UserStore] OAuth 완전 정리 시작');
+      try {
+        // fullCleanup 사용하여 완전히 정리
+        await oauthService.fullCleanup();
+        logger.log('[UserStore] OAuth 완전 정리 완료');
+      } catch (error) {
+        logger.log('[UserStore] OAuth 완전 정리 실패: ' + error);
       }
       
       
