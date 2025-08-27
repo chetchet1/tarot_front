@@ -48,7 +48,7 @@ export default defineConfig({
   // 개발 서버 설정
   server: {
     port: 8082,
-    host: 'localhost',
+    host: '0.0.0.0', // 모든 네트워크 인터페이스에서 접근 가능
     strictPort: true,
     cors: true,
     fs: {

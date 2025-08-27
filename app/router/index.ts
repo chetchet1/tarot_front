@@ -117,7 +117,7 @@ const routes = [
   {
     path: '/auth/mobile-callback',
     name: 'MobileCallback',
-    component: () => import('../pages/auth/mobile-callback.vue'),
+    component: () => import('../views/mobile-callback.vue'),
     meta: { requiresAuth: false, isPublic: true }
   },
   {

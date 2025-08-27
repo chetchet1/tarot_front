@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { App as CapacitorApp } from '@capacitor/app';
+import { logger } from './debugLogger';
 
 // OAuth 리스너 상태 관리
 let authStateSubscription: any = null;
@@ -12,15 +13,9 @@ let isListenerSetup = false;
 export const oauthService = {
   // OAuth URL 리스너 설정
   async setupDeepLinkListener() {
-    console.log('🎯 [OAuth] setupDeepLinkListener 호출됨 - BUILD 20250826-1435');
+    logger.log('[OAuth] setupDeepLinkListener 시작 - BUILD 20250827-02');
     
-    // 이미 리스너가 설정되어 있으면 다시 등록하지 않음
-    if (isListenerSetup) {
-      console.log('⚠️ [OAuth] 리스너가 이미 설정되어 있음');
-      return;
-    }
-    
-    // 기존 리스너 정리
+    // 항상 기존 리스너 정리 후 재등록
     await this.cleanupListeners();
     
     // Supabase auth state change 리스너 추가 (모든 플랫폼에서)
@@ -202,27 +197,24 @@ export const oauthService = {
   // Google OAuth 개선된 버전
   async signInWithGoogle() {
     try {
-      console.log('🔵 [OAuth] signInWithGoogle 시작 - BUILD 20250826-1435');
+      logger.log('[OAuth] signInWithGoogle 시작 - BUILD 20250827-01');
       
       // 항상 리스너를 재등록 (안전을 위해)
-      console.log('🔄 [OAuth] 리스너 강제 재등록 시작');
+      logger.log('[OAuth] 리스너 강제 재등록 시작');
       isListenerSetup = false; // 강제로 false로 설정
       await this.setupDeepLinkListener();
-      console.log('✅ [OAuth] 리스너 강제 재등록 완료');
+      logger.log('[OAuth] 리스너 강제 재등록 완료');
       
       if (Capacitor.isNativePlatform()) {
-        // 모바일 환경 - 실제 Supabase에 등록된 URL 사용 (Vercel)
-        const redirectUrl = 'https://tarot-app-psi-eight.vercel.app/auth/callback';
+        // 모바일 환경 - Vercel URL 사용
+        const redirectUrl = 'https://tarot-app-psi-eight.vercel.app/auth/mobile-callback';
         
-        console.log('📱 [OAuth] 모바일 Google OAuth 시작, redirectUrl:', redirectUrl);
+        logger.log('[OAuth] 모바일 환경 감지');
+        logger.log(`[OAuth] Redirect URL: ${redirectUrl}`);
         
-        // 세션을 먼저 완전히 정리
-        try {
-          await supabase.auth.signOut();
-          console.log('🧹 [OAuth] 기존 세션 정리 완료');
-        } catch (e) {
-          console.log('⚠️ [OAuth] 세션 정리 스킵:', e);
-        }
+        // 세션 정리는 하지 않음 (로그아웃 시 이미 정리됨)
+        // 로그아웃 직후 바로 로그인 시도하면 세션 정리가 충돌할 수 있음
+        logger.log('[OAuth] 세션 정리 스킵 (로그아웃 시 이미 정리됨)');
         
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
@@ -413,21 +405,18 @@ export const oauthService = {
   
   // 리스너 정리 
   async cleanupListeners() {
-    console.log('🧹 [OAuth] 리스너 정리 시작');
+    logger.log('[OAuth] 리스너 정리 시작');
     
     // Auth state 리스너 제거
     if (authStateSubscription) {
       authStateSubscription.data?.subscription?.unsubscribe();
       authStateSubscription = null;
-      console.log('✅ Auth state 리스너 제거');
+      logger.log('[OAuth] Auth state 리스너 제거');
     }
     
-    // 중요: removeAllListeners를 호출하면 OAuth 리스너도 제거되므로
-    // 특정 리스너만 제거하거나 리스너 재등록이 필요
-    // 현재는 리스너 재등록 방식으로 처리
-    
-    // 리스너 설정 상태는 초기화하지 않음 (리스너는 유지)
-    console.log('✅ [OAuth] Auth state 리스너 정리 완료 (OAuth 리스너는 유지)');
+    // 중요: 리스너 설정 상태 초기화
+    isListenerSetup = false;
+    logger.log('[OAuth] 리스너 정리 완료, isListenerSetup = false');
   },
   
   // OAuth 시작 시 리스너 재등록

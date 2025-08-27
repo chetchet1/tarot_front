@@ -5,6 +5,8 @@ import { authService, profileService } from '../services/supabase';
 import { Capacitor } from '@capacitor/core';
 import { SUPABASE_CONFIG } from '../config/env';
 import { revenueCatService } from '../services/RevenueCatService';
+import { oauthService } from '../services/oauth';
+import { logger } from '../services/debugLogger';
 
 export const useUserStore = defineStore('user', () => {
   // State
@@ -675,9 +677,9 @@ export const useUserStore = defineStore('user', () => {
   const signInWithGoogle = async () => {
     try {
       isLoading.value = true;
+      logger.log('[UserStore] signInWithGoogle 시작 - BUILD 20250827-01');
       
-      // 개선된 OAuth 서비스 사용
-      const { oauthService } = await import('../services/oauth');
+      // OAuth 서비스 사용 (정적 import로 변경)
       await oauthService.signInWithGoogle();
       
       // 모바일: Chrome Custom Tabs로 브라우저 열림
@@ -720,13 +722,13 @@ export const useUserStore = defineStore('user', () => {
       
       // OAuth 리스너 정리 (모바일에서만)
       if (Capacitor.isNativePlatform()) {
-        console.log('🧹 OAuth 리스너 정리 시작');
+        logger.log('[UserStore] OAuth 리스너 정리 시작');
         try {
-          const { oauthService } = await import('../services/oauth');
+          // 정적 import 사용 (이미 상단에 import됨)
           await oauthService.cleanupListeners();
-          console.log('✅ OAuth 리스너 정리 완료');
+          logger.log('[UserStore] OAuth 리스너 정리 완료');
         } catch (error) {
-          console.warn('OAuth 리스너 정리 실패:', error);
+          logger.log('[UserStore] OAuth 리스너 정리 실패: ' + error);
         }
       }
       

@@ -187,6 +187,7 @@
 import { ref, computed, watch } from 'vue';
 import { useUserStore } from '../store/user';
 import { showAlert, showConfirm } from '../utils/alerts';
+import { logger } from '../services/debugLogger';
 
 export default {
   name: 'LoginModal',
@@ -323,7 +324,7 @@ export default {
 
     // Google 로그인 처리
     const handleGoogleLogin = async () => {
-      console.log('🔵 [LoginModal] Google 로그인 시작');
+      logger.log('[LoginModal] Google 로그인 버튼 클릭 - BUILD 20250827-01');
       isLoading.value = true;
       errorMessage.value = '';
       
