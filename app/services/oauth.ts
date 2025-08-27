@@ -266,7 +266,19 @@ export const oauthService = {
   // Google OAuth 개선된 버전
   async signInWithGoogle() {
     try {
-      logger.log('[OAuth] signInWithGoogle 시작 - BUILD 20250827-07');
+      logger.log('[OAuth] signInWithGoogle 시작 - BUILD 20250827-09');
+      
+      // 현재 세션 확인 및 종류 파악
+      const currentSession = await supabase.auth.getSession();
+      if (currentSession.data.session) {
+        const provider = currentSession.data.session.user?.app_metadata?.provider;
+        logger.log(`[OAuth] 현재 세션 존재: provider=${provider}, email=${currentSession.data.session.user?.email}`);
+        
+        // 관리자 계정인 경우 완전한 세션 정리
+        if (provider === 'email' || currentSession.data.session.user?.email?.includes('admin')) {
+          logger.log('[OAuth] 관리자/이메일 세션 감지 - 완전한 세션 정리 수행');
+        }
+      }
       
       // 기존 세션 강제 정리 (중요!)
       logger.log('[OAuth] 기존 세션 강제 정리 시작');
@@ -280,9 +292,13 @@ export const oauthService = {
           }
         });
         
-        // Supabase 세션 정리
-        await supabase.auth.signOut({ scope: 'local' });
-        logger.log('[OAuth] Supabase 세션 정리 완료');
+        // Supabase 세션 정리 - global 스코프로 변경
+        await supabase.auth.signOut({ scope: 'global' });
+        logger.log('[OAuth] Supabase 세션 정리 완료 (global scope)');
+        
+        // 추가 대기 시간
+        await new Promise(resolve => setTimeout(resolve, 500));
+        logger.log('[OAuth] 세션 정리 후 500ms 대기 완료');
       } catch (e) {
         logger.log('[OAuth] 세션 정리 중 에러 (무시): ' + e);
       }
@@ -311,7 +327,7 @@ export const oauthService = {
             redirectTo: redirectUrl,
             queryParams: {
               access_type: 'offline',
-              prompt: 'select_account' // 매번 계정 선택 화면 표시
+              prompt: 'consent' // 항상 새로운 인증 강제
             }
           }
         });
@@ -502,6 +518,16 @@ export const oauthService = {
       authSubscription.data?.subscription?.unsubscribe();
       oauthManager.setAuthSubscription(null);
       logger.log('[OAuth] Auth state 리스너 제거');
+    }
+    
+    // Browser 리스너 정리 (모바일에서만)
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await Browser.removeAllListeners();
+        logger.log('[OAuth] Browser 리스너 정리 완료');
+      } catch (e) {
+        logger.log('[OAuth] Browser 리스너 정리 실패:', e);
+      }
     }
     
     // Deep Link 리스너는 제거하지 않음

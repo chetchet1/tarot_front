@@ -25,17 +25,20 @@ export default defineConfig({
     }
   ],
   
-  // 빌드 설정
+  // 빌드 설정 - 캐시 무효화 강화
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    // 에셋 복사 설정
+    // 캐시 버스팅을 위한 타임스탬프 추가
     rollupOptions: {
       output: {
+        // 모든 파일에 해시 추가하여 캐시 무효화
+        entryFileNames: `[name]-[hash].js`,
+        chunkFileNames: `[name]-[hash].js`,
         assetFileNames: (assetInfo) => {
-          // 이미지 파일들은 원래 경로 유지
+          // 이미지 파일들도 해시 포함
           if (assetInfo.name && /\.(png|jpe?g|gif|svg)$/i.test(assetInfo.name)) {
-            return 'assets/[name][extname]';
+            return 'assets/[name]-[hash][extname]';
           }
           return 'assets/[name]-[hash][extname]';
         },
@@ -43,6 +46,10 @@ export default defineConfig({
     },
     // 정적 에셋 복사
     copyPublicDir: true,
+    // 소스맵 생성 (디버깅용)
+    sourcemap: true,
+    // 매니페스트 파일 생성
+    manifest: true,
   },
   
   // 개발 서버 설정

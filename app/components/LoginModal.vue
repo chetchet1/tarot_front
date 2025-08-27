@@ -967,15 +967,18 @@ export default {
   transform: translateY(-1px);
 }
 
-/* 디버깅 정보 스타일 */
+/* 디버깅 정보 스타일 - 강제 표시 */
 .debug-info {
-  background: rgba(0, 0, 0, 0.8);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 10px 15px;
-  margin-top: 10px;
-  border-radius: 0 0 15px 15px;
-  max-height: 120px;
-  overflow-y: auto;
+  background: rgba(255, 0, 0, 0.2) !important;
+  border: 2px solid red !important;
+  padding: 10px 15px !important;
+  margin-top: 10px !important;
+  border-radius: 0 0 15px 15px !important;
+  max-height: 150px !important;
+  overflow-y: auto !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .debug-title {
