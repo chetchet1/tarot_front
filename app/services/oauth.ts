@@ -312,8 +312,8 @@ export const oauthService = {
       }
       
       if (Capacitor.isNativePlatform()) {
-        // 모바일 환경 - Vercel URL 사용
-        const redirectUrl = 'https://tarot-app-psi-eight.vercel.app/auth/mobile-callback';
+        // 모바일 환경 - 앱 스킴 사용 (로컬 빌드)
+        const redirectUrl = 'com.tarotgarden.app://auth/mobile-callback';
         
         logger.log('[OAuth] 모바일 환경 감지');
         logger.log(`[OAuth] Redirect URL: ${redirectUrl}`);

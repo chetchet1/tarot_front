@@ -6,17 +6,10 @@ const config: CapacitorConfig = {
   appName: '타로의 정원',
   webDir: 'dist',
   server: {
-    // Android 빌드시 Vercel URL 사용 (OAuth 리다이렉트를 위해)
-    // 캐시 버스팅을 위한 타임스탬프 쿼리 파라미터 추가
-    url: `https://tarot-app-psi-eight.vercel.app?v=${Date.now()}`,
+    // 로컬 빌드 파일 사용 (dist 폴더)
+    // url 설정을 제거하여 로컬 파일을 사용하도록 함
     androidScheme: 'https',
     cleartext: true,
-    // 캐시 헤더 설정
-    headers: {
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
-    },
     allowNavigation: [
       'https://yxywzsmggvxxujuplyly.supabase.co',
       'https://*.supabase.co',
