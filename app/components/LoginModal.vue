@@ -150,33 +150,68 @@
         </div>
 
         <div v-if="isLoginMode" class="forgot-password">
-          <button @click="showForgotPassword = true" class="link-btn">
+          <button @click="handleForgotPasswordClick" class="link-btn">
             비밀번호를 잊으셨나요?
           </button>
         </div>
       </div>
 
-      <!-- 비밀번호 재설정 모달 -->
-      <div v-if="showForgotPassword" class="forgot-password-modal">
-        <div class="modal-overlay" @click="showForgotPassword = false"></div>
-        <div class="modal-content">
-          <h3>비밀번호 재설정</h3>
-          <p>가입하신 이메일로 재설정 링크를 보내드립니다.</p>
-          
-          <form @submit.prevent="handlePasswordReset">
-            <input
-              v-model="resetEmail"
-              type="email"
-              placeholder="이메일을 입력하세요"
-              required
-            />
-            <div class="button-group">
-              <button type="button" @click="showForgotPassword = false">취소</button>
-              <button type="submit" :disabled="isLoading">전송</button>
-            </div>
-          </form>
         </div>
       </div>
+    </div>
+  </Transition>
+
+  <!-- 비밀번호 재설정 모달 (별도) -->
+  <Transition name="modal">
+    <div v-if="showForgotPassword" class="modal-overlay" @click="closeForgotPassword">
+      <div class="modal-container" @click.stop>
+        <div class="forgot-password-modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title">비밀번호 재설정</h2>
+            <button class="close-btn" @click="closeForgotPassword">✕</button>
+          </div>
+          
+          <div class="modal-body">
+            <p class="reset-description">
+              가입하신 이메일 주소를 입력하시면<br>
+              비밀번호 재설정 링크를 보내드립니다.
+            </p>
+            
+            <div v-if="resetMessage" :class="resetMessageType === 'success' ? 'success-message' : 'error-message'">
+              {{ resetMessage }}
+            </div>
+            
+            <form @submit.prevent="handlePasswordReset">
+              <div class="form-group">
+                <input
+                  v-model="resetEmail"
+                  type="email"
+                  placeholder="이메일 주소를 입력하세요"
+                  class="reset-email-input"
+                  required
+                  :disabled="isResetLoading"
+                />
+              </div>
+              
+              <div class="reset-button-group">
+                <button 
+                  type="button" 
+                  class="btn btn-cancel"
+                  @click="closeForgotPassword"
+                  :disabled="isResetLoading"
+                >
+                  취소
+                </button>
+                <button 
+                  type="submit" 
+                  class="btn btn-primary"
+                  :disabled="isResetLoading || !resetEmail"
+                >
+                  {{ isResetLoading ? '전송 중...' : '재설정 링크 전송' }}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>
@@ -223,6 +258,9 @@ export default {
     const errorMessage = ref('');
     const successMessage = ref('');
     const resetEmail = ref('');
+    const isResetLoading = ref(false);
+    const resetMessage = ref('');
+    const resetMessageType = ref('error');
 
     // 폼 데이터
     const formData = ref({
@@ -423,20 +461,44 @@ export default {
     };
 
 
+    // 비밀번호 찾기 버튼 클릭
+    const handleForgotPasswordClick = () => {
+      console.log('비밀번호 찾기 클릭');
+      showForgotPassword.value = true;
+      resetMessage.value = '';
+      resetEmail.value = '';
+    };
+
+    // 비밀번호 재설정 모달 닫기
+    const closeForgotPassword = () => {
+      showForgotPassword.value = false;
+      resetMessage.value = '';
+      resetEmail.value = '';
+      isResetLoading.value = false;
+    };
+
     // 비밀번호 재설정
     const handlePasswordReset = async () => {
       if (!resetEmail.value) return;
 
-      isLoading.value = true;
+      isResetLoading.value = true;
+      resetMessage.value = '';
+      
       try {
         await userStore.resetPassword(resetEmail.value);
-        successMessage.value = '비밀번호 재설정 이메일이 전송되었습니다.';
-        showForgotPassword.value = false;
-        resetEmail.value = '';
+        resetMessage.value = '비밀번호 재설정 이메일을 전송했습니다. 이메일을 확인해주세요.';
+        resetMessageType.value = 'success';
+        
+        // 3초 후 모달 자동 닫기
+        setTimeout(() => {
+          closeForgotPassword();
+        }, 3000);
       } catch (error) {
-        errorMessage.value = getErrorMessage(error.message);
+        console.error('비밀번호 재설정 오류:', error);
+        resetMessage.value = error.message || '비밀번호 재설정 중 오류가 발생했습니다.';
+        resetMessageType.value = 'error';
       } finally {
-        isLoading.value = false;
+        isResetLoading.value = false;
       }
     };
 
@@ -519,11 +581,16 @@ export default {
       errorMessage,
       successMessage,
       resetEmail,
+      isResetLoading,
+      resetMessage,
+      resetMessageType,
       formData,
       errors,
       handleEmailAuth,
       handleGoogleLogin,
       handlePasswordReset,
+      handleForgotPasswordClick,
+      closeForgotPassword,
       toggleMode,
       closeModal,
       handleOverlayClick
@@ -847,36 +914,98 @@ export default {
   font-size: 13px;
 }
 
-.forgot-password-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1100;
-}
-
-.modal-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-}
-
-.modal-content {
+/* 비밀번호 재설정 모달 스타일 */
+.forgot-password-modal-content {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 30px;
-  border-radius: 15px;
+  border-radius: 20px;
   width: 90%;
-  max-width: 400px;
+  max-width: 450px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   color: white;
-  position: relative;
-  z-index: 1;
+}
+
+.modal-body {
+  padding: 20px 30px 30px;
+}
+
+.reset-description {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 15px;
+  line-height: 1.5;
+  margin-bottom: 25px;
+}
+
+.reset-email-input {
+  width: 100%;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  color: white;
+  font-size: 15px;
+  transition: all 0.3s ease;
+}
+
+.reset-email-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.reset-email-input:focus {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+  outline: none;
+}
+
+.reset-email-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reset-button-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 25px;
+}
+
+.reset-button-group .btn {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.reset-button-group .btn-cancel {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.reset-button-group .btn-cancel:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.reset-button-group .btn-primary {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+  color: white;
+  box-shadow: 0 4px 15px rgba(238, 90, 36, 0.3);
+}
+
+.reset-button-group .btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(238, 90, 36, 0.4);
+}
+
+.reset-button-group .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .modal-content h3 {

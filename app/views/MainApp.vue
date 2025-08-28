@@ -35,9 +35,6 @@
             </div>
             
             <div v-if="showUserDropdown" class="user-dropdown">
-              <button @click="goToProfile" class="menu-item">
-                👤 프로필 설정
-              </button>
               <button @click="goToPremium" class="menu-item">
                 💎 프리미엄 구독
               </button>
@@ -266,11 +263,6 @@ const handleLogout = async () => {
   }
 };
 
-const goToProfile = () => {
-  console.log('프로필 설정');
-  showUserDropdown.value = false;
-  // TODO: 프로필 페이지로 이동
-};
 
 const goToPremium = () => {
   console.log('프리미엄 구독');

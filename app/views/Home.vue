@@ -101,11 +101,6 @@
       @go-to-login="goToLoginFromVerification"
     />
     
-    <!-- 버전 정보 표시 (하단 고정) - 강제 표시 -->
-    <div class="version-info" style="display: block !important; visibility: visible !important; opacity: 1 !important;">
-      v{{ appVersion }} | Build {{ buildVersion }}<br>
-      <span style="font-size: 8px;">Deploy: {{ deployTime }}</span>
-    </div>
   </div>
 </template>
 
@@ -116,15 +111,9 @@ import { useUserStore } from '../store/user';
 import LoginModal from '../components/LoginModal.vue';
 import EmailVerificationModal from '../components/EmailVerificationModal.vue';
 import { Capacitor } from '@capacitor/core';
-import packageInfo from '../../package.json';
 
 const router = useRouter();
 const userStore = useUserStore();
-
-// 버전 정보 - 배포 업데이트 확인용
-const appVersion = ref(packageInfo.version || '1.0.0');
-const buildVersion = ref('100'); // Android 빌드 버전 (수동 업데이트)
-const deployTime = ref(new Date().toISOString().slice(0, 16)); // 배포 시간
 
 // 모달 상태
 const loginModalVisible = ref(false);
@@ -535,22 +524,4 @@ const goToLoginFromVerification = () => {
   }
 }
 
-/* 버전 정보 스타일 - 강제 표시 */
-.version-info {
-  position: fixed !important;
-  bottom: 5px !important;
-  right: 10px !important;
-  font-size: 11px !important;
-  color: rgba(255, 255, 255, 0.8) !important;
-  background: rgba(0, 0, 0, 0.6) !important;
-  padding: 4px 8px !important;
-  border-radius: 4px !important;
-  z-index: 9999 !important;
-  font-family: monospace !important;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  line-height: 1.3 !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
-}
 </style>
