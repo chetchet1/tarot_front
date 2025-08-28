@@ -140,23 +140,43 @@ npx cap sync
 
 ## 🔧 추가 해결 (2025-08-28)
 
-### 발견된 문제들
+### 첫 번째 수정 - OAuth 문제
+#### 발견된 문제들
 1. **중복 OAuth 서비스**: mobileAuth.ts, oauth-mobile.ts, oauth.ts 3개가 중복
 2. **잘못된 리다이렉트 URL**: 모바일에서 `auth/mobile-callback` 대신 `auth/callback` 사용 필요
 3. **디버깅 정보 중복 표시**: LoginModal에 불필요한 디버깅 정보
 
-### 수정 내용
+#### 수정 내용
 1. **OAuth 서비스 통합**
    - mobileAuth.ts의 signInWithGoogle을 oauth.ts로 리다이렉트
    - oauth.ts의 리다이렉트 URL 수정: `com.tarotgarden.app://auth/callback`
    - skipBrowserRedirect: false로 변경 (브라우저 리다이렉트 허용)
 
 2. **디버깅 정보 제거**
-   - LoginModal.vue의 debugLogs 관련 코드 모두 제거
-   - 디버깅용 UI 요소 제거
+   - LoginModal.vue의 debugLogs 관련 코드 모두 제거 (하지만 debugLogs return 문제 남김)
 
-3. **BUILD 번호 업데이트**
-   - BUILD 20250828-01로 업데이트
+### 두 번째 수정 - 추가 버그 수정
+#### 발견된 문제들
+1. **로그인 모달 안 보임**: debugLogs 변수 제거했으나 return문에서 여전히 참조
+2. **console.log가 화면에 표시됨**: App.vue의 console.log들이 웹뷰에 표시됨
+3. **버전 정보 업데이트 안됨**: buildVersion이 '97'로 하드코딩
+
+#### 수정 내용
+1. **LoginModal 수정**
+   - return문에서 debugLogs 제거
+
+2. **console.log 정리**
+   - App.vue의 초기 로딩 console.log 제거/주석 처리
+
+3. **버전 자동 업데이트**
+   - buildVersion을 114로 업데이트
+   - scripts/update-build-version.js 생성
+   - build:cap 스크립트에 자동 버전 업데이트 추가
+
+### 교훈
+- 변수 제거 시 모든 참조 위치 확인 필수
+- 배포 빌드에서는 console.log 최소화
+- 빌드 버전은 자동화 필요
 
 ---
 

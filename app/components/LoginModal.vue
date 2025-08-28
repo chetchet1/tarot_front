@@ -521,7 +521,6 @@ export default {
       resetEmail,
       formData,
       errors,
-      debugLogs,
       handleEmailAuth,
       handleGoogleLogin,
       handlePasswordReset,

@@ -145,7 +145,7 @@ const showTestMenu = ref(false);
 
 // 버전 정보
 const appVersion = ref(packageInfo.version || '1.0.0');
-const buildVersion = ref('97'); // Android 빌드 버전
+const buildVersion = ref('114'); // Android 빌드 버전 - android/version.properties와 동기화
 
 // 뒤로가기 버튼 처리
 let lastBackPressTime = 0;
