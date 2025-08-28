@@ -15,6 +15,7 @@ import { oauthService } from './services/oauth';
 import { revenueCatService } from './services/RevenueCatService';
 import { updateChecker } from './services/updateChecker';
 import { supabase } from './services/supabase';
+import { logger } from './services/debugLogger';
 import './styles/main.scss';
 
 const route = useRoute();
@@ -27,6 +28,9 @@ console.log('🚀 App.vue initialized:', {
 });
 
 onMounted(async () => {
+  // 기존 디버그 패널 제거
+  logger.removeDebugPanel();
+  
   console.log('🚀 [App.vue] App mounted');
   console.log('📍 [App.vue] Current route:', {
     path: route.path,

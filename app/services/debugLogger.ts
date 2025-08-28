@@ -4,6 +4,7 @@ import { supabase } from './supabase';
 class DebugLogger {
   private logs: string[] = [];
   private isDebugMode = true; // 배포 중 디버그를 위해 일시적으로 true
+  private showPanelOnScreen = false; // 화면 표시는 비활성화
   
   log(message: string, data?: any) {
     if (!this.isDebugMode) return;
@@ -22,8 +23,8 @@ class DebugLogger {
       this.logs.shift();
     }
     
-    // 모바일에서는 화면에도 표시
-    if (Capacitor.isNativePlatform()) {
+    // 모바일에서 화면 표시 (현재 비활성화)
+    if (this.showPanelOnScreen && Capacitor.isNativePlatform()) {
       this.showDebugPanel(logEntry);
     }
   }
@@ -73,7 +74,15 @@ class DebugLogger {
     this.logs = [];
     const panel = document.getElementById('debug-panel');
     if (panel) {
-      panel.innerHTML = '';
+      panel.remove(); // 패널 자체를 제거
+    }
+  }
+  
+  // 디버그 패널 제거 (초기화용)
+  removeDebugPanel() {
+    const panel = document.getElementById('debug-panel');
+    if (panel) {
+      panel.remove();
     }
   }
   
