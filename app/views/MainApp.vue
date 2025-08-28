@@ -145,7 +145,7 @@ const showTestMenu = ref(false);
 
 // 버전 정보
 const appVersion = ref(packageInfo.version || '1.0.0');
-const buildVersion = ref('114'); // Android 빌드 버전 - android/version.properties와 동기화
+const buildVersion = ref('116'); // Android 빌드 버전 - android/version.properties와 동기화
 
 // 뒤로가기 버튼 처리
 let lastBackPressTime = 0;
@@ -176,14 +176,14 @@ const handleBackButton = async () => {
 };
 
 onMounted(async () => {
-  console.log('🏠 메인 앱 페이지 로드');
+  // 메인 앱 페이지 로드
   
   if (userStore.currentUser && !userStore.isLoading) {
-    console.log('사용자 이미 로드됨, 타로 데이터 로드');
+    // 사용자 이미 로드됨, 타로 데이터 로드
     tarotStore.loadReadings();
     tarotStore.loadDailyCard();
   } else if (!userStore.isLoading) {
-    console.log('사용자 없음, 초기화 시도');
+    // 사용자 없음, 초기화 시도
     await userStore.initializeUser();
     tarotStore.loadReadings();
     tarotStore.loadDailyCard();
