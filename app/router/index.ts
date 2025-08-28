@@ -109,6 +109,12 @@ const routes = [
     component: AuthCallback,
   },
   {
+    path: '/auth/reset-password',
+    name: 'PasswordReset',
+    component: () => import('../views/PasswordReset.vue'),
+    meta: { requiresAuth: false, isPublic: true }
+  },
+  {
     path: '/oauth-bridge',
     name: 'OAuthBridge',
     component: OAuthBridge,
