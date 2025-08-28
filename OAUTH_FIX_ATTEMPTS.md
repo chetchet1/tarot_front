@@ -58,3 +58,26 @@
 - 빌드 후 실제 앱에서 버전 정보가 표시되는지 확인
 - 관리자 로그아웃 → 구글 로그인 시퀀스 테스트
 - 크롬 개발자 도구에서 로그 확인
+
+## 2025-08-27 최종 문제 해결 (BUILD 20250827-10)
+
+### 🎯 **진짜 문제였던 것**
+1. **`capacitor.config.ts` (기본 설정)에도 Vercel URL 하드코딩**
+   - `capacitor.config.android.ts`만 수정하고 기본 config는 수정 안 함
+   
+2. **Android assets의 `capacitor.config.json`이 업데이트 안 됨**
+   - 설정 수정 후 `npx cap sync` 실행 안 함
+   - Android 프로젝트에 여전히 Vercel URL이 남아있었음
+
+### ✅ **해결 방법**
+1. 모든 capacitor config 파일에서 URL 제거
+2. MainActivity에 WebView 캐시 비활성화 코드 추가
+3. `npx cap sync` 실행하여 Android 프로젝트에 반영
+
+### 📝 **올바른 빌드 순서**
+```bash
+1. rm -rf dist node_modules/.vite android/app/build
+2. npm run build:cap
+3. npx cap sync
+4. Android Studio에서 Clean Project → AAB 빌드
+```

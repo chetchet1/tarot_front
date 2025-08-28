@@ -7,8 +7,8 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     cleartext: true,
-    // Android 빌드시 Vercel URL 사용 (OAuth 리다이렉트를 위해)
-    url: 'https://tarot-app-psi-eight.vercel.app',
+    // 로컬 빌드 사용 (dist 폴더) - URL 제거
+    // url 설정을 제거하여 로컬 파일을 사용하도록 함
     allowNavigation: [
       'https://yxywzsmggvxxujuplyly.supabase.co',
       'https://*.supabase.co',
