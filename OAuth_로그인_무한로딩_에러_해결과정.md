@@ -173,10 +173,47 @@ npx cap sync
    - scripts/update-build-version.js 생성
    - build:cap 스크립트에 자동 버전 업데이트 추가
 
+### 세 번째 수정 - console.log 복구
+#### 문제 상황
+- OAuth 디버깅을 위해 console.log가 필요한데 제거함
+- 배포 앱에서 테스트할 때 로그 확인 불가
+
+#### 수정 내용
+1. **App.vue의 console.log 복구**
+   - OAuth 관련 모든 console.log 복구
+   - 디버깅 목적으로 필요
+
+### 네 번째 수정 - 화면 상단 디버그 패널 제거
+#### 문제 상황
+- console.log 내용이 화면 상단에 직접 표시됨
+- debugLogger.ts가 화면에 debug-panel을 생성하여 표시
+
+#### 원인
+- `debugLogger.ts`에서 `showDebugPanel()` 함수가 화면에 패널 생성
+- `isDebugMode = true`로 설정되어 있어 활성화됨
+
+#### 수정 내용
+1. **debugLogger.ts 수정**
+   - `showPanelOnScreen = false` 플래그 추가
+   - `removeDebugPanel()` 메서드 추가
+   - 화면 표시는 비활성화, console.log는 유지
+
+2. **App.vue 수정**
+   - 앱 시작 시 `logger.removeDebugPanel()` 호출
+   - 기존 패널 제거
+
+### 최종 상태 (2025-08-28)
+- ✅ OAuth 로그인 문제 해결 가능
+- ✅ console.log를 통한 디버깅 가능
+- ✅ 화면 상단 디버그 패널 제거
+- ✅ 하단 버전 정보 유지 (Build 114)
+- ✅ 버전 자동 업데이트 스크립트 동작
+
 ### 교훈
 - 변수 제거 시 모든 참조 위치 확인 필수
-- 배포 빌드에서는 console.log 최소화
+- 배포 빌드에서도 디버깅 로그는 필요 (화면 표시와 분리)
 - 빌드 버전은 자동화 필요
+- **모든 수정 사항은 문서에 즉시 기록**
 
 ---
 
