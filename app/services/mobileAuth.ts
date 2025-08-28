@@ -31,106 +31,13 @@ export const mobileOAuth = {
     return oauthState.isInProgress;
   },
   
-  // Google 로그인
+  // Google 로그인 - oauth.ts로 통합됨 (비활성화)
+  // 이 함수는 더 이상 사용하지 않음 - oauth.ts의 signInWithGoogle 사용
   async signInWithGoogle() {
-    // 이미 OAuth 진행 중이면 중복 실행 방지
-    if (this.isOAuthInProgress()) {
-      showToast('로그인이 이미 진행 중입니다', 'warning');
-      return;
-    }
-    
-    if (Capacitor.isNativePlatform()) {
-      try {
-        console.log('🚀 Starting mobile Google OAuth...');
-        
-        // OAuth 상태 시작
-        oauthState = {
-          isInProgress: true,
-          startTime: Date.now(),
-          provider: 'google'
-        };
-        
-        // 네트워크 연결 확인
-        const networkStatus = await this.checkNetworkConnection();
-        if (!networkStatus) {
-          throw new Error('네트워크 연결을 확인해주세요');
-        }
-        
-        // OAuth URL 생성
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: 'com.tarotgarden.app://auth/callback',
-            skipBrowserRedirect: true,
-            queryParams: {
-              access_type: 'offline',
-              prompt: 'consent'
-            }
-          }
-        });
-
-        if (error) throw error;
-        
-        console.log('🌐 OAuth URL generated:', data?.url?.substring(0, 50) + '...');
-        
-        // 브라우저 열기 전에 리스너 설정
-        const cleanup = await this.setupBrowserListener();
-        
-        // OAuth 상태 저장 (앱이 백그라운드로 갔다가 돌아올 때를 대비)
-        await Storage.set({
-          key: 'oauth_pending',
-          value: JSON.stringify({
-            provider: 'google',
-            timestamp: Date.now()
-          })
-        });
-        
-        // 브라우저에서 OAuth URL 열기
-        if (data?.url) {
-          console.log('🌍 Opening browser for OAuth...');
-          await Browser.open({ 
-            url: data.url,
-            presentationStyle: 'popover',
-            windowName: '_blank',
-            toolbarColor: '#1a1a1a' // 다크 테마
-          });
-        }
-        
-        // 타임아웃 처리 (3분)
-        const timeoutId = setTimeout(() => {
-          cleanup();
-          oauthState = null;
-          showToast('로그인 시간이 초과되었습니다', 'error');
-          
-          // OAuth 에러 이벤트 발생
-          window.dispatchEvent(new CustomEvent('oauth-error', {
-            detail: { message: '로그인 시간이 초과되었습니다' }
-          }));
-        }, 180000);
-        
-        // cleanup 함수에 타임아웃 클리어 추가
-        return () => {
-          clearTimeout(timeoutId);
-          cleanup();
-        };
-      } catch (error: any) {
-        oauthState = null;
-        console.error('🔴 Mobile OAuth error:', error);
-        
-        // 사용자 친화적 에러 메시지
-        const message = this.getErrorMessage(error);
-        showToast(message, 'error');
-        throw error;
-      }
-    } else {
-      // 웹에서는 기존 방식 사용
-      return supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-    }
+    console.warn('[mobileAuth] ⚠️ 이 함수는 더 이상 사용되지 않습니다. oauth.ts를 사용하세요.');
+    // oauth.ts의 signInWithGoogle로 리다이렉트
+    const { oauthService } = await import('./oauth');
+    return oauthService.signInWithGoogle();
   },
   
   // 브라우저 이벤트 리스너 설정

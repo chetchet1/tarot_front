@@ -138,6 +138,26 @@ npx cap sync
 - ✅ OAuth 로그인 문제 해결 가능한 상태
 - ✅ 버전 정보 표시 (v1.0.0 | Build 100)
 
+## 🔧 추가 해결 (2025-08-28)
+
+### 발견된 문제들
+1. **중복 OAuth 서비스**: mobileAuth.ts, oauth-mobile.ts, oauth.ts 3개가 중복
+2. **잘못된 리다이렉트 URL**: 모바일에서 `auth/mobile-callback` 대신 `auth/callback` 사용 필요
+3. **디버깅 정보 중복 표시**: LoginModal에 불필요한 디버깅 정보
+
+### 수정 내용
+1. **OAuth 서비스 통합**
+   - mobileAuth.ts의 signInWithGoogle을 oauth.ts로 리다이렉트
+   - oauth.ts의 리다이렉트 URL 수정: `com.tarotgarden.app://auth/callback`
+   - skipBrowserRedirect: false로 변경 (브라우저 리다이렉트 허용)
+
+2. **디버깅 정보 제거**
+   - LoginModal.vue의 debugLogs 관련 코드 모두 제거
+   - 디버깅용 UI 요소 제거
+
+3. **BUILD 번호 업데이트**
+   - BUILD 20250828-01로 업데이트
+
 ---
 
 **다음 대화에서 참조**: 이 문서만 보면 전체 상황 파악 가능

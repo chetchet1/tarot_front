@@ -177,16 +177,6 @@
           </form>
         </div>
       </div>
-      
-      <!-- 디버깅 정보 (임시) -->
-      <div class="debug-info">
-        <div class="debug-title">🐛 Debug Info</div>
-        <div class="debug-content">
-          <div v-for="(log, index) in debugLogs" :key="index" class="debug-log">
-            {{ log }}
-          </div>
-        </div>
-      </div>
         </div>
       </div>
     </div>
@@ -233,9 +223,6 @@ export default {
     const errorMessage = ref('');
     const successMessage = ref('');
     const resetEmail = ref('');
-    
-    // 디버깅 로그
-    const debugLogs = ref([]);
 
     // 폼 데이터
     const formData = ref({
@@ -337,10 +324,7 @@ export default {
 
     // Google 로그인 처리
     const handleGoogleLogin = async () => {
-      const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
-      debugLogs.value = [`[${timestamp}] Google 로그인 시작`];
-      
-      logger.log('[LoginModal] Google 로그인 버튼 클릭 - BUILD 20250827-04');
+      logger.log('[LoginModal] Google 로그인 버튼 클릭 - BUILD 20250828-01');
       isLoading.value = true;
       errorMessage.value = '';
       
@@ -349,12 +333,9 @@ export default {
       let timeoutId;
       
       try {
-        debugLogs.value.push(`[${new Date().toISOString().split('T')[1].split('.')[0]}] 이벤트 리스너 등록 중...`);
         
         // OAuth 성공/실패 이벤트 리스너 등록
         handleOAuthSuccess = async () => {
-          const time = new Date().toISOString().split('T')[1].split('.')[0];
-          debugLogs.value.push(`[${time}] ✅ OAuth 성공 이벤트 수신!`);
           
           console.log('🎉 [LoginModal] oauth-success 이벤트 수신!');
           console.log('🎉 [LoginModal] 이벤트 수신 시각:', new Date().toISOString());
@@ -383,8 +364,6 @@ export default {
         };
         
         handleOAuthError = (event) => {
-          const time = new Date().toISOString().split('T')[1].split('.')[0];
-          debugLogs.value.push(`[${time}] ❌ OAuth 에러: ${event.detail?.message || '알 수 없는 에러'}`);
           
           console.error('🔴 [LoginModal] oauth-error 이벤트 수신:', event.detail);
           console.error('🔴 [LoginModal] 이벤트 수신 시각:', new Date().toISOString());
@@ -403,28 +382,21 @@ export default {
         window.addEventListener('oauth-success', handleOAuthSuccess);
         window.addEventListener('oauth-error', handleOAuthError);
         console.log('✅ [LoginModal] 이벤트 리스너 등록 완료');
-        debugLogs.value.push(`[${new Date().toISOString().split('T')[1].split('.')[0]}] 이벤트 리스너 등록 완료`);
         
         // 현재 등록된 리스너 수 확인 (디버깅용)
         const listeners = window.getEventListeners ? window.getEventListeners(window) : 'getEventListeners not available';
         console.log('📊 [LoginModal] 현재 window 이벤트 리스너:', listeners);
         
         // Google 로그인 시작
-        const startTime = new Date().toISOString().split('T')[1].split('.')[0];
-        debugLogs.value.push(`[${startTime}] OAuth 서비스 호출 중...`);
         console.log('🚀 [LoginModal] userStore.signInWithGoogle() 호출');
         await userStore.signInWithGoogle();
         console.log('✅ [LoginModal] userStore.signInWithGoogle() 완료');
-        debugLogs.value.push(`[${new Date().toISOString().split('T')[1].split('.')[0]}] OAuth 서비스 호출 완료`);
         
         // 타임아웃 설정 (35초 - OAuth 세션 재시도 시간 고려)
         console.log('⏱️ [LoginModal] 35초 타임아웃 설정');
-        debugLogs.value.push(`[${new Date().toISOString().split('T')[1].split('.')[0]}] 35초 타임아웃 설정`);
         
         timeoutId = setTimeout(() => {
           if (isLoading.value) {
-            const timeoutTime = new Date().toISOString().split('T')[1].split('.')[0];
-            debugLogs.value.push(`[${timeoutTime}] ⏰ 타임아웃! 로그인 시간 초과`);
             
             console.log('⏰ [LoginModal] OAuth 타임아웃 발생 - 로딩 상태 리셋');
             isLoading.value = false;
@@ -437,8 +409,6 @@ export default {
         }, 35000);
         
       } catch (error) {
-        const errorTime = new Date().toISOString().split('T')[1].split('.')[0];
-        debugLogs.value.push(`[${errorTime}] ❌ 예외 발생: ${error.message || error}`);
         
         console.error('❌ [LoginModal] Google 로그인 에러:', error);
         console.error('❌ [LoginModal] 에러 상세:', error.stack);

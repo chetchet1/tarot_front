@@ -313,18 +313,20 @@ export const oauthService = {
       
       if (Capacitor.isNativePlatform()) {
         // 모바일 환경 - 앱 스킴 사용 (로컬 빌드)
-        const redirectUrl = 'com.tarotgarden.app://auth/mobile-callback';
+        // Capacitor 앱에서는 앱 스킴을 사용해야 함
+        const redirectUrl = 'com.tarotgarden.app://auth/callback';
         
         logger.log('[OAuth] 모바일 환경 감지');
         logger.log(`[OAuth] Redirect URL: ${redirectUrl}`);
         
         // 세션 정리는 이미 signInWithGoogle 시작 부분에서 처리됨
-        logger.log('[OAuth] 세션 정리 스킵 (이미 처리됨) - BUILD 20250827-07');
+        logger.log('[OAuth] 세션 정리 스킵 (이미 처리됨) - BUILD 20250828-01');
         
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: redirectUrl,
+            skipBrowserRedirect: false, // 브라우저 리다이렉트 허용
             queryParams: {
               access_type: 'offline',
               prompt: 'consent' // 항상 새로운 인증 강제
