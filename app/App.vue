@@ -20,16 +20,29 @@ import './styles/main.scss';
 const route = useRoute();
 const userStore = useUserStore();
 
-// 디버깅 로그 제거 - 배포 빌드용
+console.log('🚀 App.vue initialized:', {
+  href: window.location.href,
+  isNative: Capacitor?.isNativePlatform ? Capacitor.isNativePlatform() : false,
+  hasCapacitor: typeof Capacitor !== 'undefined'
+});
 
 onMounted(async () => {
-  // 초기 라우트 디버깅 로그 제거 - 배포 빌드용
+  console.log('🚀 [App.vue] App mounted');
+  console.log('📍 [App.vue] Current route:', {
+    path: route.path,
+    name: route.name,
+    params: route.params
+  });
+  console.log('🔗 [App.vue] Current URL:', window.location.href);
+  console.log('🔗 [App.vue] URL Hash:', window.location.hash);
   
   // URL Fragment에서 OAuth 토큰 확인 (localhost에서 OAuth 콜백 처리)
+  console.log('🔗 [App.vue] 현재 URL 해시:', window.location.hash);
   
   // /auth/callback 경로나 access_token이 있는 경우
   if (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('/auth/callback'))) {
-    // OAuth 토큰 처리
+    console.log('🔑 [App.vue] OAuth 토큰 또는 콜백 감지!');
+    console.log('🔑 [App.vue] 전체 해시:', window.location.hash);
     
     try {
       let accessToken = null;
@@ -37,6 +50,7 @@ onMounted(async () => {
       
       // URL 해시 파싱
       const hashContent = window.location.hash.substring(1); // # 제거
+      console.log('🔎 [App.vue] 파싱할 내용:', hashContent);
       
       // /auth/callback#access_token=... 형태인 경우
       if (hashContent.includes('/auth/callback#')) {
@@ -44,6 +58,7 @@ onMounted(async () => {
         const params = new URLSearchParams(tokenPart);
         accessToken = params.get('access_token');
         refreshToken = params.get('refresh_token');
+        console.log('📌 [App.vue] 콜백 경로에서 토큰 추출 (방법1)');
       } 
       // /auth/callback?access_token=... 형태인 경우
       else if (hashContent.includes('/auth/callback?')) {
@@ -52,12 +67,14 @@ onMounted(async () => {
         accessToken = params.get('access_token');
         refreshToken = params.get('refresh_token');
         console.log('📌 [App.vue] 콜백 경로에서 토큰 추출 (방법2)');
+        console.log('📌 [App.vue] 콜백 경로에서 토큰 추출 (방법2)');
       }
       // #access_token=... 직접 형태인 경우
       else if (hashContent.includes('access_token=')) {
         const params = new URLSearchParams(hashContent);
         accessToken = params.get('access_token');
         refreshToken = params.get('refresh_token');
+        console.log('📌 [App.vue] 직접 토큰 추출 (방법3)');
         console.log('📌 [App.vue] 직접 토큰 추출 (방법3)');
       }
       
