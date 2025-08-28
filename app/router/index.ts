@@ -199,8 +199,8 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
   const isVercelProduction = window.location.hostname.includes('vercel.app');
   const isProduction = import.meta.env.MODE === 'production' || isVercelProduction;
   const isWeb = !platform.isCapacitor && !platform.isInApp;
-  const allowedPaths = ['/s/', '/download', '/auth/callback', '/oauth-bridge']; // 허용된 경로 패턴
-  const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback', 'OAuthBridge']; // 허용된 라우트 이름
+  const allowedPaths = ['/s/', '/download', '/auth/callback', '/auth/reset-password', '/oauth-bridge']; // 허용된 경로 패턴
+  const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback', 'PasswordReset', 'OAuthBridge']; // 허용된 라우트 이름
   
   // 경로 체크 (공유 페이지 등)
   const isAllowedPath = allowedPaths.some(path => to.path.startsWith(path));

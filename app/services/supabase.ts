@@ -370,8 +370,26 @@ export const authService = {
   // 비밀번호 재설정 이메일 전송
   async resetPassword(email: string) {
     try {
+      // 프로덕션 환경에서는 앱 딥링크 또는 Vercel URL 사용
+      let redirectUrl = '';
+      
+      // 프로덕션/배포 환경 체크
+      if (window.location.hostname.includes('vercel.app')) {
+        // Vercel 배포 환경
+        redirectUrl = `${window.location.origin}/auth/reset-password`;
+      } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // 로컬 개발 환경
+        redirectUrl = `${window.location.origin}/auth/reset-password`;
+      } else {
+        // 기타 환경 (앱에서 호출 시)
+        // 앱의 딥링크 스킴 사용
+        redirectUrl = 'com.tarotgarden.app://auth/reset-password';
+      }
+      
+      console.log('📧 비밀번호 재설정 이메일 리다이렉트 URL:', redirectUrl);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`
+        redirectTo: redirectUrl
       });
       if (error) throw error;
       console.log('✅ 비밀번호 재설정 이메일 전송');

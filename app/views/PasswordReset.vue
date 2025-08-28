@@ -85,10 +85,29 @@
         <div v-if="isComplete" class="complete-container">
           <div class="complete-icon">✅</div>
           <h2>비밀번호가 성공적으로 변경되었습니다!</h2>
-          <p>{{ countdown }}초 후 로그인 페이지로 이동합니다.</p>
-          <button @click="goToLogin" class="login-btn">
-            지금 로그인하기
-          </button>
+          
+          <!-- 웹 환경: 앱 안내 -->
+          <div v-if="isWebEnvironment" class="web-guide">
+            <p class="guide-message">
+              타로의 정원 앱에서 새로운 비밀번호로 로그인해주세요.
+            </p>
+            <div class="app-buttons">
+              <button @click="openApp" class="app-btn primary">
+                🎴 타로의 정원 앱 열기
+              </button>
+              <button @click="goToPlayStore" class="app-btn secondary">
+                📱 Google Play Store에서 설치
+              </button>
+            </div>
+          </div>
+          
+          <!-- 앱 환경: 로그인 페이지로 -->
+          <div v-else>
+            <p>{{ countdown }}초 후 로그인 페이지로 이동합니다.</p>
+            <button @click="goToLogin" class="login-btn">
+              지금 로그인하기
+            </button>
+          </div>
         </div>
 
         <!-- 오류 상태 -->
@@ -109,6 +128,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { supabase } from '../services/supabase';
+import { detectPlatform } from '../utils/platformDetector';
+import { Capacitor } from '@capacitor/core';
 
 const router = useRouter();
 const route = useRoute();
@@ -128,6 +149,10 @@ const passwordError = ref('');
 const confirmPasswordError = ref('');
 const countdown = ref(3);
 let countdownTimer: number | null = null;
+
+// 플랫폼 감지
+const platform = detectPlatform();
+const isWebEnvironment = ref(!platform.isCapacitor && !platform.isInApp);
 
 // 유효성 검사
 const validatePassword = () => {
@@ -245,8 +270,10 @@ const handlePasswordReset = async () => {
     // 로그아웃 처리
     await supabase.auth.signOut();
     
-    // 카운트다운 시작
-    startCountdown();
+    // 웹 환경이 아니면 카운트다운 시작
+    if (!isWebEnvironment.value) {
+      startCountdown();
+    }
     
   } catch (error) {
     console.error('❌ 비밀번호 재설정 오류:', error);
@@ -276,7 +303,38 @@ const goToLogin = () => {
 
 // 새 링크 요청
 const requestNewLink = () => {
-  router.push('/');
+  if (isWebEnvironment.value) {
+    // 웹에서는 앱 다운로드 페이지로
+    window.location.href = 'https://play.google.com/store/apps/details?id=com.tarotgarden.app';
+  } else {
+    router.push('/');
+  }
+};
+
+// 앱 열기 시도 (딥링크)
+const openApp = () => {
+  console.log('🚀 앱 열기 시도');
+  
+  // 딥링크로 앱 열기 시도
+  const appScheme = 'com.tarotgarden.app://';
+  const fallbackUrl = 'https://play.google.com/store/apps/details?id=com.tarotgarden.app';
+  
+  // 앱 열기 시도
+  window.location.href = appScheme;
+  
+  // 2초 후 앱이 열리지 않으면 Play Store로 이동
+  setTimeout(() => {
+    if (document.hasFocus()) {
+      console.log('🔄 앱이 설치되지 않음, Play Store로 이동');
+      window.location.href = fallbackUrl;
+    }
+  }, 2000);
+};
+
+// Play Store로 이동
+const goToPlayStore = () => {
+  console.log('📱 Play Store로 이동');
+  window.location.href = 'https://play.google.com/store/apps/details?id=com.tarotgarden.app';
 };
 
 // 컴포넌트 정리
@@ -491,6 +549,62 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* 웹 환경 앱 안내 */
+.web-guide {
+  padding: 20px;
+}
+
+.guide-message {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.app-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.app-btn {
+  padding: 14px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.app-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.app-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.app-btn.secondary {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+.app-btn.secondary:hover {
+  background: #f0f4ff;
+  transform: translateY(-1px);
 }
 
 .login-btn:hover,
