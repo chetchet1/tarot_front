@@ -17,7 +17,7 @@ public class MainActivity extends BridgeActivity {
         WebView webView = getBridge().getWebView();
         WebSettings webSettings = webView.getSettings();
         webSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
-        webSettings.setAppCacheEnabled(false);
+        // setAppCacheEnabled는 API 33부터 제거됨 (Android 13+)
         
         // 디버깅용 - 항상 최신 컨텐츠 로드
         webView.clearCache(true);
