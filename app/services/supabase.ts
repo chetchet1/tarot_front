@@ -372,35 +372,33 @@ export const authService = {
     try {
       let redirectUrl = '';
       
-      // 1. 먼저 Capacitor 앱인지 확인 (가장 중요!)
-      if (Capacitor.isNativePlatform()) {
-        // 앱에서 실행 중 - 딥링크 사용
-        redirectUrl = 'com.tarotgarden.app://auth/reset-password';
-        console.log('📱 앱 환경 감지 - 딥링크 사용');
-      } 
-      // 2. 웹 환경 체크
-      else if (window.location.hostname.includes('vercel.app')) {
-        // Vercel 배포 환경
+      // 중요: 앱이든 웹이든 모두 Vercel 웹 페이지로 보내기
+      // 이유: 이메일 링크는 웹 브라우저에서 열려야 함 (앱 WebView가 아닌)
+      
+      // 프로덕션 Vercel URL
+      const PRODUCTION_URL = 'https://tarot-app-psi-eight.vercel.app';
+      
+      // 로컬 브라우저 테스트용 (앱이 아닐 때만)
+      if (window.location.hostname === 'localhost' && !Capacitor.isNativePlatform()) {
         redirectUrl = `${window.location.origin}/auth/reset-password`;
-        console.log('🌐 Vercel 배포 환경 감지');
-      } 
-      // 3. 로컬 개발 환경 (앱이 아닌 브라우저에서)
-      else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        redirectUrl = `${window.location.origin}/auth/reset-password`;
-        console.log('💻 로컬 개발 환경 감지');
-      } 
-      // 4. 기타 환경
-      else {
-        redirectUrl = `${window.location.origin}/auth/reset-password`;
-        console.log('🔍 기타 환경 감지');
+        console.log('💻 로컬 브라우저 테스트 - localhost URL 사용');
+      } else {
+        // 앱 또는 프로덕션 환경 - 모두 Vercel URL 사용
+        redirectUrl = `${PRODUCTION_URL}/auth/reset-password`;
+        
+        if (Capacitor.isNativePlatform()) {
+          console.log('📱 앱에서 실행 중 - Vercel URL로 이메일 전송');
+        } else {
+          console.log('🌐 웹 환경 - Vercel URL 사용');
+        }
       }
       
       console.log('📧 비밀번호 재설정 이메일 리다이렉트 URL:', redirectUrl);
-      console.log('📍 현재 환경 정보:', {
+      console.log('📍 환경 정보:', {
         isNative: Capacitor.isNativePlatform(),
         hostname: window.location.hostname,
-        origin: window.location.origin,
-        platform: Capacitor.getPlatform()
+        platform: Capacitor.getPlatform(),
+        finalUrl: redirectUrl
       });
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
