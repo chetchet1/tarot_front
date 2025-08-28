@@ -60,6 +60,17 @@
                     android:host="auth"
                     android:pathPrefix="/callback" />
             </intent-filter>
+            
+            <!-- Supabase 비밀번호 재설정 콜백 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data 
+                    android:scheme="com.tarotgarden.app"
+                    android:host="auth"
+                    android:pathPrefix="/reset-password" />
+            </intent-filter>
 
         </activity>
 
