@@ -13,12 +13,9 @@ def getVersionCode() {
 
     def Properties props = new Properties()
     versionFile.withInputStream { props.load(it) }
-    def code = props['VERSION_CODE'].toInteger() + 1
-    props['VERSION_CODE'] = code.toString()
-    versionFile.withOutputStream { props.store(it, null) }
-    
-    // 빌드 시 버전 정보 출력
-    println "Building with VERSION_CODE: ${code} (auto-incremented from ${code-1})"
+    def code = props['VERSION_CODE'].toInteger()
+
+    println "Building with VERSION_CODE: ${code}"
     return code
 }
 
