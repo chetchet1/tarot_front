@@ -23,136 +23,86 @@ const userStore = useUserStore();
 
 // 프로덕션 빌드 - 콘솔 로그 비활성화
 
-onMounted(async () => {
+onMounted(() => {
   // 기존 디버그 패널 제거
   logger.removeDebugPanel();
-  
-  // 프로덕션 빌드 - OAuth 관련 로그 비활성화
-  
-  // URL Fragment에서 OAuth 토큰 확인 (localhost에서 OAuth 콜백 처리)
-  
-  // /auth/callback 경로나 access_token이 있는 경우
+
+  // URL Fragment에서 OAuth 토큰 처리
   if (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('/auth/callback'))) {
-    // OAuth 토큰 처리
-    
-    try {
-      let accessToken = null;
-      let refreshToken = null;
-      
-      // URL 해시 파싱
-      const hashContent = window.location.hash.substring(1); // # 제거
-      
-      // /auth/callback#access_token=... 형태인 경우
-      if (hashContent.includes('/auth/callback#')) {
-        const tokenPart = hashContent.split('#')[1];
-        const params = new URLSearchParams(tokenPart);
-        accessToken = params.get('access_token');
-        refreshToken = params.get('refresh_token');
-      } 
-      // /auth/callback?access_token=... 형태인 경우
-      else if (hashContent.includes('/auth/callback?')) {
-        const tokenPart = hashContent.split('?')[1];
-        const params = new URLSearchParams(tokenPart);
-        accessToken = params.get('access_token');
-        refreshToken = params.get('refresh_token');
-      }
-      // #access_token=... 직접 형태인 경우
-      else if (hashContent.includes('access_token=')) {
-        const params = new URLSearchParams(hashContent);
-        accessToken = params.get('access_token');
-        refreshToken = params.get('refresh_token');
-      }
-      
-      // 토큰 추출 확인
-      
-      if (accessToken && refreshToken) {
-        // OAuth 세션 설정 시작
+    // ... (기존 OAuth 처리 로직은 그대로 유지)
+    // 이 부분은 웹 환경 콜백이므로 즉시 처리되어야 함
+    (async () => {
+      try {
+        let accessToken = null;
+        let refreshToken = null;
+        const hashContent = window.location.hash.substring(1);
         
-        // 세션 설정
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken
-        });
-        
-        if (!error && data.session) {
-          // OAuth 세션 설정 성공
-          
-          // URL fragment 제거 (깔끔하게)
-          window.history.replaceState(null, '', window.location.origin + window.location.pathname);
-          
-          // 사용자 스토어 업데이트
-          await userStore.initializeUser();
-          
-          // OAuth 성공 이벤트 발생
-          const event = new CustomEvent('oauth-success');
-          window.dispatchEvent(event);
-          
-          // OAuth 로그인 완전 성공
-          return;
-        } else {
-          // 세션 설정 실패
+        if (hashContent.includes('/auth/callback#')) {
+          const tokenPart = hashContent.split('#')[1];
+          const params = new URLSearchParams(tokenPart);
+          accessToken = params.get('access_token');
+          refreshToken = params.get('refresh_token');
+        } else if (hashContent.includes('/auth/callback?')) {
+          const tokenPart = hashContent.split('?')[1];
+          const params = new URLSearchParams(tokenPart);
+          accessToken = params.get('access_token');
+          refreshToken = params.get('refresh_token');
+        } else if (hashContent.includes('access_token=')) {
+          const params = new URLSearchParams(hashContent);
+          accessToken = params.get('access_token');
+          refreshToken = params.get('refresh_token');
         }
-      } else {
-        // 토큰이 없거나 불완전함
-      }
-    } catch (error) {
-      // OAuth 토큰 처리 중 예외
-    }
-  }
-  
-  // 공유 페이지는 사용자 초기화 건너뛰기 (라우트 기반으로 확인)
-  if (route.path.startsWith('/s/')) {
-    // Shared page detected - skipping user initialization
-    return;
-  }
-  
-  try {
-    // OAuth 리스너 설정 (네이티브 앱에서만)
-    // Capacitor 확인
-    
-    if (Capacitor?.isNativePlatform && Capacitor.isNativePlatform()) {
-      // Native platform 감지 - OAuth 리스너 설정
-      await oauthService.setupDeepLinkListener();
-      
-      // 앱 포커스 이벤트 리스너 추가 (OAuth 후 앱으로 돌아왔을 때)
-      CapacitorApp.addListener('appStateChange', async ({ isActive }) => {
-        if (isActive) {
-          // 앱 포커스 받음 - 세션 확인
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            // 포커스 후 세션 확인
-            // 사용자 스토어 업데이트
-            if (!userStore.user || userStore.user.email !== session.user?.email) {
-              await userStore.initializeUser();
-              const event = new CustomEvent('oauth-success');
-              window.dispatchEvent(event);
-            }
+
+        if (accessToken && refreshToken) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          if (!error && data.session) {
+            window.history.replaceState(null, '', window.location.origin + window.location.pathname);
+            await userStore.initializeUser();
+            window.dispatchEvent(new CustomEvent('oauth-success'));
           }
         }
-      });
-      
-      // 앱 업데이트 체크 (비동기로 실행)
-      updateChecker.checkForUpdate().catch(error => {
-        // Update check failed
-      });
-      
-      // RevenueCat 초기화 비활성화 (API 키 없음)
-      // TODO: 프로덕션 배포 시 RevenueCat API 키 설정 후 활성화
-      // try {
-      //   await revenueCatService.initialize();
-      //   console.log('✅ RevenueCat initialized');
-      // } catch (error) {
-      //   console.error('⚠️ RevenueCat initialization failed:', error);
-      // }
-    }
-    
-    // 사용자 초기화 (공유 페이지가 아닌 경우만)
-    // 사용자 초기화
-    await userStore.initializeUser();
-    
-  } catch (error) {
-    // App initialization error
+      } catch (error) {
+        console.error('OAuth 토큰 처리 중 예외:', error);
+      }
+    })();
+    return; // OAuth 콜백 처리 후 다른 초기화 로직 중단
   }
+
+  // 공유 페이지는 초기화 건너뛰기
+  if (route.path.startsWith('/s/')) {
+    return;
+  }
+
+  // 네이티브 앱 초기화 로직 (비동기, 논블로킹으로 처리)
+  if (Capacitor.isNativePlatform()) {
+    // 딥링크 리스너 설정
+    oauthService.setupDeepLinkListener().catch(err => console.error('OAuth 리스너 설정 실패:', err));
+
+    // 앱 상태 변경 리스너
+    CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session && (!userStore.user || userStore.user.email !== session.user?.email)) {
+            userStore.initializeUser().then(() => {
+              window.dispatchEvent(new CustomEvent('oauth-success'));
+            });
+          }
+        });
+      }
+    });
+
+    // 앱 업데이트 체크 (임시 비활성화)
+    // updateChecker.checkForUpdate().catch(err => console.error('업데이트 체크 실패:', err));
+  }
+
+  // 사용자 초기화 (가장 중요한 부분, UI 렌더링을 막지 않음)
+  userStore.initializeUser().catch(err => {
+    console.error('사용자 초기화 실패:', err);
+    // 여기서 실패 시 에러 화면을 보여주는 등의 처리를 할 수 있음
+  });
 });
 </script>
 

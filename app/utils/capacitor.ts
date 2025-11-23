@@ -78,6 +78,7 @@ export class NativeUtils {
     if (!this.isNative) return;
 
     try {
+      await StatusBar.setOverlaysWebView({ overlay: false });
       await StatusBar.setStyle({
         style: isDark ? Style.Dark : Style.Light,
       });

@@ -126,6 +126,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
+import { SplashScreen } from '@capacitor/splash-screen';
 import { showAlert, showConfirm } from '../utils/alerts';
 import { nativeUtils } from '../utils/capacitor';
 import packageInfo from '../../package.json';
@@ -142,7 +143,7 @@ const showTestMenu = ref(false);
 
 // 버전 정보
 const appVersion = ref(packageInfo.version || '1.0.0');
-const buildVersion = ref('122'); // Android 빌드 버전 - android/version.properties와 동기화
+const buildVersion = ref('06920005'); // Android 빌드 버전 - android/version.properties와 동기화
 
 // 뒤로가기 버튼 처리
 let lastBackPressTime = 0;
@@ -190,6 +191,9 @@ onMounted(async () => {
   
   // 네이티브 앱인 경우 뒤로가기 버튼 리스너 설정
   nativeUtils.setupBackButtonListener(handleBackButton);
+
+  // 스플래시 화면 숨기기
+  await SplashScreen.hide();
 });
 
 onUnmounted(() => {
@@ -363,6 +367,7 @@ const upgradeToPremium = async () => {
   background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
   color: white;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 /* 헤더 */
