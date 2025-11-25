@@ -4,21 +4,27 @@ ext {
     autoVersionCode = getVersionCode()
 }
 
-// 버전코드 자동 증가 함수
+// VERSION_CODE reader
 def getVersionCode() {
     def versionFile = file("${rootDir}/version.properties")
+    def defaultCode = 1000
+
     if (!versionFile.exists()) {
-        versionFile.write("VERSION_CODE=1")
+        println "version.properties not found. Using default VERSION_CODE=${defaultCode}"
+        return defaultCode
     }
 
     def Properties props = new Properties()
     versionFile.withInputStream { props.load(it) }
-    def code = props['VERSION_CODE'].toInteger() + 1
-    props['VERSION_CODE'] = code.toString()
-    versionFile.withOutputStream { props.store(it, null) }
-    
-    // 빌드 시 버전 정보 출력
-    println "Building with VERSION_CODE: ${code} (auto-incremented from ${code-1})"
+    def codeProp = props['VERSION_CODE']
+
+    if (!codeProp) {
+        println "VERSION_CODE not set in version.properties. Using default VERSION_CODE=${defaultCode}"
+        return defaultCode
+    }
+
+    def code = codeProp.toInteger()
+    println "Building with VERSION_CODE: ${code}"
     return code
 }
 

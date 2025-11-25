@@ -142,7 +142,7 @@ const showTestMenu = ref(false);
 
 // 버전 정보
 const appVersion = ref(packageInfo.version || '1.0.0');
-const buildVersion = ref('124'); // Android 빌드 버전 - android/version.properties와 동기화
+const buildVersion = ref('06920102'); // Android 빌드 버전 - android/version.properties와 동기화
 
 // 뒤로가기 버튼 처리
 let lastBackPressTime = 0;
@@ -363,6 +363,7 @@ const upgradeToPremium = async () => {
   background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
   color: white;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 /* 헤더 */
