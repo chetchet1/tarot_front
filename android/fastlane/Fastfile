@@ -1,0 +1,30 @@
+# fastlane Fastfile
+
+default_platform(:android)
+
+platform :android do
+  desc "Deploy a new version to the Google Play Internal Test Track"
+  lane :deploy do
+    # The package name of your app
+    package_name = "com.tarotgarden.app"
+
+    # Path to your Google Cloud service account JSON key.
+    # In your CI/CD, this file should be created from a secure environment variable.
+    json_key_file = "fastlane/google-play-key.json"
+
+    # The path to the AAB file to be uploaded.
+    # This assumes the gradlew command was run before this lane.
+    aab_path = "../app/build/outputs/bundle/release/app-release.aab"
+
+    puts("Uploading AAB to Google Play...")
+
+    upload_to_play_store(
+      track: 'internal',
+      aab: aab_path,
+      json_key: json_key_file,
+      package_name: package_name
+    )
+
+    puts("✅ Successfully uploaded to the Internal Test Track!")
+  end
+end
