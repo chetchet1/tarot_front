@@ -62,6 +62,9 @@ jobs:
     - name: 6. Make build script executable
       run: chmod +x ./build-and-deploy.sh
 
+    - name: 6b. Make gradlew executable
+      run: chmod +x ./android/gradlew
+
     - name: 7. Run Build and Deploy Script
       run: ./build-and-deploy.sh ${{ github.event.inputs.sdkVersion }}
       env:
