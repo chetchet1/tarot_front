@@ -45,12 +45,9 @@ jobs:
     - name: 5. Create Keystore and Properties from Secrets
       env:
         # GitHub Secrets에서 값을 가져와 환경 변수로 설정
-        KEYSTORE_PROPERTIES: ${
-  { secrets.KEYSTORE_PROPERTIES }}
-        GCP_SERVICE_ACCOUNT_KEY: ${
-  { secrets.GCP_SERVICE_ACCOUNT_KEY }}
-        KEYSTORE_FILE_BASE64: ${
-  { secrets.KEYSTORE_FILE_BASE64 }}
+        KEYSTORE_PROPERTIES: ${{ secrets.KEYSTORE_PROPERTIES }}
+        GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+        KEYSTORE_FILE_BASE64: ${{ secrets.KEYSTORE_FILE_BASE64 }}
       run: |
         echo "Creating secret files..."
         # Google Play API 키 파일 생성
@@ -67,8 +64,7 @@ jobs:
       run: chmod +x ./build-and-deploy.sh
 
     - name: 7. Run Build and Deploy Script
-      run: ./build-and-deploy.sh ${
-  { github.event.inputs.sdkVersion }}
+      run: ./build-and-deploy.sh ${{ github.event.inputs.sdkVersion }}
       env:
         # fastlane 실행 시 비대화형 모드로 실행하기 위한 환경 변수
         CI: true
