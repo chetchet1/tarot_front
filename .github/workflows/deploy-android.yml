@@ -55,8 +55,9 @@ jobs:
         # Keystore 프로퍼티 파일 생성
         echo "$KEYSTORE_PROPERTIES" > ./android/keystore.properties
         
-        # Base64로 인코딩된 Keystore 파일을 디코딩하여 실제 파일 생성
-        echo "$KEYSTORE_FILE_BASE64" | base64 --decode > $(grep 'storeFile' ./android/keystore.properties | cut -d '=' -f2)
+        # Base64로 인코딩된 Keystore 파일을 디코딩하여 실제 파일 생성 (android 기준 경로)
+        STORE_FILE=$(grep 'storeFile' ./android/keystore.properties | cut -d '=' -f2)
+        echo "$KEYSTORE_FILE_BASE64" | base64 --decode > "./android/${STORE_FILE}"
         echo "Secret files created successfully."
 
     - name: 6. Make build script executable
