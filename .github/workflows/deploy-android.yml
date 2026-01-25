@@ -12,8 +12,8 @@ on:
         required: false
 
   # 2. (선택사항) main 브랜시에 코드가 푸시될 때마다 자동으로 실행
-  # push:
-  #   branches: [ "main" ]
+  push:
+    branches: [ "dev-gemini" ]
 
 jobs:
   build-and-deploy:
