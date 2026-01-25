@@ -40,7 +40,6 @@ jobs:
       with:
         ruby-version: '3.1' # fastlane과 호환되는 Ruby 버전
         bundler-cache: true # Gemfile.lock을 기반으로 의존성 캐시
-      working-directory: ./android
 
     - name: 5. Create Keystore and Properties from Secrets
       env:
