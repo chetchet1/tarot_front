@@ -14,7 +14,7 @@ platform :android do
 
     # The path to the AAB file to be uploaded.
     # This assumes the gradlew command was run before this lane.
-    aab_path = "../app/build/outputs/bundle/release/app-release.aab"
+    aab_path = "app/build/outputs/bundle/release/app-release.aab"
 
     puts("Uploading AAB to Google Play...")
 
