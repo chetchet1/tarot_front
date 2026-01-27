@@ -11,6 +11,42 @@ import { setupDeepLinks } from './utils/deepLinks';
 import { adService } from './services/AdService';
 import { checkPlatform, getPlatformInfo } from './utils/platformCheck';
 
+// In-app error overlay for internal testing (enable via VITE_DEBUG_OVERLAY=true)
+const DEBUG_OVERLAY_ENABLED = import.meta.env.VITE_DEBUG_OVERLAY === 'true';
+let overlayEl: HTMLDivElement | null = null;
+const ensureOverlay = () => {
+  if (!DEBUG_OVERLAY_ENABLED) return null;
+  if (overlayEl) return overlayEl;
+  const el = document.createElement('div');
+  el.id = 'debug-error-overlay';
+  el.style.position = 'fixed';
+  el.style.left = '0';
+  el.style.right = '0';
+  el.style.bottom = '0';
+  el.style.maxHeight = '45%';
+  el.style.overflow = 'auto';
+  el.style.zIndex = '999999';
+  el.style.background = 'rgba(0,0,0,0.85)';
+  el.style.color = '#ffefef';
+  el.style.fontSize = '12px';
+  el.style.fontFamily = 'monospace';
+  el.style.padding = '8px 10px';
+  el.style.borderTop = '2px solid #ff6b6b';
+  el.style.whiteSpace = 'pre-wrap';
+  el.style.pointerEvents = 'auto';
+  el.innerText = 'Debug overlay enabled\n';
+  document.body.appendChild(el);
+  overlayEl = el;
+  return el;
+};
+const appendOverlay = (label: string, value: unknown) => {
+  const el = ensureOverlay();
+  if (!el) return;
+  const msg = value instanceof Error ? `${value.message}\n${value.stack || ''}` : String(value);
+  el.innerText += `\n[${new Date().toISOString()}] ${label}\n${msg}\n`;
+  el.scrollTop = el.scrollHeight;
+};
+
 // 플랫폼 체크 (웹 접속 차단)
 const isBlocked = checkPlatform();
 if (isBlocked) {
@@ -23,7 +59,9 @@ if (isBlocked) {
   }
   
   // 앱 초기화를 중단하고 종료
-  throw new Error('Web access blocked - Mobile only app');
+  const err = new Error('Web access blocked - Mobile only app');
+  appendOverlay('Blocked platform', err);
+  throw err;
 }
 
 // Capacitor 초기화
@@ -43,15 +81,27 @@ app.config.errorHandler = (err, instance, info) => {
   console.error('[Vue Error Handler]', err);
   console.error('[Vue Error Info]', info);
   console.error('[Vue Error Stack]', err.stack);
+  appendOverlay(`Vue error: ${info}`, err);
 };
 
 // 경고 핸들러 추가
 app.config.warnHandler = (msg, instance, trace) => {
   console.warn('[Vue Warning]', msg);
   console.warn('[Vue Warning Trace]', trace);
+  appendOverlay('Vue warning', `${msg}\n${trace || ''}`);
 };
 
 app.mount('#app');
+
+// Global JS errors (internal testing)
+if (DEBUG_OVERLAY_ENABLED) {
+  window.addEventListener('error', (event) => {
+    appendOverlay('Window error', event.error || event.message);
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    appendOverlay('Unhandled rejection', event.reason || event);
+  });
+}
 
 // Store 초기화는 마운트 후에 실행
 import { useUserStore } from './store/user';
