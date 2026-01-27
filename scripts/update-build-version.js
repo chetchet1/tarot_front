@@ -53,10 +53,17 @@ try {
 
   let newVersionCodeStr;
 
+  const runNumber = process.env.GITHUB_RUN_NUMBER
+    ? parseInt(process.env.GITHUB_RUN_NUMBER, 10)
+    : null;
+  const currentCounter = currentVersionCode.length === 8
+    ? parseInt(currentVersionCode.substring(4), 10)
+    : 0;
+
   if (todaysBase === currentBase) {
-    // Same day, increment the counter
-    const currentCounter = parseInt(currentVersionCode.substring(4), 10);
-    const newCounter = currentCounter + 1;
+    // Same day, increment the counter. In CI, ensure counter is at least based on run number.
+    const runCounter = runNumber !== null ? (runNumber % 10000) : 0;
+    const newCounter = Math.max(currentCounter + 1, runCounter);
     newVersionCodeStr = todaysBase + newCounter.toString().padStart(4, '0');
   } else {
     // New day or old format, reset counter
@@ -65,7 +72,8 @@ try {
     if (today.getFullYear() === 2025 && today.getMonth() === 10 && today.getDate() === 23) {
       newVersionCodeStr = todaysBase + '0100'; // Start from 100 for today
     } else {
-      newVersionCodeStr = todaysBase + '0000'; // Reset to 0 for any other new day
+      const runCounter = runNumber !== null ? (runNumber % 10000) : 0;
+      newVersionCodeStr = todaysBase + runCounter.toString().padStart(4, '0');
     }
   }
 

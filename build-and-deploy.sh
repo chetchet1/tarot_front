@@ -15,6 +15,10 @@ else
   echo "✅ Skipping SDK version update. Using version from variables.gradle."
 fi
 
+# --- 1b. Auto-increment Android version code ---
+echo "?? Updating Android VERSION_CODE..."
+node ./scripts/update-build-version.js
+
 # --- 2. Setup Secrets ---
 # In your CI/CD environment, you must create these files using secrets.
 # For example, in GitHub Actions, you would use `echo "$GCP_KEY_SECRET" > android/fastlane/google-play-key.json`
