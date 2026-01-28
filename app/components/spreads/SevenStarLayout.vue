@@ -776,7 +776,7 @@ watch(showPositionMeaning, (newValue, oldValue) => {
 /* 진행 표시기 */
 .progress-indicator {
   position: absolute;
-  bottom: 10px;
+  bottom: calc(10px + var(--app-safe-bottom));
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
@@ -840,7 +840,7 @@ watch(showPositionMeaning, (newValue, oldValue) => {
 /* 액션 버튼 컨테이너 - 레이아웃 밖 */
 .action-buttons-container {
   position: fixed;
-  bottom: 20px;
+  bottom: calc(20px + var(--app-safe-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
@@ -926,7 +926,7 @@ watch(showPositionMeaning, (newValue, oldValue) => {
   }
 
   .action-buttons-container {
-    bottom: 10px;
+    bottom: calc(10px + var(--app-safe-bottom));
     gap: 10px;
     max-width: calc(100% - 40px);
     padding: 0 20px;

@@ -1114,7 +1114,7 @@ const onImageError = handleUnifiedImageError;
 /* 진행 표시기 */
 .progress-indicator {
   position: absolute;
-  bottom: 10px;
+  bottom: calc(10px + var(--app-safe-bottom));
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
@@ -1341,7 +1341,7 @@ const onImageError = handleUnifiedImageError;
 /* 액션 버튼 컨테이너 */
 .action-buttons-container {
   position: fixed;
-  bottom: 20px;
+  bottom: calc(20px + var(--app-safe-bottom));
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
@@ -1387,7 +1387,7 @@ const onImageError = handleUnifiedImageError;
 
 @media (max-width: 768px) {
   .action-buttons-container {
-    bottom: 5px;
+    bottom: calc(5px + var(--app-safe-bottom));
     gap: 10px;
     max-width: 100%;
     padding: 0 10px;
