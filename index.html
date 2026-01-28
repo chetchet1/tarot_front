@@ -2,22 +2,22 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>타로의 정원 - 신비로운 타로카드 여행</title>
-  <meta name="description" content="신비로운 타로카드로 당신의 운명을 확인해보세요. 다양한 스프레드와 전문적인 해석을 제공합니다.">
-  <meta name="keywords" content="타로카드, 타로점, 운세, 점술, 미래예측">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>?�로의 ?�원 - ?�비로운 ?�로카???�행</title>
+  <meta name="description" content="?�비로운 ?�로카?�로 ?�신???�명???�인?�보?�요. ?�양???�프?�드?� ?�문?�인 ?�석???�공?�니??">
+  <meta name="keywords" content="?�로카?? ?�로점, ?�세, ?�술, 미래?�측">
   
-  <!-- PWA 메타 태그 -->
+  <!-- PWA 메�? ?�그 -->
   <meta name="theme-color" content="#1E1B4B">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="타로정원">
+  <meta name="apple-mobile-web-app-title" content="?�로정??>
   <link rel="manifest" href="/manifest.json">
   
   <!-- Open Graph -->
-  <meta property="og:title" content="타로의 정원">
-  <meta property="og:description" content="신비로운 타로카드로 당신의 운명을 확인해보세요">
+  <meta property="og:title" content="?�로의 ?�원">
+  <meta property="og:description" content="?�비로운 ?�로카?�로 ?�신???�명???�인?�보?�요">
   <meta property="og:type" content="website">
   <meta property="og:image" content="/og-image.png">
   
@@ -33,18 +33,20 @@
   
   <style>
     body {
-      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-    }
+  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  height: 100dvh;
+  overflow: hidden;
+}
     
     #app {
-      min-height: 100vh;
-    }
+  height: 100dvh;
+  overflow: hidden;
+}
     
-    /* 로딩 스크린 */
+    /* 로딩 ?�크�?*/
     .loading-screen {
       position: fixed;
       top: 0;
@@ -83,15 +85,15 @@
 </head>
 <body>
   <div id="app">
-    <!-- 로딩 스크린 -->
+    <!-- 로딩 ?�크�?-->
     <div class="loading-screen" id="loading-screen">
       <div class="loading-spinner"></div>
-      <div class="loading-text">타로의 정원 로딩 중...</div>
+      <div class="loading-text">?�로의 ?�원 로딩 �?..</div>
     </div>
   </div>
   
   <script>
-    // 앱 로드 완료 후 로딩 스크린 제거
+    // ??로드 ?�료 ??로딩 ?�크�??�거
     window.addEventListener('load', () => {
       setTimeout(() => {
         const loadingScreen = document.getElementById('loading-screen');
@@ -109,3 +111,4 @@
   <script type="module" src="/app/main.ts"></script>
 </body>
 </html>
+

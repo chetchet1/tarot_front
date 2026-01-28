@@ -10,14 +10,14 @@
 }
 
 html {
-  height: 100%;
-  // ëª¨ë°”?ï¿½ì—??ì¢Œìš° ?ï¿½í¬ï¿?ë°©ï¿½?
-  overflow-x: hidden;
+  height: 100dvh;
   width: 100%;
-  // ëª¨ë°”???ï¿½ì¹˜ ?ï¿½í¬ï¿?ìµœì ??
+  // ¸ğ¹ÙÀÏ¿¡¼­ ÁÂ¿ì ½ºÅ©·Ñ ¹æÁö
+  overflow: hidden;
+  // ¸ğ¹ÙÀÏ ÅÍÄ¡ ½ºÅ©·Ñ ÃÖÀûÈ­
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
 }
-
 html.no-scroll,
 body.no-scroll {
   height: 100%;
@@ -31,27 +31,26 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+  height: 100dvh;
   min-height: 100dvh;
   color: #FFFFFF;
-  // ëª¨ë°”?ï¿½ì—??ì¢Œìš° ?ï¿½í¬ï¿?ë°©ï¿½?
-  overflow-x: hidden;
+  // ¸ğ¹ÙÀÏ¿¡¼­ ÁÂ¿ì ½ºÅ©·Ñ ¹æÁö
+  overflow: hidden;
   width: 100%;
   position: relative;
-  // ëª¨ë°”?ï¿½ì—??ë°”ìš´???ï¿½ê³¼ ë°©ï¿½?
-  overscroll-behavior-x: none;
-  padding-bottom: var(--app-safe-bottom);
+  // ¸ğ¹ÙÀÏ¿¡¼­ ¹Ù¿î½º È¿°ú ¹æÁö
+  overscroll-behavior: none;
 }
-
 #app {
   width: 100%;
+  height: 100dvh;
   min-height: 100dvh;
-  overflow-x: hidden;
+  overflow: hidden;
   position: relative;
-  // ëª¨ë°”?ï¿½ì—??ì¢Œìš° ?ï¿½í¬ï¿?ë°©ï¿½?
+  // ¸ğ¹ÙÀÏ¿¡¼­ ÁÂ¿ì ½ºÅ©·Ñ ¹æÁö
   max-width: 100vw;
   padding-bottom: var(--app-safe-bottom);
 }
-
 // ê³µí†µ ì»´í¬?ï¿½íŠ¸ ?ï¿½ï¿½???
 .card {
   background: rgba(255, 255, 255, 0.05);
@@ -180,6 +179,7 @@ body {
   opacity: 0;
   transform: translateY(10px);
 }
+
 
 
 
