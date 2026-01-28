@@ -1,7 +1,9 @@
 <template>
   <div id="app">
     <!-- Vue Router를 통한 정상 라우팅 -->
-    <router-view />
+    <div class="app-shell">
+      <router-view />
+    </div>
   </div>
 </template>
 

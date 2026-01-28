@@ -384,9 +384,13 @@ const isProcessingResult = ref(false);
 
 const setNoScroll = (enabled: boolean) => {
   const root = document.documentElement;
+  const shell = document.querySelector('.app-shell');
   if (!root || !document.body) return;
   root.classList.toggle('no-scroll', enabled);
   document.body.classList.toggle('no-scroll', enabled);
+  if (shell) {
+    shell.classList.toggle('no-scroll', enabled);
+  }
 };
 
 // 상태 초기화 함수

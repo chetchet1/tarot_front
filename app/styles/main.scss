@@ -49,7 +49,20 @@ body {
   position: relative;
   // ¸ğ¹ÙÀÏ¿¡¼­ ÁÂ¿ì ½ºÅ©·Ñ ¹æÁö
   max-width: 100vw;
+}
+
+.app-shell {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   padding-bottom: var(--app-safe-bottom);
+  box-sizing: border-box;
+}
+
+.app-shell.no-scroll {
+  overflow: hidden;
 }
 // ê³µí†µ ì»´í¬?ï¿½íŠ¸ ?ï¿½ï¿½???
 .card {
@@ -179,6 +192,9 @@ body {
   opacity: 0;
   transform: translateY(10px);
 }
+
+
+
 
 
 
