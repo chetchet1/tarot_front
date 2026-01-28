@@ -7,7 +7,7 @@
 }" @click="debugClick">
     <header class="page-header">
       <div class="header-top">
-        <button class="back-button" @click="goBack">???�로</button>
+        <button class="back-button" @click="goBack">← 뒤로</button>
         <h1>
           카드 뽑기
           <span v-if="hasSpecialLayout" class="spread-name">
@@ -15,35 +15,36 @@
           </span>
         </h1>
       </div>
-      <!-- ?�시 ?�리미엄 ?�시 -->
+      <!-- 임시 프리미엄 표시 -->
       <div v-if="adStatus.isTemporaryPremium" class="premium-status-indicator">
-        ?�� ?�시 ?�리미엄 ?�성??�?        <span class="expiry-time">{{ formatExpiryTime() }}</span>
+        🌟 임시 프리미엄 활성화 중
+        <span class="expiry-time">{{ formatExpiryTime() }}</span>
       </div>
     </header>
 
     <div class="container">
-      <!-- 카드 뽑기 방식 ?�택 -->
+      <!-- 카드 뽑기 방식 선택 -->
       <div class="draw-method-selection" v-if="!drawMethod && !isDrawing && !isComplete">
-        <p class="instruction">카드�??�떻�?뽑으?�겠?�니�?</p>
+        <p class="instruction">카드를 어떻게 뽑으시겠습니까?</p>
         <div class="method-buttons">
           <button class="method-button" @click="selectDrawMethod('random')">
-            <div class="method-icon">?��</div>
-            <h3>무작?�로 뽑기</h3>
-            <p>?�명??맡겨 카드�?뽑습?�다</p>
+            <div class="method-icon">🎲</div>
+            <h3>무작위로 뽑기</h3>
+            <p>운명에 맡겨 카드를 뽑습니다</p>
           </button>
           <button class="method-button" @click="selectDrawMethod('manual')">
-            <div class="method-icon">Manual</div>
+            <div class="method-icon">✋</div>
             <h3>직접 뽑기</h3>
-            <p>Select cards manually.</p>
+            <p>펼쳐진 카드에서 직접 선택합니다</p>
           </button>
         </div>
       </div>
 
-      <!-- 무작??뽑기 -->
+      <!-- 무작위 뽑기 -->
       <div class="deck-container" v-if="drawMethod === 'random' && !isDrawing && !isComplete">
-        <p class="instruction">카드�??�고 ?�습?�다...</p>
+        <p class="instruction">카드를 섞고 있습니다...</p>
         <div class="card-back shuffling">
-          ?��
+          🃏
         </div>
         <button 
           class="btn btn-primary draw-button"
@@ -53,32 +54,32 @@
         </button>
       </div>
 
-      <!-- 직접 ?�택 모드 -->
+      <!-- 직접 선택 모드 -->
       <div class="manual-selection-container" v-if="drawMethod === 'manual' && !isComplete">
         <p class="instruction">
-          {{ manualSelectedCards.length }}/{{ getCardCount() }}???�택?�습?�다.
+          {{ manualSelectedCards.length }}/{{ getCardCount() }}장 선택했습니다.
           <span v-if="manualSelectedCards.length > 0" class="sub-instruction">
-            (?�택??카드�??�릭?�면 취소?????�습?�다)
+            (선택한 카드를 클릭하면 취소할 수 있습니다)
           </span>
           <span v-else>
-            카드�??�릭?�여 ?�택?�세??
+            카드를 클릭하여 선택하세요.
           </span>
         </p>
         
-        <!-- ?�택??카드 ?�시 -->
+        <!-- 선택된 카드 표시 -->
         <div v-if="manualSelectedCards.length > 0" class="selected-cards-preview">
           <div 
             v-for="(card, index) in manualSelectedCards" 
             :key="index" 
             class="selected-card-mini"
             @click="removeSelectedCard(index)"
-            title="?�릭?�면 ?�택 취소"
+            title="클릭하면 선택 취소"
           >
             <span class="selection-number">{{ index + 1 }}</span>
           </div>
         </div>
         
-        <!-- 78??카드 ?�프?�드 -->
+        <!-- 78장 카드 스프레드 -->
         <div class="card-spread-container">
           <div class="spread-background"></div>
           <div class="card-spread">
@@ -93,27 +94,27 @@
               :style="getCardSpreadStyle(index)"
               @click="selectManualCard(card)"
             >
-              <div class="card-back-small">?��</div>
+              <div class="card-back-small">🃏</div>
             </div>
           </div>
         </div>
         
-        <!-- ?�택 ?�료 버튼 -->
+        <!-- 선택 완료 버튼 -->
         <button 
           class="btn btn-primary confirm-button"
           :disabled="manualSelectedCards.length !== getCardCount()"
           @click="confirmManualSelection"
         >
-          카드 ?�택 ?�료
+          카드 선택 완료
         </button>
       </div>
 
-      <!-- 카드 뽑는 �?-->
+      <!-- 카드 뽑는 중 -->
       <div class="drawing-container" v-if="isDrawing">
-        <p class="instruction">{{ getCardCount() }}?�의 카드�?뽑고 ?�습?�다...</p>
+        <p class="instruction">{{ getCardCount() }}장의 카드를 뽑고 있습니다...</p>
         <div class="card-animation">
           <div class="card-back" v-for="i in getCardCount()" :key="i" :class="`card-${i}`">
-            ?��
+            🃏
           </div>
         </div>
         <div class="progress-bar">
@@ -121,9 +122,9 @@
         </div>
       </div>
 
-      <!-- 뽑힌 카드??-->
+      <!-- 뽑힌 카드들 -->
       <div class="cards-container" v-if="isComplete && drawnCards.length > 0">
-        <!-- 캘틱 ?�로???�용 ?�이?�웃 -->
+        <!-- 캘틱 크로스 전용 레이아웃 -->
         <div v-if="isCelticCross" class="celtic-cross-container">
 
           <CelticCrossLayout 
@@ -140,13 +141,13 @@
                 @click="handleInterpretationClick"
                 :disabled="!allCardsRevealed"
               >
-                ?�석 보기
+                해석 보기
               </button>
             </template>
           </CelticCrossLayout>
         </div>
         
-        <!-- ?�븐 ?��? ?�용 ?�이?�웃 -->
+        <!-- 세븐 스타 전용 레이아웃 -->
         <div v-else-if="isSevenStar" class="seven-star-container">
 
           <SevenStarLayout 
@@ -162,13 +163,13 @@
                 @click="handleInterpretationClick"
                 :disabled="!allCardsRevealed"
               >
-                ?�석 보기
+                해석 보기
               </button>
             </template>
           </SevenStarLayout>
         </div>
         
-        <!-- �??�브 릴레?�션???�용 ?�이?�웃 -->
+        <!-- 컵 오브 릴레이션십 전용 레이아웃 -->
         <div v-else-if="isCupOfRelationship" class="cup-relationship-container">
 
           <CupOfRelationshipLayout 
@@ -184,15 +185,15 @@
                 @click="handleInterpretationClick"
                 :disabled="!allCardsRevealed"
               >
-                ?�석 보기
+                해석 보기
               </button>
             </template>
           </CupOfRelationshipLayout>  
         </div>
         
-        <!-- ?�반 카드 ?�이?�웃 -->
+        <!-- 일반 카드 레이아웃 -->
         <div v-else>
-          <p class="instruction">Your drawn cards.</p>
+          <p class="instruction">당신의 카드입니다</p>
           <div class="drawn-cards">
             <div 
               v-for="(card, index) in drawnCards" 
@@ -208,12 +209,12 @@
                 <h3>{{ card.card.nameKr }}</h3>
                 <p class="card-number">{{ card.card.name }}</p>
                 <div class="card-orientation" :class="card.orientation">
-                  {{ card.orientation === 'upright' ? 'Upright' : 'Reversed' }}
+                  {{ card.orientation === 'upright' ? '정방향' : '역방향' }}
                 </div>
               </div>
               <div class="card-back" v-else>
-                ?��
-                <p>?�릭?�여 공개</p>
+                🃏
+                <p>클릭하여 공개</p>
               </div>
             </div>
           </div>
@@ -227,20 +228,20 @@
           @click="goToResult"
           :disabled="!allCardsRevealed"
         >
-          ?�석 보기
+          해석 보기
         </button>
       </div>
 
-      <!-- 광고 모달 (기획 변경으�??�용?��? ?�음) -->
+      <!-- 광고 모달 (기획 변경으로 사용하지 않음) -->
       <!-- <AdModal v-if="showAdModal" @close="closeAdModal" /> -->
       
-      <!-- AI ?�석 로딩 ?�면 -->
+      <!-- AI 해석 로딩 화면 -->
       <TarotLoadingScreen 
         :isVisible="isGeneratingInterpretation" 
         :progress="interpretationProgress"
       />
       
-      <!-- ?�애 ?�태 ?�택 모달 - ReadingSelect?�서 처리?��?�??�거??-->
+      <!-- 연애 상태 선택 모달 - ReadingSelect에서 처리하므로 제거됨 -->
     </div>
   </div>
 </template>
@@ -252,24 +253,25 @@ import { useUserStore } from '../store/user';
 import { useTarotStore } from '../store/tarot';
 import { nativeUtils } from '../utils/capacitor';
 import { getAdManager } from '../services/adManagerSingleton';
-// 중복 ?�출 방�?�??�해 Interpreter?��? tarot.ts?�서�??�용?�도�?변�?- 2025.01.14
-// import { ImprovedCelticCrossInterpreter } from '../utils/ImprovedCelticCrossInterpreter'; // tarot.ts?�서�??�용
-// import { SevenStarInterpreter } from '../services/interpretation/SevenStarInterpreter'; // tarot.ts?�서�??�용
-// import { CupOfRelationshipInterpreter } from '../services/interpretation/CupOfRelationshipInterpreter'; // tarot.ts?�서�??�용
+// 중복 호출 방지를 위해 Interpreter들은 tarot.ts에서만 사용하도록 변경 - 2025.01.14
+// import { ImprovedCelticCrossInterpreter } from '../utils/ImprovedCelticCrossInterpreter'; // tarot.ts에서만 사용
+// import { SevenStarInterpreter } from '../services/interpretation/SevenStarInterpreter'; // tarot.ts에서만 사용
+// import { CupOfRelationshipInterpreter } from '../services/interpretation/CupOfRelationshipInterpreter'; // tarot.ts에서만 사용
 import { customInterpretationService } from '../services/ai/customInterpretationService';
 import { showAlert, showConfirm } from '../utils/alerts';
 import { getUnifiedCardImagePath, handleUnifiedImageError } from '../utils/unifiedCardImage';
-import { showRewardedAd } from '../services/admob'; // ?�료 배열??강제 ?�청 광고
-import { interceptPremiumSpreadCalls, interceptAdManager } from '../utils/debugPremiumSpread'; // ?�버�??�구
-import { monitorSupabaseAPICalls } from '../utils/supabaseMonitor'; // Supabase API 모니?�링
+import { showRewardedAd } from '../services/admob'; // 유료 배열용 강제 시청 광고
+import { interceptPremiumSpreadCalls, interceptAdManager } from '../utils/debugPremiumSpread'; // 디버그 도구
+import { monitorSupabaseAPICalls } from '../utils/supabaseMonitor'; // Supabase API 모니터링
 
-// 컴포?�트 직접 import�?변�?// import AdModal from '../components/AdModal.vue'; // 기획 변경으�??�용?��? ?�음
+// 컴포넌트 직접 import로 변경
+// import AdModal from '../components/AdModal.vue'; // 기획 변경으로 사용하지 않음
 import CelticCrossLayout from '../components/spreads/CelticCrossLayout.vue';
 import SevenStarLayout from '../components/spreads/SevenStarLayout.vue';
 import CupOfRelationshipLayout from '../components/spreads/CupOfRelationshipLayout.vue';
 import TarotLoadingScreen from '../components/loading/TarotLoadingScreen.vue';
-// RelationshipStatusModal ?�거??- ReadingSelect?�서 처리
-// Alert 컴포?�트??useAlert�??�해 ?�용
+// RelationshipStatusModal 제거됨 - ReadingSelect에서 처리
+// Alert 컴포넌트는 useAlert를 통해 사용
 
 interface DrawnCardData {
   card: any; // TarotCard type
@@ -280,55 +282,56 @@ interface DrawnCardData {
 const router = useRouter();
 const userStore = useUserStore();
 const tarotStore = useTarotStore();
-// showAlert, showConfirm?� 직접 import?�서 ?�용
+// showAlert, showConfirm은 직접 import해서 사용
 
 const drawMethod = ref<'random' | 'manual' | null>(null);
 const isDrawing = ref(false);
 const isComplete = ref(false);
 const progress = ref(0);
 const drawnCards = ref<DrawnCardData[]>([]);
-// const showAdModal = ref(false); // 기획 변경으�??�용?��? ?�음
+// const showAdModal = ref(false); // 기획 변경으로 사용하지 않음
 const manualSelectedCards = ref<any[]>([]);
 const shuffledDeck = ref<any[]>([]);
 const improvedInterpretation = ref<any>(null);
 const isGeneratingInterpretation = ref(false);
 const interpretationProgress = ref(0);
 
-// ?�애 ?�태 모달 관???�태 - ?�거??(ReadingSelect?�서 처리)
+// 연애 상태 모달 관련 상태 - 제거됨 (ReadingSelect에서 처리)
 
 const allCardsRevealed = computed(() => {
   return drawnCards.value.length > 0 && drawnCards.value.every(card => card.revealed);
 });
 
-// 광고 매니?� ?�태
+// 광고 매니저 상태
 const adManager = getAdManager();
 const adStatus = ref(adManager.getStatus());
 
-// 광고 ?�태 ?�데?�트 ?�수
+// 광고 상태 업데이트 함수
 const updateAdStatus = () => {
   adStatus.value = adManager.getStatus();
 };
 
-// Expiry time formatting
+// 남은 시간 포맷팅
 const formatExpiryTime = () => {
   if (!adStatus.value.temporaryPremiumExpiry) return '';
-
+  
   const now = new Date();
   const expiry = new Date(adStatus.value.temporaryPremiumExpiry);
   const diff = expiry.getTime() - now.getTime();
-
-  if (diff <= 0) return 'Expired';
-
+  
+  if (diff <= 0) return '만료됨';
+  
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
+  
   if (hours > 0) {
-    return `${hours}h ${minutes}m`;
+    return `${hours}시간 ${minutes}분 남음`;
+  } else {
+    return `${minutes}분 남음`;
   }
-  return `${minutes}m`;
 };
 
-// ?�별 ?�이?�웃 ?�프?�드?��? ?�인
+// 특별 레이아웃 스프레드인지 확인
 const isCelticCross = computed(() => {
   return tarotStore.selectedSpread?.spreadId === 'celtic_cross';
 });
@@ -345,37 +348,38 @@ const hasSpecialLayout = computed(() => {
   return isCelticCross.value || isSevenStar.value || isCupOfRelationship.value;
 });
 
-// Spread display name
+// 스프레드 표시 이름 가져오기
 const getSpreadDisplayName = () => {
-  if (isCelticCross.value) return 'Celtic Cross';
-  if (isSevenStar.value) return 'Seven Star';
-  if (isCupOfRelationship.value) return 'Cup of Relationship';
+  if (isCelticCross.value) return '켈틱 크로스';
+  if (isSevenStar.value) return '세븐 스타';
+  if (isCupOfRelationship.value) return '컵 오브 릴레이션십';
   return '';
 };
 
-// Draw button text
+// 카드 뽑기 버튼 텍스트
 const getDrawButtonText = () => {
-  return 'Draw Cards';
+  // 무료 사용자도 광고 시청으로 무제한 가능
+  return '카드 뽑기';
 };
 
-// 카드 ?��?지 URL ?�성 - ?�합 ?�수 ?�용
+// 카드 이미지 URL 생성 - 통합 함수 사용
 const getCardImageUrl = (card: any) => getUnifiedCardImagePath(card);
 
-// Card count
+// 카드 개수 가져오기
 const getCardCount = () => {
   return tarotStore.selectedSpread?.cardCount || 1;
 };
 
-// Debug click handler
+// 디버그용 클릭 핸들러
 const debugClick = () => {
-  console.log('[CardDrawing] screen tap');
+  console.log('[CardDrawing] 화면 클릭됨');
   console.log('[CardDrawing] drawMethod:', drawMethod.value);
   console.log('[CardDrawing] isDrawing:', isDrawing.value);
   console.log('[CardDrawing] isComplete:', isComplete.value);
-  console.log('[CardDrawing] path:', window.location.pathname);
+  console.log('[CardDrawing] 현재 URL:', window.location.pathname);
 };
 
-// 중복 ?�출 방�?�??�한 ?�래�?- ?�단???�언
+// 중복 호출 방지를 위한 플래그 - 상단에 선언
 const isProcessingResult = ref(false);
 
 const setNoScroll = (enabled: boolean) => {
@@ -385,10 +389,10 @@ const setNoScroll = (enabled: boolean) => {
   document.body.classList.toggle('no-scroll', enabled);
 };
 
-// ?�태 초기???�수
+// 상태 초기화 함수
 const resetState = () => {
-  console.log('?�� [resetState] ?�태 초기???�작');
-  console.log('?�� [resetState] 초기????isProcessingResult:', isProcessingResult.value);
+  console.log('🔄 [resetState] 상태 초기화 시작');
+  console.log('🔄 [resetState] 초기화 전 isProcessingResult:', isProcessingResult.value);
   drawMethod.value = null;
   isDrawing.value = false;
   isComplete.value = false;
@@ -398,36 +402,37 @@ const resetState = () => {
   improvedInterpretation.value = null;
   isGeneratingInterpretation.value = false;
   interpretationProgress.value = 0;
-  // ?�애 ?�태??ReadingSelect?�서 처리
-  // isProcessingResult�??�실?�게 false�??�정
+  // 연애 상태는 ReadingSelect에서 처리
+  // isProcessingResult를 확실하게 false로 설정
   isProcessingResult.value = false;
-  // nextTick???�용??DOM ?�데?�트 ???�확??  nextTick(() => {
+  // nextTick을 사용해 DOM 업데이트 후 재확인
+  nextTick(() => {
     isProcessingResult.value = false;
-    console.log('?�� [resetState] nextTick ??isProcessingResult:', isProcessingResult.value);
+    console.log('🔄 [resetState] nextTick 후 isProcessingResult:', isProcessingResult.value);
   });
-  console.log('?�� [resetState] 초기????isProcessingResult:', isProcessingResult.value);
-  console.log('?�� [resetState] ?�태 초기???�료');
+  console.log('🔄 [resetState] 초기화 후 isProcessingResult:', isProcessingResult.value);
+  console.log('🔄 [resetState] 상태 초기화 완료');
 };
 
-// 컴포?�트 ?�괴 ???�래�?리셋
+// 컴포넌트 파괴 전 플래그 리셋
 onBeforeUnmount(() => {
-  console.log('?�� [onBeforeUnmount] 컴포?�트 ?�괴 ??- ?�래�?리셋');
+  console.log('🔚 [onBeforeUnmount] 컴포넌트 파괴 전 - 플래그 리셋');
   isProcessingResult.value = false;
   isGeneratingInterpretation.value = false;
 });
 
-// 컴포?�트 ?�괴 ???�래�?리셋
+// 컴포넌트 파괴 시 플래그 리셋
 onUnmounted(() => {
   setNoScroll(false);
-  console.log('?�� [onUnmounted] 컴포?�트 ?�괴 - ?�래�?리셋');
+  console.log('🔚 [onUnmounted] 컴포넌트 파괴 - 플래그 리셋');
   isProcessingResult.value = false;
   isGeneratingInterpretation.value = false;
 });
 
-// ?�우??경로 변�?감�?
+// 라우터 경로 변경 감지
 watch(() => router.currentRoute.value.path, (newPath, oldPath) => {
   if (oldPath && oldPath.includes('card-drawing') && !newPath.includes('card-drawing')) {
-    console.log('?�� [watch] 카드 ?�로???�이지?�서 ?�남 - ?�래�?리셋');
+    console.log('🔄 [watch] 카드 드로잉 페이지에서 떠남 - 플래그 리셋');
     isProcessingResult.value = false;
     isGeneratingInterpretation.value = false;
   }
@@ -435,14 +440,14 @@ watch(() => router.currentRoute.value.path, (newPath, oldPath) => {
 
 onMounted(async () => {
   setNoScroll(true);
-  console.log('?�� [CardDrawing] onMounted ?�작');
-  console.log('?�� [CardDrawing] ?�택??주제:', tarotStore.selectedTopic);
-  console.log('?�� [CardDrawing] ?�택??배열�?', tarotStore.selectedSpread);
-  console.log('??[CardDrawing] 커스?� 질문:', tarotStore.getCustomQuestion());
-  console.log('?�� [CardDrawing] ?�로카??개수:', tarotStore.tarotCards.length);
-  console.log('?�� [CardDrawing] ?�재 URL:', window.location.pathname);
-  console.log('?�� [CardDrawing] ?�우??경로:', router.currentRoute.value.path);
-  console.log('?�� [CardDrawing] ?�체 ?�토???�태:', {
+  console.log('🎴 [CardDrawing] onMounted 시작');
+  console.log('📌 [CardDrawing] 선택된 주제:', tarotStore.selectedTopic);
+  console.log('📊 [CardDrawing] 선택된 배열법:', tarotStore.selectedSpread);
+  console.log('❓ [CardDrawing] 커스텀 질문:', tarotStore.getCustomQuestion());
+  console.log('🎴 [CardDrawing] 타로카드 개수:', tarotStore.tarotCards.length);
+  console.log('🌐 [CardDrawing] 현재 URL:', window.location.pathname);
+  console.log('🌐 [CardDrawing] 라우터 경로:', router.currentRoute.value.path);
+  console.log('🔍 [CardDrawing] 전체 스토어 상태:', {
     selectedTopic: JSON.stringify(tarotStore.selectedTopic),
     selectedSpread: JSON.stringify(tarotStore.selectedSpread),
     drawMethod: drawMethod.value,
@@ -450,61 +455,68 @@ onMounted(async () => {
     isComplete: isComplete.value
   });
   
-  // ?�스??계정?????�버�?모드 ?�성??  if (userStore.currentUser?.email === 'test@example.com') {
-    console.error('?��?��?�� ?�스??계정 감�? - ?�버�?모드 ?�성??);
-    console.error('?�� ?�재 ?�간:', new Date().toISOString());
-    console.error('?�� spreadId:', tarotStore.selectedSpread?.spreadId);
+  // 테스트 계정일 때 디버그 모드 활성화
+  if (userStore.currentUser?.email === 'test@example.com') {
+    console.error('🔴🔴🔴 테스트 계정 감지 - 디버그 모드 활성화');
+    console.error('🔴 현재 시간:', new Date().toISOString());
+    console.error('🔴 spreadId:', tarotStore.selectedSpread?.spreadId);
     
-    // 모든 모니?�링 ?�성??    try {
-      monitorSupabaseAPICalls(); // Supabase API ?�출 모니?�링
+    // 모든 모니터링 활성화
+    try {
+      monitorSupabaseAPICalls(); // Supabase API 호출 모니터링
       interceptPremiumSpreadCalls(); // 콘솔 로그 추적
-      interceptAdManager(); // AdManager 가로채�?      
-      console.error('?�� 모니?�링 ?�작 ?�료');
-      console.error('?�� 카드 뽑기 ??API ?�출??추적?�니??..');
+      interceptAdManager(); // AdManager 가로채기
+      
+      console.error('🔴 모니터링 시작 완료');
+      console.error('🔴 카드 뽑기 전 API 호출을 추적합니다...');
     } catch (debugError) {
-      console.error('?�� ?�버�?모드 ?�성???�류:', debugError);
-      // ?�버�??�류??무시?�고 계속 진행
+      console.error('🔴 디버그 모드 활성화 오류:', debugError);
+      // 디버그 오류는 무시하고 계속 진행
     }
   }
   
-  // ?�태 초기??  resetState();
+  // 상태 초기화
+  resetState();
   
-  // DOM??마운?�되?�는지 ?�인
-  console.log('?�� [CardDrawing] DOM ?�인:', {
+  // DOM이 마운트되었는지 확인
+  console.log('🔍 [CardDrawing] DOM 확인:', {
     hasRootElement: document.querySelector('.card-drawing') !== null,
     body: document.body.innerHTML.substring(0, 200)
   });
   
-  // ?�택??주제?� 배열법이 ?�으�??�택 ?�면?�로 ?�아가�?  if (!tarotStore.selectedTopic || !tarotStore.selectedSpread) {
-    console.error('[CardDrawing] 주제 ?�는 배열법이 ?�택?��? ?�음');
-    console.log('[CardDrawing] ?�택 ?�면?�로 ?�아갑니??);
+  // 선택된 주제와 배열법이 없으면 선택 화면으로 돌아가기
+  if (!tarotStore.selectedTopic || !tarotStore.selectedSpread) {
+    console.error('[CardDrawing] 주제 또는 배열법이 선택되지 않음');
+    console.log('[CardDrawing] 선택 화면으로 돌아갑니다');
     
-    // 간단???�림 메시지
+    // 간단한 알림 메시지
     await showAlert({
-      title: '?�택 ?�요',
-      message: '주제?� 배열법을 먼�? ?�택?�주?�요.'
+      title: '선택 필요',
+      message: '주제와 배열법을 먼저 선택해주세요.'
     });
     
-    // ?�택 ?�면?�로 ?�동
+    // 선택 화면으로 이동
     router.push('/reading-select');
     return;
   }
   
-  // 강제�??�면 ?�데?�트 ?�리�?  await nextTick();
-  console.log('[CardDrawing] nextTick ??- ?�면???�더링되?�야 ??);
+  // 강제로 화면 업데이트 트리거
+  await nextTick();
+  console.log('[CardDrawing] nextTick 후 - 화면이 렌더링되어야 함');
   
-  // ?�이지 로드 ??카드 ?�기 ?�니메이??  setTimeout(() => {
-    // 카드 준�??�료
+  // 페이지 로드 시 카드 섞기 애니메이션
+  setTimeout(() => {
+    // 카드 준비 완료
   }, 1000);
   
-  // 직접 ?�택???�한 ???�기
+  // 직접 선택을 위한 덱 섞기
   shuffleDeck();
   
-  // ?��??�토??초기???�인
+  // 타로 스토어 초기화 확인
   if (tarotStore.tarotCards.length === 0) {
-    console.log('[CardDrawing] ?�로카?��? ?�어??초기???�작');
+    console.log('[CardDrawing] 타로카드가 없어서 초기화 시작');
     await tarotStore.initialize();
-    console.log('[CardDrawing] 초기?????�로카??개수:', tarotStore.tarotCards.length);
+    console.log('[CardDrawing] 초기화 후 타로카드 개수:', tarotStore.tarotCards.length);
   }
 });
 
@@ -512,26 +524,28 @@ const goBack = () => {
   router.go(-1);
 };
 
-// ?�로??방법 ?�택
+// 드로우 방법 선택
 const selectDrawMethod = async (method: 'random' | 'manual') => {
-  console.log('?�� [selectDrawMethod] 방법 ?�택:', method);
-  console.log('?�� [selectDrawMethod] ?�택 ??isProcessingResult:', isProcessingResult.value);
+  console.log('🎲 [selectDrawMethod] 방법 선택:', method);
+  console.log('🎲 [selectDrawMethod] 선택 전 isProcessingResult:', isProcessingResult.value);
   
-  // ?�로???�괘 ?�작 ???�태 초기??  resetState();
+  // 새로운 점괘 시작 시 상태 초기화
+  resetState();
   
   drawMethod.value = method;
   
   if (method === 'manual') {
-    // 직접 ?�택 모드�??�한 초기??    manualSelectedCards.value = [];
+    // 직접 선택 모드를 위한 초기화
+    manualSelectedCards.value = [];
   }
   
-  console.log('?�� [selectDrawMethod] ?�택 ??isProcessingResult:', isProcessingResult.value);
+  console.log('🎲 [selectDrawMethod] 선택 후 isProcessingResult:', isProcessingResult.value);
 };
 
-// ???�기
+// 덱 섞기
 const shuffleDeck = () => {
   if (tarotStore.tarotCards.length > 0) {
-    // 모든 카드�?복사?�고 ?�기
+    // 모든 카드를 복사하고 섞기
     const allCards = [...tarotStore.tarotCards];
     for (let i = allCards.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -541,48 +555,49 @@ const shuffleDeck = () => {
   }
 };
 
-// 카드 ?�프?�드 ?��???(?�근 부채꼴 ?�태)
+// 카드 스프레드 스타일 (둥근 부채꼴 형태)
 const getCardSpreadStyle = (index: number) => {
   const totalCards = 78;
-  const centerX = 50; // 중심??X (?�센??
-  const centerY = 75; // 중심??Y (?�센?? - ???�로 ?�림
+  const centerX = 50; // 중심점 X (퍼센트)
+  const centerY = 75; // 중심점 Y (퍼센트) - 더 위로 올림
   
-  // 부채꼴 각도 계산 - ??촘촘?�게
-  const totalAngle = 240; // ?�체 ?�침 각도 (240?�로 증�?)
-  const startAngle = -120; // ?�작 각도
+  // 부채꼴 각도 계산 - 더 촘촘하게
+  const totalAngle = 240; // 전체 펼침 각도 (240도로 증가)
+  const startAngle = -120; // 시작 각도
   const angleStep = totalAngle / (totalCards - 1);
   const angle = startAngle + (index * angleStep);
   
-  // ?�디?�으�?변??  const radian = (angle * Math.PI) / 180;
+  // 라디안으로 변환
+  const radian = (angle * Math.PI) / 180;
   
-  // ?�?�형 배치�??�한 반�?�?계산
-  // 가�?반�?름을 ?�로보다 ?�게 ?�여 ?�?�형?�로 만듦
-  const radiusX = 45; // 가�?반�?�?(?�센??
-  const radiusY = 30; // ?�로 반�?�?(?�센?? - ??줄임
+  // 타원형 배치를 위한 반지름 계산
+  // 가로 반지름을 세로보다 크게 하여 타원형으로 만듦
+  const radiusX = 45; // 가로 반지름 (퍼센트)
+  const radiusY = 30; // 세로 반지름 (퍼센트) - 더 줄임
   
-  // 카드 ?�치 계산 (?�??공식 ?�용)
+  // 카드 위치 계산 (타원 공식 사용)
   const x = centerX + radiusX * Math.sin(radian);
   const y = centerY - radiusY * Math.cos(radian);
   
-  // 카드가 겹쳐 보이?�록 z-index 조정
-  const zIndex = 78 - Math.abs(index - 39); // 중앙???�로
+  // 카드가 겹쳐 보이도록 z-index 조정
+  const zIndex = 78 - Math.abs(index - 39); // 중앙이 위로
   
   return {
     position: 'absolute',
     left: `${x}%`,
     top: `${y}%`,
-    transform: `translate(-50%, -50%) rotate(${angle * 0.7}deg)`, // ?�전 각도�?줄임
+    transform: `translate(-50%, -50%) rotate(${angle * 0.7}deg)`, // 회전 각도를 줄임
     transformOrigin: 'center center',
     zIndex: zIndex
   };
 };
 
-// 카드 ?�택 ?�인
+// 카드 선택 확인
 const isCardSelected = (card: any) => {
   return manualSelectedCards.value.some(selected => selected.id === card.id);
 };
 
-// ?�동 카드 ?�택
+// 수동 카드 선택
 const selectManualCard = async (card: any) => {
   await nativeUtils.buttonTapHaptic();
   
@@ -590,11 +605,11 @@ const selectManualCard = async (card: any) => {
   const maxCards = getCardCount();
   
   if (isSelected) {
-    // ?��? ?�택??카드???�택 ?�제
+    // 이미 선택된 카드는 선택 해제
     manualSelectedCards.value = manualSelectedCards.value.filter(c => c.id !== card.id);
   } else if (manualSelectedCards.value.length < maxCards) {
-    // ?�직 ?�택 가?�한 경우
-    // 무작??방향 결정
+    // 아직 선택 가능한 경우
+    // 무작위 방향 결정
     const orientation = Math.random() > 0.5 ? 'upright' : 'reversed';
     manualSelectedCards.value.push({
       ...card,
@@ -603,70 +618,70 @@ const selectManualCard = async (card: any) => {
   }
 };
 
-// ?�택??카드 ?�거
+// 선택된 카드 제거
 const removeSelectedCard = async (index: number) => {
   await nativeUtils.buttonTapHaptic();
   manualSelectedCards.value.splice(index, 1);
 };
 
-// ?�동 ?�택 ?�료
+// 수동 선택 완료
 const confirmManualSelection = async () => {
-  console.log('?�� [confirmManualSelection] ?�작');
+  console.log('🎯 [confirmManualSelection] 시작');
   
-  // 바로 진행 (?�애 ?�태??ReadingSelect?�서 ?��? 처리??
+  // 바로 진행 (연애 상태는 ReadingSelect에서 이미 처리됨)
   await proceedWithManualSelection();
 };
 
-// ?�제 ?�동 ?�택 처리
+// 실제 수동 선택 처리
 const proceedWithManualSelection = async () => {
-  console.log('?�� [proceedWithManualSelection] ?�작');
+  console.log('🎯 [proceedWithManualSelection] 시작');
   
-  // 광고 매니?��??�해 ?�괘 ?�작 가???��? ?�인 (?�프?�드 ID ?�달)
+  // 광고 매니저를 통해 점괘 시작 가능 여부 확인 (스프레드 ID 전달)
   const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
-  console.log('?�� [confirmManualSelection] spreadId:', spreadId);
+  console.log('🎯 [confirmManualSelection] spreadId:', spreadId);
   
-  // ?�스?? startReading ?�출 ??DB ?�인
+  // 테스트: startReading 호출 전 DB 확인
   let usageBefore;
   if (userStore.currentUser?.email === 'test@example.com' && spreadId === 'celtic_cross') {
-    console.log('?�� [?�스?? confirmManual - startReading ?�출 ??DB 체크');
+    console.log('🧪 [테스트] confirmManual - startReading 호출 전 DB 체크');
     usageBefore = await adManager.checkPremiumSpreadUsage('celtic_cross');
-    console.log('?�� [?�스?? ?�출 ???�용 ?�수:', usageBefore.usedToday);
+    console.log('🧪 [테스트] 호출 전 사용 횟수:', usageBefore.usedToday);
   }
   
   try {
     const canStart = await adManager.startReading(spreadId);
-    console.log('?�� [confirmManualSelection] canStart:', canStart);
+    console.log('🎯 [confirmManualSelection] canStart:', canStart);
     
-    // ?�스?? startReading ?�출 ??DB ?�인
+    // 테스트: startReading 호출 후 DB 확인
     if (userStore.currentUser?.email === 'test@example.com' && spreadId === 'celtic_cross') {
-      console.log('?�� [?�스?? confirmManual - startReading ?�출 ??DB 체크');
+      console.log('🧪 [테스트] confirmManual - startReading 호출 후 DB 체크');
       const usageAfter = await adManager.checkPremiumSpreadUsage('celtic_cross');
-      console.log('?�� [?�스?? ?�출 ???�용 ?�수:', usageAfter.usedToday);
+      console.log('🧪 [테스트] 호출 후 사용 횟수:', usageAfter.usedToday);
       if (usageAfter.usedToday > usageBefore.usedToday) {
-        console.error('?�� [?�스?? ?�️ 문제 발견! confirmManual??startReading?�서 카운?��? 증�??�습?�다!');
+        console.error('🧪 [테스트] ⚠️ 문제 발견! confirmManual의 startReading에서 카운트가 증가했습니다!');
       }
     }
     
     if (!canStart) {
-      console.log('?�� [confirmManualSelection] ?�괘�?�????�음 - ?�료 배열 ?�한');
-      // ?�괘�?�????�는 경우 - ?�료 배열 ?�루 1???�한
+      console.log('🎯 [confirmManualSelection] 점괘를 볼 수 없음 - 유료 배열 제한');
+      // 점괘를 볼 수 없는 경우 - 유료 배열 하루 1회 제한
       await showPremiumSpreadLimit();
       return;
     }
 
     await processManualSelection();
   } catch (error) {
-    console.error('?�� [confirmManualSelection] ?�러:', error);
+    console.error('🎯 [confirmManualSelection] 에러:', error);
     await showAlert({
-      title: '?�류',
-      message: '카드 ?�택 �??�류가 발생?�습?�다. ?�시 ?�도?�주?�요.'
+      title: '오류',
+      message: '카드 선택 중 오류가 발생했습니다. 다시 시도해주세요.'
     });
   }
 };
 
-// ?�동 ?�택 처리
+// 수동 선택 처리
 const processManualSelection = async () => {
-  // ?�택??카드�?진행
+  // 선택된 카드로 진행
   tarotStore.setTempDrawnCards(manualSelectedCards.value);
   
   drawnCards.value = manualSelectedCards.value.map(card => ({
@@ -677,98 +692,102 @@ const processManualSelection = async () => {
   
   isComplete.value = true;
   
-  // ?�계??카운??증�? (기획 변경으�?무료 ?�한 ?�음)
+  // 통계용 카운트 증가 (기획 변경으로 무료 제한 없음)
   // userStore.incrementFreeReading();
 };
 
 const startDrawing = async () => {
-  console.log('?�� [startDrawing] ?�작');
-  console.log('?�� [startDrawing] ?�재 ?�간:', new Date().toISOString());
-  console.log('?�� [startDrawing] ?�재 user:', userStore.currentUser);
-  console.log('?�� [startDrawing] isProcessingResult:', isProcessingResult.value);
+  console.log('🎯 [startDrawing] 시작');
+  console.log('🎯 [startDrawing] 현재 시간:', new Date().toISOString());
+  console.log('🎯 [startDrawing] 현재 user:', userStore.currentUser);
+  console.log('🎯 [startDrawing] isProcessingResult:', isProcessingResult.value);
   
-  // 버튼 ?�릭 ?�틱 ?�드�?  await nativeUtils.buttonTapHaptic();
+  // 버튼 클릭 햇틱 피드백
+  await nativeUtils.buttonTapHaptic();
   
-  // 바로 진행 (?�애 ?�태??ReadingSelect?�서 ?��? 처리??
+  // 바로 진행 (연애 상태는 ReadingSelect에서 이미 처리됨)
   await proceedWithDrawing();
 };
 
-// ?�제 카드 뽑기 진행
+// 실제 카드 뽑기 진행
 const proceedWithDrawing = async () => {
   
-  // 광고 매니?��??�해 ?�괘 ?�작 가???��? ?�인 (?�프?�드 ID ?�달)
+  // 광고 매니저를 통해 점괘 시작 가능 여부 확인 (스프레드 ID 전달)
   const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
-  console.log('?�� [startDrawing] spreadId:', spreadId);
-  console.log('?�� [startDrawing] isPremium:', userStore.isPremium);
-  console.log('?�� [startDrawing] userEmail:', userStore.currentUser?.email);
+  console.log('🎯 [startDrawing] spreadId:', spreadId);
+  console.log('🎯 [startDrawing] isPremium:', userStore.isPremium);
+  console.log('🎯 [startDrawing] userEmail:', userStore.currentUser?.email);
   
-  // ?�스?? startReading ?�출 ??DB ?�인
+  // 테스트: startReading 호출 전 DB 확인
   let usageBefore: any = null;
   if (userStore.currentUser?.email === 'test@example.com' && spreadId === 'celtic_cross') {
-    console.log('?�� [?�스?? startReading ?�출 ??DB 체크');
+    console.log('🧪 [테스트] startReading 호출 전 DB 체크');
     usageBefore = await adManager.checkPremiumSpreadUsage('celtic_cross');
-    console.log('?�� [?�스?? ?�출 ???�용 ?�수:', usageBefore.usedToday);
+    console.log('🧪 [테스트] 호출 전 사용 횟수:', usageBefore.usedToday);
   }
   
   try {
     const canStart = await adManager.startReading(spreadId);
-    console.log('?�� [startDrawing] canStart:', canStart);
+    console.log('🎯 [startDrawing] canStart:', canStart);
     
-    // ?�스?? startReading ?�출 ??DB ?�인
+    // 테스트: startReading 호출 후 DB 확인
     if (userStore.currentUser?.email === 'test@example.com' && spreadId === 'celtic_cross' && usageBefore) {
-      console.log('?�� [?�스?? startReading ?�출 ??DB 체크');
+      console.log('🧪 [테스트] startReading 호출 후 DB 체크');
       const usageAfter = await adManager.checkPremiumSpreadUsage('celtic_cross');
-      console.log('?�� [?�스?? ?�출 ???�용 ?�수:', usageAfter.usedToday);
+      console.log('🧪 [테스트] 호출 후 사용 횟수:', usageAfter.usedToday);
       if (usageAfter.usedToday > usageBefore.usedToday) {
-        console.error('?�� [?�스?? ?�️ 문제 발곬! startReading?�서 카운?��? 증�??�습?�다!');
+        console.error('🧪 [테스트] ⚠️ 문제 발곬! startReading에서 카운트가 증가했습니다!');
       }
     }
     
     if (!canStart) {
-      console.log('?�� [startDrawing] ?�괘�?�????�음 - ?�료 배열 ?�한');
-      // ?�괘�?�????�는 경우 - ?�료 배열 ?�루 1???�한
+      console.log('🎯 [startDrawing] 점괘를 볼 수 없음 - 유료 배열 제한');
+      // 점괘를 볼 수 없는 경우 - 유료 배열 하루 1회 제한
       await showPremiumSpreadLimit();
       return;
     }
 
-    // 광고 ?�태 ?�데?�트
+    // 광고 상태 업데이트
     updateAdStatus();
     
     // 카드 뽑기 진행
-    console.log('?�� [startDrawing] 카드 뽑기 진행');
+    console.log('🎯 [startDrawing] 카드 뽑기 진행');
     await drawCards();
   } catch (error) {
-    console.error('?�� [startDrawing] ?�러:', error);
+    console.error('🎯 [startDrawing] 에러:', error);
     await showAlert({
-      title: '?�류',
-      message: '카드 뽑기 �??�류가 발생?�습?�다. ?�시 ?�도?�주?�요.'
+      title: '오류',
+      message: '카드 뽑기 중 오류가 발생했습니다. 다시 시도해주세요.'
     });
   }
 };
 
 const drawCards = async () => {
-  console.log('?�� [drawCards] 카드 뽑기 ?�작');
+  console.log('🎲 [drawCards] 카드 뽑기 시작');
   isDrawing.value = true;
   progress.value = 0;
 
-  // 카드 ?�기 ?�틱 ?�드�?  await nativeUtils.cardDrawHaptic();
+  // 카드 뛽기 햇틱 피드백
+  await nativeUtils.cardDrawHaptic();
 
-  // ?�로그레??�??�니메이??  const progressInterval = setInterval(() => {
+  // 프로그레스 바 애니메이션
+  const progressInterval = setInterval(() => {
     progress.value += 10;
     if (progress.value >= 100) {
       clearInterval(progressInterval);
     }
   }, 200);
 
-  // 카드 뽑기 ?��??�이??  await new Promise(resolve => setTimeout(resolve, 2500));
+  // 카드 뽑기 시뮬레이션
+  await new Promise(resolve => setTimeout(resolve, 2500));
 
-  // 카드 개수 (?�프?�드???�라 결정)
+  // 카드 개수 (스프레드에 따라 결정)
   const cardCount = tarotStore.selectedSpread?.cardCount || 1;
-  console.log('?�� [drawCards] 카드 개수:', cardCount);
+  console.log('🎲 [drawCards] 카드 개수:', cardCount);
   
-  // ?�제 ?�로카???�이?�에???�덤 ?�택
+  // 실제 타로카드 데이터에서 랜덤 선택
   const selectedCards = tarotStore.drawCards(cardCount);
-  console.log('?�� [drawCards] ?�택??카드:', selectedCards);
+  console.log('🎲 [drawCards] 선택된 카드:', selectedCards);
 
 
   tarotStore.setTempDrawnCards(selectedCards);
@@ -778,150 +797,158 @@ const drawCards = async () => {
     orientation: card.orientation,
     revealed: false
   }));
-  console.log('?�� [drawCards] drawnCards ?�정 ?�료:', drawnCards.value);
+  console.log('🎲 [drawCards] drawnCards 설정 완료:', drawnCards.value);
 
   isDrawing.value = false;
   isComplete.value = true;
-  console.log('?�� [drawCards] 카드 뽑기 ?�료, isComplete:', isComplete.value);
+  console.log('🎲 [drawCards] 카드 뽑기 완료, isComplete:', isComplete.value);
 
-  // ?�스?��? ?�한 ?�동 카드 공개 (개발 ?�경?�서�?
+  // 테스트를 위한 자동 카드 공개 (개발 환경에서만)
   if (userStore.currentUser?.email === 'test@example.com') {
-    console.log('?�� [?�스?? 2�???모든 카드 ?�동 공개');
+    console.log('🧪 [테스트] 2초 후 모든 카드 자동 공개');
     setTimeout(async () => {
-      console.log('?�� [?�스?? ?�동 카드 공개 ?�행');
+      console.log('🧪 [테스트] 자동 카드 공개 실행');
       await revealAllCards();
-      console.log('?�� [?�스?? ?�동 카드 공개 ?�료');
+      console.log('🧪 [테스트] 자동 카드 공개 완료');
     }, 2000);
   }
 
-  // ?�계??카운??증�? (기획 변경으�?무료 ?�한 ?�음)
+  // 통계용 카운트 증가 (기획 변경으로 무료 제한 없음)
   // userStore.incrementFreeReading();
 };
 
 const revealCard = async (index: number) => {
-  console.log('?�� [revealCard] 카드 공개:', index);
-  // 카드 공개 ?�틱 ?�드�?  await nativeUtils.buttonTapHaptic();
+  console.log('🃏 [revealCard] 카드 공개:', index);
+  // 카드 공개 햇틱 피드백
+  await nativeUtils.buttonTapHaptic();
   drawnCards.value[index].revealed = true;
-  console.log('?�� [revealCard] 카드 공개 ???�태:', drawnCards.value[index]);
-  console.log('?�� [revealCard] ?�체 카드 공개 ?�태:', drawnCards.value.map(c => c.revealed));
-  console.log('?�� [revealCard] allCardsRevealed:', allCardsRevealed.value);
+  console.log('🃏 [revealCard] 카드 공개 후 상태:', drawnCards.value[index]);
+  console.log('🃏 [revealCard] 전체 카드 공개 상태:', drawnCards.value.map(c => c.revealed));
+  console.log('🃏 [revealCard] allCardsRevealed:', allCardsRevealed.value);
   
-  // 켈틱 ?�로???�석?� createReading?�서 ?�성?��?�??�기?�는 ?�요?�음 - 2025.01.14
+  // 켈틱 크로스 해석은 createReading에서 생성되므로 여기서는 필요없음 - 2025.01.14
 };
 
-// 모든 카드 ?�괄 ?�집�?const revealAllCards = async () => {
-  console.log('?�� [revealAllCards] 모든 카드 ?�집�??�작');
-  // ?�틱 ?�드�?  await nativeUtils.buttonTapHaptic();
+// 모든 카드 일괄 뒤집기
+const revealAllCards = async () => {
+  console.log('🎭 [revealAllCards] 모든 카드 뒤집기 시작');
+  // 햅틱 피드백
+  await nativeUtils.buttonTapHaptic();
   
-  // 모든 카드�??�차?�으�??�집�?(?�니메이???�과)
+  // 모든 카드를 순차적으로 뒤집기 (애니메이션 효과)
   for (let i = 0; i < drawnCards.value.length; i++) {
     drawnCards.value[i].revealed = true;
-    console.log(`?�� [revealAllCards] 카드 ${i} 공개??);
-    // 카드 ?�이???�간???�레??추�?
+    console.log(`🎭 [revealAllCards] 카드 ${i} 공개됨`);
+    // 카드 사이에 약간의 딜레이 추가
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   
-  console.log('?�� [revealAllCards] 모든 카드 공개 ?�료');
-  console.log('?�� [revealAllCards] allCardsRevealed:', allCardsRevealed.value);
+  console.log('🎭 [revealAllCards] 모든 카드 공개 완료');
+  console.log('🎭 [revealAllCards] allCardsRevealed:', allCardsRevealed.value);
   
-  // 켈틱 ?�로???�석?� createReading?�서 ?�성?��?�??�기?�는 ?�요?�음 - 2025.01.14
+  // 켈틱 크로스 해석은 createReading에서 생성되므로 여기서는 필요없음 - 2025.01.14
 };
 
-// 켈틱 ?�로???�석?� tarot.ts??createReading?�서 ?�성?�도�?변경됨 - 2025.01.14
-// 중복 ?�출 방�?�??�해 ?�거
+// 켈틱 크로스 해석은 tarot.ts의 createReading에서 생성하도록 변경됨 - 2025.01.14
+// 중복 호출 방지를 위해 제거
 
-// (?��? ?�단???�언??
+// (이미 상단에 선언됨)
 
-// ?�석 보기 버튼 ?�릭 ?�들??const handleInterpretationClick = async () => {
-  console.log('?�� [handleInterpretationClick] 버튼 ?�릭 ??');
-  console.log('?�� [handleInterpretationClick] ?�재 ?�간:', new Date().toISOString());
-  console.log('?�� [handleInterpretationClick] isProcessingResult ?�태:', isProcessingResult.value);
+// 해석 보기 버튼 클릭 핸들러
+const handleInterpretationClick = async () => {
+  console.log('🔘 [handleInterpretationClick] 버튼 클릭 됨!');
+  console.log('🔘 [handleInterpretationClick] 현재 시간:', new Date().toISOString());
+  console.log('🔘 [handleInterpretationClick] isProcessingResult 상태:', isProcessingResult.value);
   
-  // ?��? 처리 중이�?무시 (중복 ?�릭 방�?)
+  // 이미 처리 중이면 무시 (중복 클릭 방지)
   if (isProcessingResult.value) {
-    console.log('?�� [handleInterpretationClick] ?��? 처리 �?- 무시');
+    console.log('🔘 [handleInterpretationClick] 이미 처리 중 - 무시');
     return;
   }
   
-  // 버튼 ?�릭 ???�틱 ?�드�?  await nativeUtils.buttonTapHaptic();
+  // 버튼 클릭 시 햅틱 피드백
+  await nativeUtils.buttonTapHaptic();
   
-  // goToResult ?�수 ?�출 - ?�버�??�보 ?�달
+  // goToResult 함수 호출 - 디버그 정보 전달
   try {
-    console.log('?�� [handleInterpretationClick] goToResult ?�출 ?�작');
+    console.log('🔘 [handleInterpretationClick] goToResult 호출 시작');
     await goToResult();
-    console.log('?�� [handleInterpretationClick] goToResult ?�출 ?�료');
+    console.log('🔘 [handleInterpretationClick] goToResult 호출 완료');
   } catch (error) {
-    console.error('?�� [handleInterpretationClick] goToResult ?�러:', error);
-    // ?�러 발생 ???�래�?리셋
+    console.error('🔘 [handleInterpretationClick] goToResult 에러:', error);
+    // 에러 발생 시 플래그 리셋
     isProcessingResult.value = false;
-    console.log('?�� [handleInterpretationClick] ?�러 ??isProcessingResult 리셋:', isProcessingResult.value);
+    console.log('🔘 [handleInterpretationClick] 에러 후 isProcessingResult 리셋:', isProcessingResult.value);
     await showAlert({
-      title: '?�류',
-      message: '?�석 처리 �??�류가 발생?�습?�다.'
+      title: '오류',
+      message: '해석 처리 중 오류가 발생했습니다.'
     });
   }
 };
 
 const goToResult = async () => {
-  // ?�버그용 변???�언
+  // 디버그용 변수 선언
   let usageBeforeGoToResult: any = null;
   const testEmails = ['test@example.com', 'test@test.com'];
   const currentUserEmail = userStore.currentUser?.email?.toLowerCase() || '';
   const isTestUser = testEmails.includes(currentUserEmail) || currentUserEmail.includes('test');
   
-  console.log('?�� [goToResult] ?�수 ?�출??');
-  console.log('?�� [goToResult] isProcessingResult:', isProcessingResult.value);
-  console.log('?�� [goToResult] allCardsRevealed:', allCardsRevealed.value);
-  console.log('?�� [goToResult] drawnCards:', drawnCards.value);
-  console.log('?�� [goToResult] ?�재 ?�간:', new Date().toISOString());
-  console.log('?�� [goToResult] spreadId:', tarotStore.selectedSpread?.spreadId);
-  console.log('?�� [goToResult] ?�용???�메??', userStore.currentUser?.email);
+  console.log('🎯 [goToResult] 함수 호출됨!');
+  console.log('🎯 [goToResult] isProcessingResult:', isProcessingResult.value);
+  console.log('🎯 [goToResult] allCardsRevealed:', allCardsRevealed.value);
+  console.log('🎯 [goToResult] drawnCards:', drawnCards.value);
+  console.log('🎯 [goToResult] 현재 시간:', new Date().toISOString());
+  console.log('🎯 [goToResult] spreadId:', tarotStore.selectedSpread?.spreadId);
+  console.log('🎯 [goToResult] 사용자 이메일:', userStore.currentUser?.email);
   
-  // 켈틱 ?�로?�인 경우 ?�버�??�보 ?�집
+  // 켈틱 크로스인 경우 디버그 정보 수집
   if (tarotStore.selectedSpread?.spreadId === 'celtic_cross') {
-    console.log('?�� [?�버�? 켈틱 ?�로???�용 ?�수 ?�인 ?�작');
-    console.log('?�� [?�버�? ?�용???�메??', currentUserEmail);
-    console.log('?�� [?�버�? ?�스??계정 ?��?:', isTestUser);
+    console.log('🔍 [디버그] 켈틱 크로스 사용 횟수 확인 시작');
+    console.log('🔍 [디버그] 사용자 이메일:', currentUserEmail);
+    console.log('🔍 [디버그] 테스트 계정 여부:', isTestUser);
     try {
       usageBeforeGoToResult = await adManager.checkPremiumSpreadUsage('celtic_cross');
-      console.log('?�� [?�버�? 켈틱 ?�로???�재 ?�용 ?�수:', usageBeforeGoToResult);
+      console.log('🔍 [디버그] 켈틱 크로스 현재 사용 횟수:', usageBeforeGoToResult);
       
-      // ?�버�??�람 ?�거 - 불필?�한 ?�람 ?�시?��? ?�음
+      // 디버그 알람 제거 - 불필요한 알람 표시하지 않음
     } catch (error) {
-      console.error('?�� [?�버�? ?�러:', error);
-      // ?�러??무시?�고 계속 진행
+      console.error('🔍 [디버그] 에러:', error);
+      // 에러는 무시하고 계속 진행
     }
   }
   
-  // ?��? 처리 중이�?중복 ?�출 방�?
+  // 이미 처리 중이면 중복 호출 방지
   if (isProcessingResult.value) {
-    console.log('?�� [goToResult] ?��? 처리 �?- 중복 ?�출 방�?');
+    console.log('🎯 [goToResult] 이미 처리 중 - 중복 호출 방지');
     return;
   }
   
-  // 모든 카드가 공개?��? ?�았?�면 경고
+  // 모든 카드가 공개되지 않았으면 경고
   if (!allCardsRevealed.value) {
-    console.log('?�� [goToResult] 모든 카드가 공개?��? ?�음');
+    console.log('🎯 [goToResult] 모든 카드가 공개되지 않음');
     await showAlert({
-      title: '카드 공개 ?�요',
-      message: '모든 카드�?먼�? 공개?�주?�요!'
+      title: '카드 공개 필요',
+      message: '모든 카드를 먼저 공개해주세요!'
     });
     return;
   }
   
-  // 처리 ?�작
+  // 처리 시작
   isProcessingResult.value = true;
   
-  // ?�프?�드 ?�보 가?�오�?  const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
+  // 스프레드 정보 가져오기
+  const spreadId = tarotStore.selectedSpread?.spreadId || 'one_card';
   const premiumSpreads = ['celtic_cross', 'seven_star', 'cup_of_relationship'];
   const isPremiumSpread = premiumSpreads.includes(spreadId);
   const isSimpleSpread = spreadId === 'one_card' || spreadId === 'three_card_timeline';
   
-  // ?�스??계정�??�시 ?�리미엄 ?�인 - testEmails?� ?��? ?�단?�서 ?�언??  // TODO: ?�제 ?�스?�할 구�? 계정 ?�메?�을 ?�기??추�??�세??  const currentEmail = userStore.currentUser?.email?.toLowerCase() || '';
+  // 테스트 계정과 임시 프리미엄 확인 - testEmails은 이미 상단에서 선언됨
+  // TODO: 실제 테스트할 구글 계정 이메일을 여기에 추가하세요
+  const currentEmail = userStore.currentUser?.email?.toLowerCase() || '';
   const isTestAccount = testEmails.includes(currentEmail) || currentEmail.includes('test');
   const hasTempPremium = adStatus.value.isTemporaryPremium;
   
-  console.log('?�� [goToResult] 광고 ?�시 체크:', {
+  console.log('🎯 [goToResult] 광고 표시 체크:', {
     isPremium: userStore.isPremium,
     isSimpleSpread,
     hasTempPremium,
@@ -929,117 +956,119 @@ const goToResult = async () => {
     spreadId
   });
   
-  // ?�스??계정??광고�?�????�도�??�정 (개발 ?�스?�용)
+  // 테스트 계정도 광고를 볼 수 있도록 설정 (개발 테스트용)
   const shouldShowAd = !userStore.isPremium && !isSimpleSpread && !hasTempPremium;
   
   if (shouldShowAd) {
-    console.log('?�� [goToResult] 무료 ?�용??- 광고 ?�시');
-    console.log('?�� [goToResult] spreadId:', spreadId);
-    console.log('?�� [goToResult] isTestAccount:', isTestAccount);
-    console.log('?�� [goToResult] hasTempPremium:', hasTempPremium);
+    console.log('📺 [goToResult] 무료 사용자 - 광고 표시');
+    console.log('📺 [goToResult] spreadId:', spreadId);
+    console.log('📺 [goToResult] isTestAccount:', isTestAccount);
+    console.log('📺 [goToResult] hasTempPremium:', hasTempPremium);
     
-    // 광고 ?�시 ?�인  
+    // 광고 표시 확인  
     try {
       const confirmed = await showConfirm({
-        title: '광고 ?�청',
-        message: '?�석??보려�?15�?광고�??�청?�야 ?�니??\n(광고???�킵?????�습?�다)\n\n계속?�시겠습?�까?'
+        title: '광고 시청',
+        message: '해석을 보려면 15초 광고를 시청해야 합니다.\n(광고는 스킵할 수 없습니다)\n\n계속하시겠습니까?'
       });
       
-      console.log('?�� [goToResult] confirm 결과:', confirmed);
+      console.log('📺 [goToResult] confirm 결과:', confirmed);
       
       if (!confirmed) {
-        console.log('?�� [goToResult] ?�용?��? 취소??);
+        console.log('📺 [goToResult] 사용자가 취소함');
         isProcessingResult.value = false;
         return;
       }
     } catch (error) {
-      console.error('?�� [goToResult] confirm ?�러:', error);
-      // confirm ?�러 ?�에??진행
+      console.error('📺 [goToResult] confirm 에러:', error);
+      // confirm 에러 시에도 진행
     }
     
-    // 광고 ?�시 - 매번 ?�로??광고 ?�스?�스 ?�성
+    // 광고 표시 - 매번 새로운 광고 인스턴스 생성
     try {
-      console.log('?�� [goToResult] 광고 ?�시 ?�작...');
-      console.log('?�� [goToResult] ?�재 ?�간:', new Date().toISOString());
+      console.log('📺 [goToResult] 광고 표시 시작...');
+      console.log('📺 [goToResult] 현재 시간:', new Date().toISOString());
       
-      // adService 초기???�태 ?�설?�을 ?�해 ?�간???�레??추�?
+      // adService 초기화 상태 재설정을 위해 약간의 딜레이 추가
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      // 광고 ?�비?�에??직접 강제 ?�청 광고 ?�시 (?�료 배열?� 리워??광고)
+      // 광고 서비스에서 직접 강제 시청 광고 표시 (유료 배열은 리워드 광고)
       const adWatched = await showRewardedAd();
-      console.log('?�� [goToResult] 강제 ?�청 광고 ?�시 결과:', adWatched);
-      console.log('?�� [goToResult] 광고 ?�시 ???�간:', new Date().toISOString());
+      console.log('📺 [goToResult] 강제 시청 광고 표시 결과:', adWatched);
+      console.log('📺 [goToResult] 광고 표시 후 시간:', new Date().toISOString());
       
       if (!adWatched) {
-        console.log('?�� [goToResult] 광고 ?�청 ?�패');
+        console.log('📺 [goToResult] 광고 시청 실패');
         await showAlert({
-          title: '광고 ?�류',
-          message: '광고 로드???�패?�습?�다. ?�시 ?�도?�주?�요.'
+          title: '광고 오류',
+          message: '광고 로드에 실패했습니다. 다시 시도해주세요.'
         });
         isProcessingResult.value = false;
         return;
       }
       
-      // 광고 ?�청 ?�공 ???�태 ?�데?�트
+      // 광고 시청 성공 시 상태 업데이트
       updateAdStatus();
     } catch (error) {
-      console.error('?�� [goToResult] 광고 ?�시 ?�류:', error);
-      console.error('?�� [goToResult] ?�류 ?�세:', {
+      console.error('📺 [goToResult] 광고 표시 오류:', error);
+      console.error('📺 [goToResult] 오류 상세:', {
         message: error.message,
         stack: error.stack,
         name: error.name
       });
-      // 광고 ?�류 ?�에??진행 (?�용??경험 ?�선)
+      // 광고 오류 시에도 진행 (사용자 경험 우선)
       await showAlert({
-        title: '?�림',
-        message: '광고 로드 �??�류가 발생?�습?�다. ?�석 ?�면?�로 ?�동?�니??'
+        title: '알림',
+        message: '광고 로드 중 오류가 발생했습니다. 해석 화면으로 이동합니다.'
       });
     }
   } else if (isSimpleSpread) {
-    console.log('?�� [goToResult] 1??3??배열 - 광고 ?�이 진행');
+    console.log('📺 [goToResult] 1장/3장 배열 - 광고 없이 진행');
   } else if (userStore.isPremium || hasTempPremium) {
-    console.log('?�� [goToResult] ?�리미엄/?�시 ?�리미엄 ?�용??- 광고 ?�이 진행');
+    console.log('📺 [goToResult] 프리미엄/임시 프리미엄 사용자 - 광고 없이 진행');
   }
   
-  // ?�료 배열 ?�용 기록 (결과 보기 ?�점?�만 기록)
+  // 유료 배열 사용 기록 (결과 보기 시점에만 기록)
   
-  // ?�스?? 기록 ??DB ?�인
+  // 테스트: 기록 전 DB 확인
   if (userStore.currentUser?.email === 'test@example.com' && tarotStore.selectedSpread?.spreadId === 'celtic_cross') {
-    console.log('?�� [?�스?? recordPremiumSpreadUsage ?�출 ??DB 체크');
+    console.log('🧪 [테스트] recordPremiumSpreadUsage 호출 전 DB 체크');
     const usageBeforeRecord = await adManager.checkPremiumSpreadUsage('celtic_cross');
-    console.log('?�� [?�스?? 기록 ???�용 ?�수:', usageBeforeRecord.usedToday);
+    console.log('🧪 [테스트] 기록 전 사용 횟수:', usageBeforeRecord.usedToday);
   }
   
-  // 무료 ?�용?��? ?�료 배열???�용?�는 경우?�만 기록
-  // ?��??�토?�에???�래�??�인
+  // 무료 사용자가 유료 배열을 사용하는 경우에만 기록
+  // 타로 스토어에서 플래그 확인
   const shouldRecordUsage = tarotStore.getPremiumSpreadUsage();
   
   if (!userStore.isPremium && !hasTempPremium && isPremiumSpread && shouldRecordUsage) {
-    // ?�스??계정?� 기록?��? ?�음 - ?�중 체크
+    // 테스트 계정은 기록하지 않음 - 삼중 체크
     const testEmails = ['test@example.com', 'test@test.com'];
     const currentEmail = userStore.currentUser?.email?.toLowerCase() || '';
     const isDefinitelyTestAccount = testEmails.includes(currentEmail) || currentEmail.includes('test');
     
-    console.log('?�� [goToResult] ?�료 배열 ?�용 기록 체크');
-    console.log('?�� [goToResult] currentEmail:', currentEmail);
-    console.log('?�� [goToResult] isDefinitelyTestAccount:', isDefinitelyTestAccount);
-    console.log('?�� [goToResult] spreadId:', spreadId);
-    console.log('?�� [goToResult] shouldRecordUsage:', shouldRecordUsage);
+    console.log('📋 [goToResult] 유료 배열 사용 기록 체크');
+    console.log('📋 [goToResult] currentEmail:', currentEmail);
+    console.log('📋 [goToResult] isDefinitelyTestAccount:', isDefinitelyTestAccount);
+    console.log('📋 [goToResult] spreadId:', spreadId);
+    console.log('📋 [goToResult] shouldRecordUsage:', shouldRecordUsage);
     
     if (!isDefinitelyTestAccount) {
-      console.log('?�� [goToResult] ?�반 ?�용??- ?�료 배열 ?�용 기록 ?�작');
+      console.log('📋 [goToResult] 일반 사용자 - 유료 배열 사용 기록 시작');
       await adManager.recordPremiumSpreadUsage(spreadId);
-      console.log('?�� [goToResult] ?�료 배열 ?�용 기록 ?�료');
+      console.log('📋 [goToResult] 유료 배열 사용 기록 완료');
       
-      // ?�래�?초기??      tarotStore.clearPremiumSpreadUsage();
+      // 플래그 초기화
+      tarotStore.clearPremiumSpreadUsage();
     } else {
-      console.log('?�� [goToResult] ?�스??계정 ?�인??- ?�료 배열 ?�용 기록 건너?�');
-      console.log('?�� [goToResult] ?�스??계정 ?�메??', currentEmail);
+      console.log('📋 [goToResult] 테스트 계정 확인됨 - 유료 배열 사용 기록 건너뜀');
+      console.log('📋 [goToResult] 테스트 계정 이메일:', currentEmail);
       
-      // ?�스??계정???�래�?초기??      tarotStore.clearPremiumSpreadUsage();
+      // 테스트 계정도 플래그 초기화
+      tarotStore.clearPremiumSpreadUsage();
     }
   } else {
-    console.log('?�� [goToResult] ?�료 배열 기록 조건 미충�?', {
+    console.log('📋 [goToResult] 유료 배열 기록 조건 미충족:', {
       isPremium: userStore.isPremium,
       hasTempPremium: hasTempPremium,
       isPremiumSpread: isPremiumSpread,
@@ -1048,70 +1077,73 @@ const goToResult = async () => {
     });
   }
   
-  // 기록 ??DB ?�인 (모든 ?�용???�??
+  // 기록 후 DB 확인 (모든 사용자 대상)
   if (tarotStore.selectedSpread?.spreadId === 'celtic_cross') {
-    console.log('?�� [?�버�? recordPremiumSpreadUsage ?�출 ??DB 체크');
+    console.log('🔍 [디버그] recordPremiumSpreadUsage 호출 후 DB 체크');
     const usageAfterRecord = await adManager.checkPremiumSpreadUsage('celtic_cross');
-    console.log('?�� [?�버�? 기록 ???�용 ?�수:', usageAfterRecord.usedToday);
+    console.log('🔍 [디버그] 기록 후 사용 횟수:', usageAfterRecord.usedToday);
     
-    // goToResult ?�체 ?�후 비교 (usageBeforeGoToResult가 ?�을 ?�만)
+    // goToResult 전체 전후 비교 (usageBeforeGoToResult가 있을 때만)
     if (usageBeforeGoToResult) {
       const diff = usageAfterRecord.usedToday - usageBeforeGoToResult.usedToday;
-      const accountType = isTestUser ? '?�스??계정' : '?�반 무료 계정';
+      const accountType = isTestUser ? '테스트 계정' : '일반 무료 계정';
       
       if (isTestUser) {
-        // ?�스??계정??경우
+        // 테스트 계정인 경우
         if (diff > 0) {
-          console.error('?�️ 버그 발견! ?�스??계정?�데 카운?��? 증�??�습?�다!');
+          console.error('⚠️ 버그 발견! 테스트 계정인데 카운트가 증가했습니다!');
         } else {
-          console.log('???�상: ?�스??계정 카운??증�? ?�음');
+          console.log('✅ 정상: 테스트 계정 카운트 증가 없음');
         }
       } else {
-        // ?�반 계정??경우
+        // 일반 계정인 경우
         if (diff > 0) {
-          console.log('???�상: ?�반 계정 카운??증�?');
-          // ?�용 ?�료 ?�람 ?�거 - ?�연?�러???�용??경험???�해
+          console.log('✅ 정상: 일반 계정 카운트 증가');
+          // 사용 완료 알람 제거 - 자연스러운 사용자 경험을 위해
         } else {
-          console.log('?�� ?�상�?못한 ?�황: ?�반 계정?�데 카운??증�? ?�음');
+          console.log('🤔 예상치 못한 상황: 일반 계정인데 카운트 증가 없음');
         }
       }
     }
   }
   
-  // 모든 배열?�서 로딩 ?�면 ?�시
+  // 모든 배열에서 로딩 화면 표시
   isGeneratingInterpretation.value = true;
   interpretationProgress.value = 0;
   
-  // ?�로그레???�데?�트 ?��??�이??  const progressInterval = setInterval(() => {
+  // 프로그레스 업데이트 시뮬레이션
+  const progressInterval = setInterval(() => {
     if (interpretationProgress.value < 90) {
       interpretationProgress.value += Math.random() * 15;
     }
   }, 500);
   
   try {
-    // 켈틱 ?�로?�의 경우 개선???�석???�께 ?�??    if (isCelticCross.value && improvedInterpretation.value) {
+    // 켈틱 크로스의 경우 개선된 해석을 함께 저장
+    if (isCelticCross.value && improvedInterpretation.value) {
       tarotStore.setImprovedInterpretation(improvedInterpretation.value);
     }
     
-    // 커스?� 질문 가?�오�?    const customQuestion = tarotStore.getCustomQuestion();
+    // 커스텀 질문 가져오기
+    const customQuestion = tarotStore.getCustomQuestion();
     
-    // 뽑힌 카드�??�괘 ?�성
+    // 뽑힌 카드로 점괘 생성
     const reading = await tarotStore.createReading(
       tarotStore.selectedSpread?.spreadId || 'one_card',
       tarotStore.selectedTopic?.id || 'general',
-      customQuestion || undefined, // 커스?� 질문 ?�달
+      customQuestion || undefined, // 커스텀 질문 전달
       tarotStore.getTempDrawnCards() || undefined
     );
     
-    // AI ?�석 ?�성 (?�리미엄/?�스??계정�?
+    // AI 해석 생성 (프리미엄/테스트 계정만)
     const topic = tarotStore.selectedTopic?.id || 'general';
     const spreadId = tarotStore.selectedSpread?.spreadId || 'three_cards';
     const shouldGenerateAI = (userStore.isPremium || isTestAccount) && 
                             (customQuestion || isCelticCross.value || isSevenStar.value || isCupOfRelationship.value);
     
     if (shouldGenerateAI && reading && !reading.aiInterpretation) {
-      console.log('?�� AI ?�석 ?�성 ?�작');
-      console.log('?�� 조건:', { 
+      console.log('🤖 AI 해석 생성 시작');
+      console.log('🤖 조건:', { 
         customQuestion: !!customQuestion, 
         isCelticCross: isCelticCross.value,
         isSevenStar: isSevenStar.value,
@@ -1119,66 +1151,69 @@ const goToResult = async () => {
       });
       
       try {
-        // ?�로그레???�데?�트
+        // 프로그레스 업데이트
         interpretationProgress.value = 30;
         
-        // 켈틱 ?�로?�도 tarot.ts??createReading?�서 ?��? ?�석 ?�성??        // 중복 ?�출 ?�거 - 2025.01.14
-        // 켈틱?�로?�는 커스?� 질문 ?��??� 관계없???��? createReading?�서 CelticCrossAIInterpreter�?처리??        if (isCelticCross.value) {
-          console.log('?�� 켈틱 ?�로??- ?��? createReading?�서 ?�석 ?�성??);
-          console.log('?�� 커스?� 질문 ?��?:', !!customQuestion);
-          console.log('?�� 기존 ?�석 ?�인:', {
+        // 켈틱 크로스도 tarot.ts의 createReading에서 이미 해석 생성됨
+        // 중복 호출 제거 - 2025.01.14
+        // 켈틱크로스는 커스텀 질문 여부와 관계없이 이미 createReading에서 CelticCrossAIInterpreter로 처리됨
+        if (isCelticCross.value) {
+          console.log('🤖 켈틱 크로스 - 이미 createReading에서 해석 생성됨');
+          console.log('🤖 커스텀 질문 여부:', !!customQuestion);
+          console.log('🤖 기존 해석 확인:', {
             hasImprovedInterpretation: !!reading.improvedInterpretation,
             hasPremiumInsights: !!reading.premiumInsights,
             hasEnhancedInterpretation: !!reading.enhancedInterpretation,
             hasAiInterpretation: !!reading.aiInterpretation
           });
           
-          // ?��? ?�성???�석???�는지 ?�인
+          // 이미 생성된 해석이 있는지 확인
           if (reading.improvedInterpretation) {
-            // improvedInterpretation?�서 AI ?�석 추출
+            // improvedInterpretation에서 AI 해석 추출
             let aiInterpretationText = '';
             if (typeof reading.improvedInterpretation === 'object') {
               aiInterpretationText = reading.improvedInterpretation.aiInterpretation ||
                                     reading.improvedInterpretation.overallInterpretation || 
                                     reading.improvedInterpretation.summary || 
                                     reading.improvedInterpretation.overallMessage ||
-                                    '?�석???�성?????�습?�다.';
+                                    '해석을 생성할 수 없습니다.';
             } else if (typeof reading.improvedInterpretation === 'string') {
               aiInterpretationText = reading.improvedInterpretation;
             }
             reading.aiInterpretation = aiInterpretationText;
-            console.log('?�� 기존 켈틱 ?�로???�석 ?�용');
+            console.log('🤖 기존 켈틱 크로스 해석 사용');
           } else if (reading.enhancedInterpretation?.overallMessage) {
             reading.aiInterpretation = reading.enhancedInterpretation.overallMessage;
-            console.log('?�� 기존 enhanced ?�석 ?�용');
+            console.log('🤖 기존 enhanced 해석 사용');
           } else {
-            console.log('?�� 켈틱 ?�로???�석???��? ?�성?�어 ?�어????);
+            console.log('🤖 켈틱 크로스 해석이 이미 생성되어 있어야 함');
           }
         }
-        // ?�븐?��??� 컵오브릴?�이?�십?� tarot.ts??createReading?�서 ?��? ?�석 ?�성??        // 중복 ?�출 ?�거 - 2025.01.14
+        // 세븐스타와 컵오브릴레이션십은 tarot.ts의 createReading에서 이미 해석 생성됨
+        // 중복 호출 제거 - 2025.01.14
         else if (isSevenStar.value || isCupOfRelationship.value) {
-          console.log('?�� ?�븐?��?/컵오브릴?�이?�십 - ?��? createReading?�서 ?�석 ?�성??);
-          console.log('?�� 기존 ?�석 ?�인:', {
+          console.log('🤖 세븐스타/컵오브릴레이션십 - 이미 createReading에서 해석 생성됨');
+          console.log('🤖 기존 해석 확인:', {
             hasEnhancedInterpretation: !!reading.enhancedInterpretation,
             hasPremiumInsights: !!reading.premiumInsights,
             hasAiInterpretation: !!reading.enhancedInterpretation?.aiInterpretation
           });
           
-          // ?��? ?�성???�석???�는지 ?�인
+          // 이미 생성된 해석이 있는지 확인
           if (reading.enhancedInterpretation?.aiInterpretation) {
             reading.aiInterpretation = reading.enhancedInterpretation.aiInterpretation;
-            console.log('?�� 기존 AI ?�석 ?�용');
+            console.log('🤖 기존 AI 해석 사용');
           } else if (reading.premiumInsights?.aiInterpretation) {
             reading.aiInterpretation = reading.premiumInsights.aiInterpretation;
-            console.log('?�� 기존 ?�리미엄 ?�석 ?�용');
+            console.log('🤖 기존 프리미엄 해석 사용');
           } else {
-            console.log('?�� ?�석???��? ?�성?�어 ?�어????(createReading?�서)');
+            console.log('🤖 해석이 이미 생성되어 있어야 함 (createReading에서)');
           }
         }
-        // 커스?� 질문???�는 경우 customInterpretationService ?�용
-        // ?�리미엄 배열�?켈틱?�로?? ?�븐?��?, 컵오브릴?�이?�십)?� ?�외
+        // 커스텀 질문이 있는 경우 customInterpretationService 사용
+        // 프리미엄 배열법(켈틱크로스, 세븐스타, 컵오브릴레이션십)은 제외
         else if (customQuestion && !isCelticCross.value && !isSevenStar.value && !isCupOfRelationship.value) {
-          console.log('?�� 커스?� 질문 AI ?�석 ?�성');
+          console.log('🤖 커스텀 질문 AI 해석 생성');
           
           const interpretationRequest = {
             readingId: reading.id,
@@ -1213,72 +1248,74 @@ const goToResult = async () => {
               reading.probabilityAnalysis = interpretationResult.probabilityAnalysis;
             }
             
-            console.log('?�� 커스?� 질문 AI ?�석 ?�공');
+            console.log('🤖 커스텀 질문 AI 해석 성공');
           } else {
-            console.error('?�� 커스?� 질문 AI ?�석 ?�패:', interpretationResult.error);
-            reading.aiInterpretation = '?�석???�성?????�습?�다.';
+            console.error('🤖 커스텀 질문 AI 해석 실패:', interpretationResult.error);
+            reading.aiInterpretation = '해석을 생성할 수 없습니다.';
           }
         }
         
-        // ?�로그레???�데?�트
+        // 프로그레스 업데이트
         interpretationProgress.value = 70;
         
-        // reading??store???�데?�트
+        // reading을 store에 업데이트
         tarotStore.updateReading(reading);
       } catch (aiError) {
-        console.error('?�� AI ?�석 ?�성 ?�패:', aiError);
+        console.error('🤖 AI 해석 생성 실패:', aiError);
         tarotStore.updateReading(reading);
       }
     }
     
-    console.log('???�괘 ?�성 ?�공:', reading.id);
+    console.log('✅ 점괘 생성 성공:', reading.id);
     
-    // ?�로그레???�료
+    // 프로그레스 완료
     clearInterval(progressInterval);
     interpretationProgress.value = 100;
     
-    // ?�시 ?��????�면 ?�환
+    // 잠시 대기 후 화면 전환
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    // 로딩 ?�면 ?�기�?    isGeneratingInterpretation.value = false;
+    // 로딩 화면 숨기기
+    isGeneratingInterpretation.value = false;
     
-    // ?�래�?명확?�게 리셋 (?�이지 ?�환 ??
+    // 플래그 명확하게 리셋 (페이지 전환 전)
     isProcessingResult.value = false;
-    console.log('?�� [goToResult] ?�이지 ?�환 ??isProcessingResult 리셋:', isProcessingResult.value);
+    console.log('🎯 [goToResult] 페이지 전환 전 isProcessingResult 리셋:', isProcessingResult.value);
     
-    // ?�괴 결과 ?�면?�로 ?�동
-    console.log('?�� [goToResult] 결과 ?�면?�로 ?�동 ?�도:', `/reading-result?readingId=${reading.id}`);
+    // 점괴 결과 화면으로 이동
+    console.log('🎯 [goToResult] 결과 화면으로 이동 시도:', `/reading-result?readingId=${reading.id}`);
     
-    // nextTick???�용??DOM ?�데?�트 ???�우??    await nextTick();
+    // nextTick을 사용해 DOM 업데이트 후 라우팅
+    await nextTick();
     
     router.push(`/reading-result?readingId=${reading.id}`);
-    console.log('?�� [goToResult] router.push ?�출 ?�료');
+    console.log('🎯 [goToResult] router.push 호출 완료');
   } catch (error) {
     
-    // ?�로그레???�리
+    // 프로그레스 정리
     clearInterval(progressInterval);
     isGeneratingInterpretation.value = false;
     interpretationProgress.value = 0;
     
     await showAlert({
-      title: '?�괘 ?�성 ?�패',
-      message: `?�괘 ?�성???�패?�습?�다: ${error.message || '?????�는 ?�류'}`
+      title: '점괘 생성 실패',
+      message: `점괘 생성에 실패했습니다: ${error.message || '알 수 없는 오류'}`
     });
   } finally {
-    // 처리 ?�료 ?�래�?리셋 - nextTick???�용???�실?�게 리셋
-    console.log('?�� [goToResult] finally 블록 - isProcessingResult 리셋 ?�작');
+    // 처리 완료 플래그 리셋 - nextTick을 사용해 확실하게 리셋
+    console.log('🎯 [goToResult] finally 블록 - isProcessingResult 리셋 시작');
     isProcessingResult.value = false;
     await nextTick();
-    isProcessingResult.value = false; // ?�중 리셋?�로 ?�실?�게
-    console.log('?�� [goToResult] finally 블록 - isProcessingResult 리셋 ?�료:', isProcessingResult.value);
+    isProcessingResult.value = false; // 이중 리셋으로 확실하게
+    console.log('🎯 [goToResult] finally 블록 - isProcessingResult 리셋 완료:', isProcessingResult.value);
   }
 };
 
-// 기획 변경으�?광고 모달 ?�용?��? ?�음
+// 기획 변경으로 광고 모달 사용하지 않음
 // const closeAdModal = () => {
 //   showAdModal.value = false;
 //   
-//   // 광고 ?�태 ?�데?�트
+//   // 광고 상태 업데이트
 //   updateAdStatus();
 //   
 //   if (drawMethod.value === 'random') {
@@ -1288,82 +1325,83 @@ const goToResult = async () => {
 //   }
 // };
 
-// ?��?지 로드 ?�러 처리 - ?�합 ?�수 ?�용
+// 이미지 로드 에러 처리 - 통합 함수 사용
 const onImageError = handleUnifiedImageError;
 
-// ?�프?�드�??�치 ?�름 가?�오�?const getPositionNameForSpread = (spreadId: string, index: number): string => {
+// 스프레드별 위치 이름 가져오기
+const getPositionNameForSpread = (spreadId: string, index: number): string => {
   const positions = {
     'celtic_cross': [
-      '?�재?�면',
-      '?�재?��?', 
+      '현재내면',
+      '현재외부', 
       '근본',
       '과거',
-      '?�러?�는 모습',
+      '드러나는 모습',
       '미래',
-      '?��?보는??,
-      '?�이보는??,
-      '?�상?�는 결과',
-      '?�제 결과'
+      '내가보는나',
+      '남이보는나',
+      '예상하는 결과',
+      '실제 결과'
     ],
     'seven_star': [
       '근원',
-      '과거???�향',
-      '?�재 ?�황',
-      '?�식???�망',
-      '무의?�적 ?�요',
-      '?�겨�??�향',
+      '과거의 영향',
+      '현재 상황',
+      '의식적 소망',
+      '무의식적 필요',
+      '숨겨진 영향',
       '최종 결과'
     ],
     'cup_of_relationship': [
-      '?�의 마음',
-      '?��???마음',
-      '과거???�연',
-      '?�재??관�?,
-      '미래??가?�성',
-      '관계의 ?�애�?,
-      '?�주??조언'
+      '나의 마음',
+      '상대의 마음',
+      '과거의 인연',
+      '현재의 관계',
+      '미래의 가능성',
+      '관계의 장애물',
+      '우주의 조언'
     ],
     'three_card_timeline': [
       '과거',
-      '?�재',
+      '현재',
       '미래'
     ],
     'one_card': [
-      '?�심 메시지'
+      '핵심 메시지'
     ]
   };
   
-  return positions[spreadId]?.[index] || `?�치 ${index + 1}`;
+  return positions[spreadId]?.[index] || `위치 ${index + 1}`;
 };
 
-// ?�애 ?�태 관???�들???�거??- ReadingSelect?�서 처리
+// 연애 상태 관련 핸들러 제거됨 - ReadingSelect에서 처리
 
-// ?�료 배열 ?�루 1???�한 ?�내
+// 유료 배열 하루 1회 제한 안내
 const showPremiumSpreadLimit = async () => {
-  console.log('?�� [showPremiumSpreadLimit] ?�출??);
+  console.log('💵 [showPremiumSpreadLimit] 호출됨');
   const spreadNames = {
-    'celtic_cross': '켈틱 ?�로??,
-    'seven_star': '?�븐 ?��?',
-    'cup_of_relationship': '�??�브 릴레?�션??
+    'celtic_cross': '켈틱 크로스',
+    'seven_star': '세븐 스타',
+    'cup_of_relationship': '컵 오브 릴레이션십'
   };
   
   const spreadId = tarotStore.selectedSpread?.spreadId || '';
-  const spreadName = spreadNames[spreadId] || '?�료 배열';
-  console.log('?�� [showPremiumSpreadLimit] spreadId:', spreadId);
-  console.log('?�� [showPremiumSpreadLimit] spreadName:', spreadName);
+  const spreadName = spreadNames[spreadId] || '유료 배열';
+  console.log('💵 [showPremiumSpreadLimit] spreadId:', spreadId);
+  console.log('💵 [showPremiumSpreadLimit] spreadName:', spreadName);
   
-  // ?�스??계정?��? ?�인
+  // 테스트 계정인지 확인
   const isTestAccount = userStore.currentUser?.email === 'test@example.com';
-  console.log('?�� [showPremiumSpreadLimit] isTestAccount:', isTestAccount);
+  console.log('💵 [showPremiumSpreadLimit] isTestAccount:', isTestAccount);
   
   if (isTestAccount) {
-    console.log('?�� [showPremiumSpreadLimit] ?�스??계정 - ?�료 배열 ?�한 ?�이 진행');
-    // ?�스??계정?� 그냥 진행 (???�수가 ?�출?�면 ?�되지�??�시?�도)
+    console.log('🧪 [showPremiumSpreadLimit] 테스트 계정 - 유료 배열 제한 없이 진행');
+    // 테스트 계정은 그냥 진행 (이 함수가 호출되면 안되지만 혁시라도)
     await drawCards();
     return;
   }
   
-  // ?�용 가?�한 ?�간 계산
+  // 사용 가능한 시간 계산
   const now = new Date();
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -1373,34 +1411,37 @@ const showPremiumSpreadLimit = async () => {
   const minutesUntilReset = Math.floor(((tomorrow.getTime() - now.getTime()) % (1000 * 60 * 60)) / (1000 * 60));
   
   await showAlert({
-    title: '?�료 배열 ?�용 ?�한',
-    message: `${spreadName} 배열법�? ?�루????번만 ?�용?????�습?�다.\n\n?�음 ?�용 가???�간: ${hoursUntilReset}?�간 ${minutesUntilReset}�???n\n?�� 무료 배열�?1?? 3???� 광고 ?�청?�로 무제???�용 가?�합?�다!`
+    title: '유료 배열 사용 제한',
+    message: `${spreadName} 배열법은 하루에 한 번만 사용할 수 있습니다.\n\n다음 사용 가능 시간: ${hoursUntilReset}시간 ${minutesUntilReset}분 후\n\n💡 무료 배열법(1장, 3장)은 광고 시청으로 무제한 이용 가능합니다!`
   });
   
-  // ?�기 ?�택 ?�면?�로 ?�아가�?  router.push('/reading-select');
+  // 읽기 선택 화면으로 돌아가기
+  router.push('/reading-select');
 };
 
-// 무료 ?�괘 ?�태 ?�인 (기획 변경으�???�� true)
+// 무료 점괘 상태 확인 (기획 변경으로 항상 true)
 const checkFreeReadingStatus = () => {
-  // 무료 ?�용?�도 광고 ?�청?�로 무제??가??  return true;
+  // 무료 사용자도 광고 시청으로 무제한 가능
+  return true;
 };
 </script>
 
 <style scoped>
 .card-drawing {
   height: 100dvh;
+  min-height: 100dvh;
   padding: 20px;
   padding-top: calc(20px + env(safe-area-inset-top));
   padding-bottom: calc(20px + var(--app-safe-bottom));
-  /* 모바?�에??좌우 ?�래�?방�? */
+  /* 모바일에서 좌우 드래그 방지 */
   overflow-x: hidden;
   overflow-y: hidden;
   width: 100%;
   max-width: 100vw;
   position: relative;
-  /* ?�치 ?�크�?최적??*/
+  /* 터치 스크롤 최적화 */
   -webkit-overflow-scrolling: touch;
-  /* 바운???�과 방�? */
+  /* 바운스 효과 방지 */
   overscroll-behavior: none;
 }
 
@@ -1449,7 +1490,7 @@ const checkFreeReadingStatus = () => {
   font-weight: 600;
 }
 
-/* .free-usage-indicator ?��????�거 */
+/* .free-usage-indicator 스타일 제거 */
 
 .premium-status-indicator {
   background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.2) 100%);
@@ -1475,10 +1516,9 @@ const checkFreeReadingStatus = () => {
   max-width: 600px;
   margin: 0 auto;
   text-align: center;
-  /* 모바?�에???�비 ?�한 */
+  /* 모바일에서 너비 제한 */
   width: 100%;
   overflow-x: hidden;
-  overflow-y: hidden;
   position: relative;
 }
 
@@ -1494,7 +1534,7 @@ const checkFreeReadingStatus = () => {
 .instruction {
   font-size: 16px;
   color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 10px; /* ?�백 줄임 */
+  margin-bottom: 10px; /* 여백 줄임 */
 }
 
 .sub-instruction {
@@ -1545,7 +1585,6 @@ const checkFreeReadingStatus = () => {
   border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 12px;
   padding: 20px;
-  padding-top: calc(20px + env(safe-area-inset-top));
   max-width: 400px;
   margin: 0 auto;
 }
@@ -1773,7 +1812,6 @@ const checkFreeReadingStatus = () => {
   color: rgba(255, 255, 255, 0.6);
   font-size: 32px;
   padding: 20px;
-  padding-top: calc(20px + env(safe-area-inset-top));
   justify-content: center;
 }
 
@@ -1792,7 +1830,7 @@ const checkFreeReadingStatus = () => {
   cursor: not-allowed;
 }
 
-/* 카드 뽑기 방식 ?�택 */
+/* 카드 뽑기 방식 선택 */
 .draw-method-selection {
   text-align: center;
 }
@@ -1838,7 +1876,7 @@ const checkFreeReadingStatus = () => {
   margin: 0;
 }
 
-/* 직접 ?�택 모드 */
+/* 직접 선택 모드 */
 .manual-selection-container {
   width: 100%;
   max-width: 900px;
@@ -1849,7 +1887,7 @@ const checkFreeReadingStatus = () => {
   display: flex;
   gap: 10px;
   justify-content: center;
-  margin: 10px 0; /* ?�백 줄임 */
+  margin: 10px 0; /* 여백 줄임 */
 }
 
 .selected-card-mini {
@@ -1880,8 +1918,8 @@ const checkFreeReadingStatus = () => {
 .card-spread-container {
   width: 100%;
   max-width: 100%;
-  height: 250px; /* ?�이 ??줄임 */
-  margin: 10px 0; /* ?�백 줄임 */
+  height: 250px; /* 높이 더 줄임 */
+  margin: 10px 0; /* 여백 줄임 */
   position: relative;
   overflow: hidden;
 }
@@ -1904,11 +1942,11 @@ const checkFreeReadingStatus = () => {
 }
 
 .spread-card {
-  width: 40px; /* ?�기 ??줄임 */
+  width: 40px; /* 크기 더 줄임 */
   height: 60px;
   background: linear-gradient(135deg, #4C1D95 0%, #7C3AED 100%);
-  border: 1px solid rgba(255, 255, 255, 0.2); /* ?�두�??�께 줄임 */
-  border-radius: 4px; /* ?�근 모서�????�게 */
+  border: 1px solid rgba(255, 255, 255, 0.2); /* 테두리 두께 줄임 */
+  border-radius: 4px; /* 둥근 모서리 더 작게 */
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -1926,13 +1964,13 @@ const checkFreeReadingStatus = () => {
 
 .spread-card.selected {
   border-color: #FFD700;
-  border-width: 2px; /* ?�택??카드???�두�?줄임 */
+  border-width: 2px; /* 선택된 카드도 테두리 줄임 */
   box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
   background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
 }
 
 .spread-card.selected .card-back-small {
-  color: #4C1D95; /* ?�택??카드???�이�???변�?*/
+  color: #4C1D95; /* 선택된 카드의 아이콘 색 변경 */
 }
 
 .spread-card.selected:hover {
@@ -1945,7 +1983,7 @@ const checkFreeReadingStatus = () => {
 }
 
 .card-back-small {
-  font-size: 16px; /* ?�이�??�기 ??줄임 */
+  font-size: 16px; /* 아이콘 크기 더 줄임 */
   color: rgba(255, 255, 255, 0.8);
 }
 
@@ -1990,11 +2028,11 @@ const checkFreeReadingStatus = () => {
   }
   
   .card-spread-container {
-    height: 220px; /* 모바?�에????줄임 */
+    height: 220px; /* 모바일에서 더 줄임 */
   }
   
   .spread-card {
-    width: 30px; /* 모바?�에?????�게 */
+    width: 30px; /* 모바일에서 더 작게 */
     height: 45px;
   }
   
@@ -2011,7 +2049,7 @@ const checkFreeReadingStatus = () => {
     font-size: 12px;
   }
   
-  /* 모바?�에???�석 보기 버튼 마진 조정 */
+  /* 모바일에서 해석 보기 버튼 마진 조정 */
   .celtic-cross-mode .result-button,
   .seven-star-mode .result-button,
   .cup-relationship-mode .result-button {
@@ -2019,7 +2057,7 @@ const checkFreeReadingStatus = () => {
   }
 }
 
-/* 캘틱 ?�로??모드 ?��???*/
+/* 캘틱 크로스 모드 스타일 */
 .card-drawing.celtic-cross-mode {
   background: radial-gradient(ellipse at center, rgba(88, 28, 135, 0.2) 0%, transparent 70%),
               linear-gradient(180deg, #0F0C29 0%, #24243e 100%);
@@ -2049,7 +2087,7 @@ const checkFreeReadingStatus = () => {
   50% { opacity: 1; }
 }
 
-/* ?�별 ?�이?�웃 컨테?�너 */
+/* 특별 레이아웃 컨테이너 */
 .seven-star-container,
 .cup-relationship-container {
   width: 100%;
@@ -2058,19 +2096,19 @@ const checkFreeReadingStatus = () => {
   position: relative;
 }
 
-/* ?�븐 ?��? 모드 ?��???*/
+/* 세븐 스타 모드 스타일 */
 .card-drawing.seven-star-mode {
   background: radial-gradient(ellipse at center, rgba(25, 25, 112, 0.3) 0%, transparent 70%),
               linear-gradient(180deg, #000428 0%, #004e92 100%);
 }
 
-/* �??�브 릴레?�션??모드 ?��???*/
+/* 컵 오브 릴레이션십 모드 스타일 */
 .card-drawing.cup-relationship-mode {
   background: radial-gradient(ellipse at center, rgba(236, 72, 153, 0.2) 0%, transparent 70%),
               linear-gradient(180deg, #2D1B69 0%, #0F3443 100%);
 }
 
-/* 캘틱 ?�로??모드?�서 결과 버튼 ?��???*/
+/* 캘틱 크로스 모드에서 결과 버튼 스타일 */
 .celtic-cross-mode .result-button,
 .seven-star-mode .result-button,
 .cup-relationship-mode .result-button {
@@ -2096,7 +2134,7 @@ const checkFreeReadingStatus = () => {
   box-shadow: none;
 }
 
-/* 공통 ?�션 버튼 ?��???*/
+/* 공통 액션 버튼 스타일 */
 .btn-action {
   background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
   color: #1E1B4B;
@@ -2141,12 +2179,3 @@ const checkFreeReadingStatus = () => {
 }
 
 </style>
-
-
-
-
-
-
-
-
-
