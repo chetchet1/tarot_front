@@ -23,7 +23,7 @@ node ./scripts/update-build-version.js
 # In your CI/CD environment, you must create these files using secrets.
 # For example, in GitHub Actions, you would use `echo "$GCP_KEY_SECRET" > android/fastlane/google-play-key.json`
 if [ ! -f "android/keystore.properties" ] || [ ! -f "android/fastlane/google-play-key.json" ]; then
-    echo "?†Ô∏è WARNING: Secret files not found."
+    echo "?ÔøΩÔ∏è WARNING: Secret files not found."
     echo "This script expects 'android/keystore.properties' and 'android/fastlane/google-play-key.json' to exist."
     echo "In a CI environment, create them from secrets before running this script."
     # For a local test, you can create them manually. For CI, this should be a hard failure.
@@ -36,7 +36,6 @@ npm install
 
 # --- 4. Build Web Assets for Capacitor ---
 echo "?? Building web assets..."
-export VITE_DEBUG_OVERLAY=true
 npm run build:cap
 
 # --- 5. Sync Android Project ---
@@ -54,4 +53,4 @@ echo "?? Deploying to Google Play Store via fastlane..."
 # You may need to run 'bundle install' inside the 'android' directory if you have a Gemfile.
 (cd android && fastlane deploy)
 
-echo "?éâ --- Build and Deploy Complete! --- ?éâ"
+echo "?ÔøΩÔøΩ --- Build and Deploy Complete! --- ?ÔøΩÔøΩ"
