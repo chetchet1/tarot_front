@@ -44,7 +44,6 @@ const appendOverlay = (label: string, value: unknown) => {
   if (!el) return;
   const msg = value instanceof Error ? `${value.message}\n${value.stack || ''}` : String(value);
   el.innerText += `\n[${new Date().toISOString()}] ${label}\n${msg}\n`;
-  el.scrollTop = el.scrollHeight;
 };
 
 if (DEBUG_OVERLAY_ENABLED) {
@@ -65,6 +64,18 @@ if (DEBUG_OVERLAY_ENABLED) {
   console.error = (...args: unknown[]) => {
     appendOverlay('error', args.map(String).join(' '));
     origError(...args as []);
+  };
+
+  // Log fetch failures with URL for easier diagnosis
+  const origFetch = window.fetch.bind(window);
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    try {
+      return await origFetch(input, init);
+    } catch (err) {
+      const url = typeof input === 'string' ? input : (input as Request).url;
+      appendOverlay('fetch failed', `${url}\n${String(err)}`);
+      throw err;
+    }
   };
 }
 
