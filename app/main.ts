@@ -81,6 +81,22 @@ if (DEBUG_OVERLAY_ENABLED) {
   };
 }
 
+// Ensure bottom safe area accounts for Android system bars (edge-to-edge)
+const updateSafeAreaInsets = () => {
+  const vv = window.visualViewport;
+  const bottomInset = vv
+    ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+    : 0;
+  const fallback = 24;
+  const value = Math.max(bottomInset, fallback);
+  document.documentElement.style.setProperty('--app-safe-bottom', `${value}px`);
+};
+window.addEventListener('resize', updateSafeAreaInsets);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', updateSafeAreaInsets);
+}
+updateSafeAreaInsets();
+
 // 플랫폼 체크 (웹 접속 차단)
 const isBlocked = checkPlatform();
 if (isBlocked) {
