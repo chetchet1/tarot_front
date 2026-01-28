@@ -5,6 +5,10 @@
   box-sizing: border-box;
 }
 
+:root {
+  --app-safe-bottom: max(env(safe-area-inset-bottom), 24px);
+}
+
 html {
   // 모바일에서 좌우 스크롤 방지
   overflow-x: hidden;

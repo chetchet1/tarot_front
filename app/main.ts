@@ -22,7 +22,7 @@ const ensureOverlay = () => {
   el.style.position = 'fixed';
   el.style.left = '0';
   el.style.right = '0';
-  el.style.bottom = '0';
+  el.style.bottom = 'var(--app-safe-bottom, 0px)';
   el.style.maxHeight = '45%';
   el.style.overflow = 'auto';
   el.style.zIndex = '999999';
