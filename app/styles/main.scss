@@ -1,4 +1,4 @@
-// 기본 ?��???리셋
+// 기본 ?��???리셋
 * {
   margin: 0;
   padding: 0;
@@ -11,10 +11,10 @@
 
 html {
   height: 100%;
-  // 모바?�에??좌우 ?�크�?방�?
+  // 모바?�에??좌우 ?�크�?방�?
   overflow-x: hidden;
   width: 100%;
-  // 모바???�치 ?�크�?최적??
+  // 모바???�치 ?�크�?최적??
   -webkit-overflow-scrolling: touch;
 }
 
@@ -26,24 +26,22 @@ body {
   background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
   min-height: 100dvh;
   color: #FFFFFF;
-  // 모바?�에??좌우 ?�크�?방�?
+  // 모바?�에??좌우 ?�크�?방�?
   overflow-x: hidden;
   width: 100%;
   position: relative;
-  // 모바?�에??바운???�과 방�?
-  overscroll-behavior-x: none;
-}
+  // 모바?�에??바운???�과 방�?
+  overscroll-behavior-x: none;\n  padding-bottom: var(--app-safe-bottom);\n}
 
 #app {
   width: 100%;
   min-height: 100dvh;
   overflow-x: hidden;
   position: relative;
-  // 모바?�에??좌우 ?�크�?방�?
-  max-width: 100vw;
-}
+  // 모바?�에??좌우 ?�크�?방�?
+  max-width: 100vw;\n  padding-bottom: var(--app-safe-bottom);\n}
 
-// 공통 컴포?�트 ?��???
+// 공통 컴포?�트 ?��???
 .card {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
@@ -57,7 +55,7 @@ body {
   border-color: rgba(255, 255, 255, 0.2);
 }
 
-// 버튼 ?��???
+// 버튼 ?��???
 .btn {
   padding: 12px 24px;
   border: none;
@@ -96,7 +94,7 @@ body {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
-// ?�리미엄 배�?
+// ?�리미엄 배�?
 .premium-badge {
   background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
   color: white;
@@ -108,7 +106,7 @@ body {
   letter-spacing: 0.5px;
 }
 
-// 모달 기본 ?��???
+// 모달 기본 ?��???
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -136,7 +134,7 @@ body {
   position: relative;
 }
 
-// 반응???�자??
+// 반응???�자??
 @media (max-width: 768px) {
   .modal-content {
     padding: 20px;
@@ -149,7 +147,7 @@ body {
   }
 }
 
-// ?�니메이??
+// ?�니메이??
 @keyframes fadeIn {
   from {
     opacity: 0;

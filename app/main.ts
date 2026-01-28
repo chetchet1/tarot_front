@@ -84,12 +84,20 @@ if (DEBUG_OVERLAY_ENABLED) {
 // Ensure bottom safe area accounts for Android system bars (edge-to-edge)
 const updateSafeAreaInsets = () => {
   const vv = window.visualViewport;
-  const bottomInset = vv
-    ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+  const doc = document.documentElement;
+  const inner = window.innerHeight;
+  const client = doc.clientHeight;
+  const bottomInsetVV = vv
+    ? Math.max(0, inner - (vv.height + vv.offsetTop))
     : 0;
-  const fallback = 24;
-  const value = Math.max(bottomInset, fallback);
+  const bottomInsetClient = Math.max(0, inner - client);
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const fallback = isAndroid ? 84 : 24;
+  const value = Math.max(bottomInsetVV, bottomInsetClient, fallback);
   document.documentElement.style.setProperty('--app-safe-bottom', `${value}px`);
+  if (DEBUG_OVERLAY_ENABLED) {
+    appendOverlay('safe-area', `inner=${inner} client=${client} vv=${vv ? vv.height : 'na'} bottom=${value}`);
+  }
 };
 window.addEventListener('resize', updateSafeAreaInsets);
 if (window.visualViewport) {
