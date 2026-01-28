@@ -32,9 +32,9 @@
             <p>?¥Î™Ö??Îß°Í≤® Ïπ¥ÎìúÎ•?ÎΩëÏäµ?àÎã§</p>
           </button>
           <button class="method-button" @click="selectDrawMethod('manual')">
-            <div class="method-icon">??/div>
+            <div class="method-icon">Manual</div>
             <h3>ÏßÅÏ†ë ÎΩëÍ∏∞</h3>
-            <p>?ºÏ≥êÏß?Ïπ¥Îìú?êÏÑú ÏßÅÏ†ë ?†ÌÉù?©Îãà??/p>
+            <p>Select cards manually.</p>
           </button>
         </div>
       </div>
@@ -192,7 +192,7 @@
         
         <!-- ?ºÎ∞ò Ïπ¥Îìú ?àÏù¥?ÑÏõÉ -->
         <div v-else>
-          <p class="instruction">?πÏã†??Ïπ¥Îìú?ÖÎãà??/p>
+          <p class="instruction">Your drawn cards.</p>
           <div class="drawn-cards">
             <div 
               v-for="(card, index) in drawnCards" 
@@ -208,7 +208,7 @@
                 <h3>{{ card.card.nameKr }}</h3>
                 <p class="card-number">{{ card.card.name }}</p>
                 <div class="card-orientation" :class="card.orientation">
-                  {{ card.orientation === 'upright' ? '?ïÎ∞©?? : '??∞©?? }}
+                  {{ card.orientation === 'upright' ? 'Upright' : 'Reversed' }}
                 </div>
               </div>
               <div class="card-back" v-else>
@@ -309,23 +309,23 @@ const updateAdStatus = () => {
   adStatus.value = adManager.getStatus();
 };
 
-// ?®Ï? ?úÍ∞Ñ ?¨Îß∑??const formatExpiryTime = () => {
+// Expiry time formatting
+const formatExpiryTime = () => {
   if (!adStatus.value.temporaryPremiumExpiry) return '';
-  
+
   const now = new Date();
   const expiry = new Date(adStatus.value.temporaryPremiumExpiry);
   const diff = expiry.getTime() - now.getTime();
-  
-  if (diff <= 0) return 'ÎßåÎ£å??;
-  
+
+  if (diff <= 0) return 'Expired';
+
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-  
+
   if (hours > 0) {
-    return `${hours}?úÍ∞Ñ ${minutes}Î∂??®Ïùå`;
-  } else {
-    return `${minutes}Î∂??®Ïùå`;
+    return `${hours}h ${minutes}m`;
   }
+  return `${minutes}m`;
 };
 
 // ?πÎ≥Ñ ?àÏù¥?ÑÏõÉ ?§ÌîÑ?àÎìú?∏Ï? ?ïÏù∏
@@ -345,30 +345,34 @@ const hasSpecialLayout = computed(() => {
   return isCelticCross.value || isSevenStar.value || isCupOfRelationship.value;
 });
 
-// ?§ÌîÑ?àÎìú ?úÏãú ?¥Î¶Ñ Í∞Ä?∏Ïò§Í∏?const getSpreadDisplayName = () => {
-  if (isCelticCross.value) return 'ÏºàÌã± ?¨Î°ú??;
-  if (isSevenStar.value) return '?∏Î∏ê ?§Ì?';
-  if (isCupOfRelationship.value) return 'Ïª??§Î∏å Î¶¥Î†à?¥ÏÖò??;
+// Spread display name
+const getSpreadDisplayName = () => {
+  if (isCelticCross.value) return 'Celtic Cross';
+  if (isSevenStar.value) return 'Seven Star';
+  if (isCupOfRelationship.value) return 'Cup of Relationship';
   return '';
 };
 
-// Ïπ¥Îìú ÎΩëÍ∏∞ Î≤ÑÌäº ?çÏä§??const getDrawButtonText = () => {
-  // Î¨¥Î£å ?¨Ïö©?êÎèÑ Í¥ëÍ≥† ?úÏ≤≠?ºÎ°ú Î¨¥Ï†ú??Í∞Ä??  return 'Ïπ¥Îìú ÎΩëÍ∏∞';
+// Draw button text
+const getDrawButtonText = () => {
+  return 'Draw Cards';
 };
 
 // Ïπ¥Îìú ?¥Î?ÏßÄ URL ?ùÏÑ± - ?µÌï© ?®Ïàò ?¨Ïö©
 const getCardImageUrl = (card: any) => getUnifiedCardImagePath(card);
 
-// Ïπ¥Îìú Í∞úÏàò Í∞Ä?∏Ïò§Í∏?const getCardCount = () => {
+// Card count
+const getCardCount = () => {
   return tarotStore.selectedSpread?.cardCount || 1;
 };
 
-// ?îÎ≤ÑÍ∑∏Ïö© ?¥Î¶≠ ?∏Îì§??const debugClick = () => {
-  console.log('[CardDrawing] ?îÎ©¥ ?¥Î¶≠??);
+// Debug click handler
+const debugClick = () => {
+  console.log('[CardDrawing] screen tap');
   console.log('[CardDrawing] drawMethod:', drawMethod.value);
   console.log('[CardDrawing] isDrawing:', isDrawing.value);
   console.log('[CardDrawing] isComplete:', isComplete.value);
-  console.log('[CardDrawing] ?ÑÏû¨ URL:', window.location.pathname);
+  console.log('[CardDrawing] path:', window.location.pathname);
 };
 
 // Ï§ëÎ≥µ ?∏Ï∂ú Î∞©Ï?Î•??ÑÌïú ?åÎûòÍ∑?- ?ÅÎã®???†Ïñ∏
@@ -2137,6 +2141,10 @@ const checkFreeReadingStatus = () => {
 }
 
 </style>
+
+
+
+
 
 
 
