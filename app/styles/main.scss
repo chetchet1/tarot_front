@@ -57,7 +57,7 @@ body {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding-bottom: var(--app-safe-bottom);
+  scroll-padding-bottom: var(--app-safe-bottom);
   box-sizing: border-box;
 }
 

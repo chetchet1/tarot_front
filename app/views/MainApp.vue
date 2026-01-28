@@ -363,7 +363,7 @@ const upgradeToPremium = async () => {
   background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
   color: white;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) var(--app-safe-bottom) env(safe-area-inset-left);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
 }
 
 /* 헤더 */
@@ -531,7 +531,7 @@ const upgradeToPremium = async () => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 20px;
-  padding-bottom: calc(40px + var(--app-safe-bottom));
+  padding-bottom: 40px;
 }
 
 .loading-state {
@@ -873,7 +873,7 @@ button:focus,
 /* 버전 정보 스타일 */
 .version-info {
   position: fixed;
-  bottom: calc(5px + var(--app-safe-bottom));
+  bottom: max(4px, env(safe-area-inset-bottom));
   right: 10px;
   font-size: 10px;
   color: rgba(255, 255, 255, 0.4);
