@@ -1419,8 +1419,9 @@ const checkFreeReadingStatus = () => {
 
 <style scoped>
 .card-drawing {
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: 20px;
+  padding-bottom: calc(20px + var(--app-safe-bottom) + 72px);
   /* 모바일에서 좌우 드래그 방지 */
   overflow-x: hidden;
   width: 100%;
