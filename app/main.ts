@@ -73,7 +73,9 @@ if (DEBUG_OVERLAY_ENABLED) {
       return await origFetch(input, init);
     } catch (err) {
       const url = typeof input === 'string' ? input : (input as Request).url;
-      appendOverlay('fetch failed', `${url}\n${String(err)}`);
+      const online = typeof navigator !== 'undefined' ? navigator.onLine : 'unknown';
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'unknown';
+      appendOverlay('fetch failed', `${url}\norigin=${origin}\nonline=${online}\n${String(err)}`);
       throw err;
     }
   };
