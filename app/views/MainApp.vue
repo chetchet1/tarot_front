@@ -363,7 +363,7 @@ const upgradeToPremium = async () => {
   background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
   color: white;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
 }
 
 /* 헤더 */

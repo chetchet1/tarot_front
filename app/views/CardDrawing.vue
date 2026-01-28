@@ -1435,7 +1435,7 @@ const checkFreeReadingStatus = () => {
   height: 100dvh;
   min-height: 100dvh;
   padding: 20px;
-  padding-top: calc(20px + env(safe-area-inset-top));
+  padding-top: 20px;
   padding-bottom: calc(20px + var(--app-safe-bottom));
   /* 모바일에서 좌우 드래그 방지 */
   overflow-x: hidden;

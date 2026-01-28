@@ -6,7 +6,8 @@
 }
 
 :root {
-  --app-safe-bottom: max(env(safe-area-inset-bottom), 24px);
+  --app-safe-top: env(safe-area-inset-top);
+  --app-safe-bottom: env(safe-area-inset-bottom);
 }
 
 html {
@@ -57,6 +58,9 @@ body {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  padding-top: var(--app-safe-top);
+  padding-bottom: var(--app-safe-bottom);
+  scroll-padding-top: var(--app-safe-top);
   scroll-padding-bottom: var(--app-safe-bottom);
   box-sizing: border-box;
 }
