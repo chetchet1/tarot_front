@@ -50,6 +50,22 @@ const appendOverlay = (label: string, value: unknown) => {
 if (DEBUG_OVERLAY_ENABLED) {
   ensureOverlay();
   appendOverlay('App boot', 'Debug overlay active');
+  // Mirror console logs into the overlay for device-only debugging
+  const origLog = console.log.bind(console);
+  const origWarn = console.warn.bind(console);
+  const origError = console.error.bind(console);
+  console.log = (...args: unknown[]) => {
+    appendOverlay('log', args.map(String).join(' '));
+    origLog(...args as []);
+  };
+  console.warn = (...args: unknown[]) => {
+    appendOverlay('warn', args.map(String).join(' '));
+    origWarn(...args as []);
+  };
+  console.error = (...args: unknown[]) => {
+    appendOverlay('error', args.map(String).join(' '));
+    origError(...args as []);
+  };
 }
 
 // 플랫폼 체크 (웹 접속 차단)
