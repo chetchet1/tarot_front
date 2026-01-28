@@ -47,6 +47,11 @@ const appendOverlay = (label: string, value: unknown) => {
   el.scrollTop = el.scrollHeight;
 };
 
+if (DEBUG_OVERLAY_ENABLED) {
+  ensureOverlay();
+  appendOverlay('App boot', 'Debug overlay active');
+}
+
 // 플랫폼 체크 (웹 접속 차단)
 const isBlocked = checkPlatform();
 if (isBlocked) {
