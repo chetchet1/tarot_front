@@ -531,6 +531,7 @@ const upgradeToPremium = async () => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 20px;
+  padding-bottom: calc(40px + var(--app-safe-bottom));
 }
 
 .loading-state {
