@@ -348,6 +348,25 @@ const hasSpecialLayout = computed(() => {
   return isCelticCross.value || isSevenStar.value || isCupOfRelationship.value;
 });
 
+const defaultPageBg = 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)';
+const pageTheme = computed(() => {
+  if (isCelticCross.value) {
+    return 'radial-gradient(ellipse at center, rgba(88, 28, 135, 0.2) 0%, transparent 70%), linear-gradient(180deg, #0F0C29 0%, #24243e 100%)';
+  }
+  if (isSevenStar.value) {
+    return 'radial-gradient(ellipse at center, rgba(25, 25, 112, 0.3) 0%, transparent 70%), linear-gradient(180deg, #000428 0%, #004e92 100%)';
+  }
+  if (isCupOfRelationship.value) {
+    return 'radial-gradient(ellipse at center, rgba(236, 72, 153, 0.2) 0%, transparent 70%), linear-gradient(180deg, #2D1B69 0%, #0F3443 100%)';
+  }
+  return defaultPageBg;
+});
+
+const applyPageTheme = (value: string) => {
+  if (typeof document === 'undefined') return;
+  document.documentElement.style.setProperty('--page-bg', value);
+};
+
 // 스프레드 표시 이름 가져오기
 const getSpreadDisplayName = () => {
   if (isCelticCross.value) return '켈틱 크로스';
@@ -428,6 +447,7 @@ onBeforeUnmount(() => {
 // 컴포넌트 파괴 시 플래그 리셋
 onUnmounted(() => {
   setNoScroll(false);
+  applyPageTheme(defaultPageBg);
   console.log('🔚 [onUnmounted] 컴포넌트 파괴 - 플래그 리셋');
   isProcessingResult.value = false;
   isGeneratingInterpretation.value = false;
@@ -444,6 +464,7 @@ watch(() => router.currentRoute.value.path, (newPath, oldPath) => {
 
 onMounted(async () => {
   setNoScroll(true);
+  applyPageTheme(pageTheme.value);
   console.log('🎴 [CardDrawing] onMounted 시작');
   console.log('📌 [CardDrawing] 선택된 주제:', tarotStore.selectedTopic);
   console.log('📊 [CardDrawing] 선택된 배열법:', tarotStore.selectedSpread);
@@ -523,6 +544,10 @@ onMounted(async () => {
     console.log('[CardDrawing] 초기화 후 타로카드 개수:', tarotStore.tarotCards.length);
   }
 });
+
+watch(pageTheme, (value) => {
+  applyPageTheme(value);
+}, { immediate: true });
 
 const goBack = () => {
   router.go(-1);
@@ -1437,6 +1462,8 @@ const checkFreeReadingStatus = () => {
   padding: 20px;
   padding-top: 20px;
   padding-bottom: calc(20px + var(--app-safe-bottom));
+  --page-bg: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+  background: var(--page-bg);
   /* 모바일에서 좌우 드래그 방지 */
   overflow-x: hidden;
   overflow-y: hidden;
@@ -1617,15 +1644,15 @@ const checkFreeReadingStatus = () => {
 
 .card-animation {
   position: relative;
-  width: 200px;
-  height: 180px;
+  width: 190px;
+  height: 170px;
 }
 
 .card-animation .card-back {
   position: absolute;
-  width: 100px;
-  height: 150px;
-  font-size: 32px;
+  width: 96px;
+  height: 144px;
+  font-size: 30px;
 }
 
 .card-1 { animation: card-float-1 2s infinite; }
@@ -2017,13 +2044,13 @@ const checkFreeReadingStatus = () => {
   }
   
   .card-animation {
-    width: 150px;
+    width: 145px;
   }
   
   .card-animation .card-back {
-    width: 80px;
-    height: 120px;
-    font-size: 24px;
+    width: 76px;
+    height: 114px;
+    font-size: 22px;
   }
   
   .method-buttons {
@@ -2063,8 +2090,9 @@ const checkFreeReadingStatus = () => {
 
 /* 캘틱 크로스 모드 스타일 */
 .card-drawing.celtic-cross-mode {
-  background: radial-gradient(ellipse at center, rgba(88, 28, 135, 0.2) 0%, transparent 70%),
+  --page-bg: radial-gradient(ellipse at center, rgba(88, 28, 135, 0.2) 0%, transparent 70%),
               linear-gradient(180deg, #0F0C29 0%, #24243e 100%);
+  background: var(--page-bg);
 }
 
 .celtic-cross-container {
@@ -2102,14 +2130,16 @@ const checkFreeReadingStatus = () => {
 
 /* 세븐 스타 모드 스타일 */
 .card-drawing.seven-star-mode {
-  background: radial-gradient(ellipse at center, rgba(25, 25, 112, 0.3) 0%, transparent 70%),
+  --page-bg: radial-gradient(ellipse at center, rgba(25, 25, 112, 0.3) 0%, transparent 70%),
               linear-gradient(180deg, #000428 0%, #004e92 100%);
+  background: var(--page-bg);
 }
 
 /* 컵 오브 릴레이션십 모드 스타일 */
 .card-drawing.cup-relationship-mode {
-  background: radial-gradient(ellipse at center, rgba(236, 72, 153, 0.2) 0%, transparent 70%),
+  --page-bg: radial-gradient(ellipse at center, rgba(236, 72, 153, 0.2) 0%, transparent 70%),
               linear-gradient(180deg, #2D1B69 0%, #0F3443 100%);
+  background: var(--page-bg);
 }
 
 /* 캘틱 크로스 모드에서 결과 버튼 스타일 */

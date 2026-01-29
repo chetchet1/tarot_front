@@ -1,8 +1,9 @@
-<template>
+﻿<template>
   <div class="reading-select">
     <header class="page-header">
       <button class="back-button" @click="goBack">← 뒤로</button>
       <h1>타로 점보기</h1>
+      <span class="header-spacer" aria-hidden="true"></span>
     </header>
 
     <div class="container">
@@ -363,6 +364,7 @@ const handleVisibilityChange = async () => {
 };
 
 onMounted(async () => {
+  document.querySelector('.app-scroll')?.classList.add('scroll-locked');
   checkMobile();
   window.addEventListener('resize', checkMobile);
   
@@ -375,6 +377,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  document.querySelector('.app-scroll')?.classList.remove('scroll-locked');
   window.removeEventListener('resize', checkMobile);
   document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
@@ -907,23 +910,27 @@ const resetSelection = () => {
 <style scoped>
 .reading-select {
   min-height: 100%;
-  padding: 20px;
+  height: 100%;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+  --page-bg: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+  background: var(--page-bg);
+  overflow: hidden;
 }
 
 .page-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 20px;
-  padding: 12px 0 16px;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding: 10px 0 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 50;
-  background: linear-gradient(180deg, rgba(30, 27, 75, 0.98) 0%, rgba(30, 27, 75, 0.9) 70%, rgba(30, 27, 75, 0.0) 100%);
+  background: linear-gradient(180deg, rgba(30, 27, 75, 0.98) 0%, rgba(30, 27, 75, 0.94) 70%, rgba(30, 27, 75, 0.0) 100%);
   backdrop-filter: blur(10px);
 }
 
@@ -937,6 +944,11 @@ const resetSelection = () => {
   transition: all 0.3s ease;
 }
 
+.header-spacer {
+  width: 72px;
+  height: 1px;
+}
+
 .back-button:hover {
   background: rgba(255, 255, 255, 0.15);
 }
@@ -944,11 +956,20 @@ const resetSelection = () => {
 .page-header h1 {
   font-size: 24px;
   margin: 0;
+  justify-self: center;
 }
 
 .container {
   max-width: 800px;
   margin: 0 auto;
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: max(8px, var(--app-safe-bottom));
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .section {
@@ -965,14 +986,14 @@ const resetSelection = () => {
 .topic-grid,
 .spread-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
   margin-bottom: 20px;
 }
 
 .topic-card,
 .spread-card {
-  padding: 20px;
+  padding: 18px 16px;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
@@ -1570,6 +1591,56 @@ const resetSelection = () => {
 }
 
 @media (max-width: 768px) {
+  .reading-select {
+  min-height: 100%;
+  height: 100%;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  --page-bg: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+  background: var(--page-bg);
+  overflow: hidden;
+}
+
+  .container {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: max(8px, var(--app-safe-bottom));
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+  .reading-select {
+  min-height: 100%;
+  height: 100%;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  --page-bg: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+  background: var(--page-bg);
+  overflow: hidden;
+}
+
+  .container {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: max(8px, var(--app-safe-bottom));
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
   /* 모바일에서만 표시 */
   .mobile-view {
     display: block;
@@ -1581,12 +1652,18 @@ const resetSelection = () => {
   
   /* 기존 모바일 스타일 */
   .topic-grid,
-  .spread-grid {
-    grid-template-columns: 1fr;
-  }
+.spread-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
   
   .summary-details {
     text-align: left;
   }
 }
 </style>
+
+
+
