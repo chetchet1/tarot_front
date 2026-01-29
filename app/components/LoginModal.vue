@@ -219,10 +219,11 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useUserStore } from '../store/user';
 import { showAlert, showConfirm } from '../utils/alerts';
 import { logger } from '../services/debugLogger';
+import { Capacitor } from '@capacitor/core';
 
 export default {
   name: 'LoginModal',
@@ -261,6 +262,10 @@ export default {
     const isResetLoading = ref(false);
     const resetMessage = ref('');
     const resetMessageType = ref('error');
+    const isOAuthInProgress = ref(false);
+    let visibilityChangeHandler = null;
+    let appStateHandler = null;
+    let appStateListener = null;
 
     // 폼 데이터
     const formData = ref({
@@ -364,6 +369,7 @@ export default {
     const handleGoogleLogin = async () => {
       logger.log('[LoginModal] Google 로그인 버튼 클릭 - BUILD 20250828-01');
       isLoading.value = true;
+      isOAuthInProgress.value = true;
       errorMessage.value = '';
       
       let handleOAuthSuccess;
@@ -379,6 +385,7 @@ export default {
           console.log('🎉 [LoginModal] 이벤트 수신 시각:', new Date().toISOString());
           successMessage.value = '로그인 성공! 잠시만 기다려주세요...';
           isLoading.value = false;
+          isOAuthInProgress.value = false;
           
           // 타임아웃 클리어
           if (timeoutId) clearTimeout(timeoutId);
@@ -407,6 +414,7 @@ export default {
           console.error('🔴 [LoginModal] 이벤트 수신 시각:', new Date().toISOString());
           errorMessage.value = event.detail?.message || 'Google 로그인 중 오류가 발생했습니다.';
           isLoading.value = false;
+          isOAuthInProgress.value = false;
           
           // 타임아웃 클리어
           if (timeoutId) clearTimeout(timeoutId);
@@ -438,6 +446,7 @@ export default {
             
             console.log('⏰ [LoginModal] OAuth 타임아웃 발생 - 로딩 상태 리셋');
             isLoading.value = false;
+            isOAuthInProgress.value = false;
             errorMessage.value = '로그인 시간이 초과되었습니다. 다시 시도해주세요.';
             
             // 리스너 정리
@@ -452,6 +461,7 @@ export default {
         console.error('❌ [LoginModal] 에러 상세:', error.stack);
         errorMessage.value = 'Google 로그인 중 오류가 발생했습니다.';
         isLoading.value = false;
+        isOAuthInProgress.value = false;
         
         // 리스너 정리
         if (handleOAuthSuccess) window.removeEventListener('oauth-success', handleOAuthSuccess);
@@ -459,6 +469,55 @@ export default {
         if (timeoutId) clearTimeout(timeoutId);
       }
     };
+
+    const resetOAuthIfCancelled = async () => {
+      if (!isOAuthInProgress.value) return;
+      try {
+        await userStore.initializeUser();
+      } catch (error) {
+        console.error('❌ [LoginModal] 사용자 상태 갱신 실패:', error);
+      }
+      if (!userStore.currentUser) {
+        isLoading.value = false;
+        isOAuthInProgress.value = false;
+        errorMessage.value = '로그인이 취소되었습니다. 다시 시도해주세요.';
+      }
+    };
+
+    onMounted(async () => {
+      visibilityChangeHandler = () => {
+        if (!document.hidden) {
+          resetOAuthIfCancelled();
+        }
+      };
+      document.addEventListener('visibilitychange', visibilityChangeHandler);
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { App } = await import('@capacitor/app');
+          appStateHandler = (state) => {
+            if (state.isActive) {
+              resetOAuthIfCancelled();
+            }
+          };
+          appStateListener = App.addListener('appStateChange', appStateHandler);
+        } catch (error) {
+          console.warn('앱 상태 리스너 등록 실패:', error);
+        }
+      }
+    });
+
+    onUnmounted(async () => {
+      if (visibilityChangeHandler) {
+        document.removeEventListener('visibilitychange', visibilityChangeHandler);
+      }
+      if (appStateListener) {
+        try {
+          await appStateListener.remove();
+        } catch (error) {
+          console.warn('앱 상태 리스너 해제 실패:', error);
+        }
+      }
+    });
 
 
     // 비밀번호 찾기 버튼 클릭
