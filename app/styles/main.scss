@@ -6,7 +6,7 @@
 }
 
 :root {
-  --app-safe-top: env(safe-area-inset-top);
+  --app-safe-top: max(env(safe-area-inset-top), 24px);
   --app-safe-bottom: env(safe-area-inset-bottom);
 }
 
@@ -54,20 +54,22 @@ body {
 
 .app-shell {
   height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding-top: var(--app-safe-top);
+  padding-bottom: var(--app-safe-bottom);
+}
+
+.app-scroll {
+  height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding-top: var(--app-safe-top);
-  padding-bottom: var(--app-safe-bottom);
-  scroll-padding-top: var(--app-safe-top);
-  scroll-padding-bottom: var(--app-safe-bottom);
   box-sizing: border-box;
 }
 
-.app-shell.no-scroll {
-  overflow: hidden;
-}
+.app-shell.no-scroll,\n.app-scroll.no-scroll {\n  overflow: hidden;\n}
 // 공통 컴포?�트 ?��???
 .card {
   background: rgba(255, 255, 255, 0.05);

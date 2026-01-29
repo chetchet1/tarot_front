@@ -2,7 +2,9 @@
   <div id="app">
     <!-- Vue Router를 통한 정상 라우팅 -->
     <div class="app-shell">
-      <router-view />
+      <div class="app-scroll">
+        <router-view />
+      </div>
     </div>
   </div>
 </template>
