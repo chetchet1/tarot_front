@@ -671,14 +671,13 @@ export default {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 16px;
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
 }
 
 .modal-container {
   position: relative;
   max-width: 100%;
-  max-height: 100%;
+  max-height: calc(100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -689,7 +688,7 @@ export default {
   border-radius: 20px;
   width: 100%;
   max-width: 480px;
-  max-height: 90vh;
+  max-height: 100%;
   overflow-y: auto;
   color: white;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
@@ -1170,7 +1169,7 @@ export default {
     left: 0;
     right: 0;
     bottom: 0;
-    padding: 0;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1179,10 +1178,9 @@ export default {
   
   .modal-container {
     position: relative;
-    width: calc(100% - 40px);
+    width: 100%;
     max-width: 480px;
-    max-height: calc(100vh - 40px);
-    max-height: calc(100dvh - 40px);
+    max-height: calc(100dvh - max(12px, env(safe-area-inset-top)) - max(12px, env(safe-area-inset-bottom)));
     display: flex;
     align-items: center;
     justify-content: center;
