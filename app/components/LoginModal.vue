@@ -671,7 +671,8 @@ export default {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: 16px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
 }
 
 .modal-container {
@@ -684,7 +685,7 @@ export default {
 }
 
 .login-modal {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
   border-radius: 20px;
   width: 100%;
   max-width: 480px;
@@ -942,7 +943,7 @@ export default {
 }
 
 .modal-footer {
-  padding: 20px 30px 30px;
+  padding: 16px 24px 20px;
   text-align: center;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
