@@ -13,41 +13,70 @@ export const setupDeepLinks = () => {
       // URL 파싱
       const url = new URL(data.url);
       
-      // Supabase OAuth 콜백 처리
-      if (url.pathname.includes('auth/callback') || url.href.includes('#access_token')) {
-        // URL에서 토큰 추출 (hash 또는 fragment에서)
-        let access_token = null;
-        let refresh_token = null;
-        
-        // hash에서 찾기
-        if (url.hash) {
-          const hashParams = new URLSearchParams(url.hash.slice(1));
-          access_token = hashParams.get('access_token');
-          refresh_token = hashParams.get('refresh_token');
-        }
-        
-        // fragment에서도 찾기 (개선된 방법)
-        if (!access_token && data.url.includes('#')) {
-          const fragment = data.url.split('#')[1];
-          const fragmentParams = new URLSearchParams(fragment);
-          access_token = fragmentParams.get('access_token');
-          refresh_token = fragmentParams.get('refresh_token');
-        }
-        
-        console.log('🔑 Tokens found:', { 
-          access: !!access_token, 
-          refresh: !!refresh_token 
-        });
-        
-        if (access_token && refresh_token) {
-          try {
-            // 세션 설정
-            const { data, error } = await supabase.auth.setSession({
+      const hasResetPassword = url.pathname.includes('auth/reset-password') || data.url.includes('type=recovery');
+      const hasAuthCallback = url.pathname.includes('auth/callback') || url.href.includes('#access_token');
+      
+      // URL에서 토큰 추출 (hash 또는 fragment에서)
+      let access_token = null;
+      let refresh_token = null;
+      let type = null;
+      let fragment = '';
+      
+      if (data.url.includes('#')) {
+        fragment = data.url.split('#')[1];
+        const fragmentParams = new URLSearchParams(fragment);
+        access_token = fragmentParams.get('access_token');
+        refresh_token = fragmentParams.get('refresh_token');
+        type = fragmentParams.get('type');
+      }
+      
+      if (!access_token && url.hash) {
+        const hashParams = new URLSearchParams(url.hash.slice(1));
+        access_token = hashParams.get('access_token');
+        refresh_token = hashParams.get('refresh_token');
+        type = hashParams.get('type');
+      }
+      
+      console.log('🔑 Tokens found:', { 
+        access: !!access_token, 
+        refresh: !!refresh_token,
+        type
+      });
+      
+      if (hasResetPassword) {
+        try {
+          if (access_token && refresh_token) {
+            const { error } = await supabase.auth.setSession({
               access_token,
               refresh_token
             });
             
-            if (!error && data.session) {
+            if (error) {
+              console.error('❌ Password reset session error:', error);
+            }
+          }
+          
+          const hash = fragment ? `#${fragment}` : (url.hash || '');
+          router.replace({ path: '/auth/reset-password', hash });
+          return;
+        } catch (err) {
+          console.error('❌ Password reset deep link error:', err);
+          router.replace('/auth/reset-password');
+          return;
+        }
+      }
+      
+      // Supabase OAuth 콜백 처리
+      if (hasAuthCallback) {
+        if (access_token && refresh_token) {
+          try {
+            // 세션 설정
+            const { data: sessionData, error } = await supabase.auth.setSession({
+              access_token,
+              refresh_token
+            });
+            
+            if (!error && sessionData.session) {
               console.log('✅ OAuth login successful');
               // 홈 화면으로 이동
               router.push('/');
