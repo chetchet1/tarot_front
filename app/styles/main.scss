@@ -69,7 +69,10 @@ body {
   box-sizing: border-box;
 }
 
-.app-shell.no-scroll,\n.app-scroll.no-scroll {\n  overflow: hidden;\n}
+.app-shell.no-scroll,
+.app-scroll.no-scroll {
+  overflow: hidden;
+}
 // 공통 컴포?�트 ?��???
 .card {
   background: rgba(255, 255, 255, 0.05);
