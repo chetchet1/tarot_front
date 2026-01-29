@@ -372,25 +372,22 @@ export const authService = {
     try {
       let redirectUrl = '';
       
-      // 중요: 앱이든 웹이든 모두 Vercel 웹 페이지로 보내기
-      // 이유: 이메일 링크는 웹 브라우저에서 열려야 함 (앱 WebView가 아닌)
-      
       // 프로덕션 Vercel URL
       const PRODUCTION_URL = 'https://tarot-app-psi-eight.vercel.app';
+      const APP_RESET_SCHEME = 'com.tarotgarden.app://auth/reset-password';
       
       // 로컬 브라우저 테스트용 (앱이 아닐 때만)
       if (window.location.hostname === 'localhost' && !Capacitor.isNativePlatform()) {
         redirectUrl = `${window.location.origin}/auth/reset-password`;
         console.log('💻 로컬 브라우저 테스트 - localhost URL 사용');
+      } else if (Capacitor.isNativePlatform()) {
+        redirectUrl = APP_RESET_SCHEME;
+        console.log('📱 앱에서 실행 중 - 앱 딥링크로 이메일 전송');
       } else {
-        // 앱 또는 프로덕션 환경 - 모두 Vercel URL 사용
+        // 웹 프로덕션 환경
         redirectUrl = `${PRODUCTION_URL}/auth/reset-password`;
         
-        if (Capacitor.isNativePlatform()) {
-          console.log('📱 앱에서 실행 중 - Vercel URL로 이메일 전송');
-        } else {
-          console.log('🌐 웹 환경 - Vercel URL 사용');
-        }
+        console.log('🌐 웹 환경 - Vercel URL 사용');
       }
       
       console.log('📧 비밀번호 재설정 이메일 리다이렉트 URL:', redirectUrl);
