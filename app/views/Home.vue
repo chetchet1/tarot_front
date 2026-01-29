@@ -105,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/user';
 import LoginModal from '../components/LoginModal.vue';
@@ -119,9 +119,15 @@ const userStore = useUserStore();
 const loginModalVisible = ref(false);
 const loginModalMode = ref('login');
 const emailVerificationVisible = ref(false);
+let previousSafeBottom = '';
+let previousPageBg = '';
 const verificationEmail = ref('');
 
 onMounted(async () => {
+  previousSafeBottom = document.documentElement.style.getPropertyValue('--app-safe-bottom');
+  previousPageBg = document.documentElement.style.getPropertyValue('--page-bg');
+  document.documentElement.style.setProperty('--app-safe-bottom', '0px');
+  document.documentElement.style.setProperty('--page-bg', 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)');
   console.log('🏠 홈 페이지 초기화');
   
   // OAuth 리스너 재등록 (모바일에서만) - 로그아웃 후 다시 등록 필요
@@ -142,6 +148,20 @@ onMounted(async () => {
     router.push('/app');
   } else if (userStore.currentUser) {
     console.log('👤 익명 사용자 또는 미로그인 상태');
+  }
+});
+
+onUnmounted(() => {
+  if (previousSafeBottom) {
+    document.documentElement.style.setProperty('--app-safe-bottom', previousSafeBottom);
+  } else {
+    document.documentElement.style.removeProperty('--app-safe-bottom');
+  }
+
+  if (previousPageBg) {
+    document.documentElement.style.setProperty('--page-bg', previousPageBg);
+  } else {
+    document.documentElement.style.removeProperty('--page-bg');
   }
 });
 
@@ -187,7 +207,7 @@ const goToLoginFromVerification = () => {
   background: transparent;
   color: white;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  padding-bottom: 8px;
+  padding-bottom: 0;
 }
 
 /* 헤더 */
