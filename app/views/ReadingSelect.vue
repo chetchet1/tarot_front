@@ -906,17 +906,25 @@ const resetSelection = () => {
 
 <style scoped>
 .reading-select {
-  min-height: 100vh;
+  min-height: 100%;
   padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .page-header {
   display: flex;
   align-items: center;
   gap: 20px;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
+  margin-bottom: 20px;
+  padding: 12px 0 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: linear-gradient(180deg, rgba(30, 27, 75, 0.98) 0%, rgba(30, 27, 75, 0.9) 70%, rgba(30, 27, 75, 0.0) 100%);
+  backdrop-filter: blur(10px);
 }
 
 .back-button {
