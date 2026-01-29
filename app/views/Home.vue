@@ -182,10 +182,12 @@ const goToLoginFromVerification = () => {
 
 <style scoped>
 .home {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+  min-height: 100%;
+  height: 100%;
+  background: transparent;
   color: white;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding-bottom: 8px;
 }
 
 /* 헤더 */
@@ -372,7 +374,7 @@ const goToLoginFromVerification = () => {
 
 /* 특징 섹션 */
 .features-section {
-  padding: 60px 0;
+  padding: 60px 0 24px;
 }
 
 .section-title {
