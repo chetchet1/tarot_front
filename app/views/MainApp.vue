@@ -1,21 +1,21 @@
 ﻿<template>
   <div class="main-app">
-    <!-- ?ㅻ뜑 -->
+    <!-- 헤더 -->
     <header class="app-header">
       <div class="header-content">
         <div class="logo-section">
-          <h1 class="app-title">?뵰 ?濡쒖쓽 ?뺤썝</h1>
+          <h1 class="app-title">🔮 타로의 정원</h1>
         </div>
         
         <div class="user-section">
-          <!-- ?뚯뒪??踰꾪듉 (媛쒕컻/?뚯뒪?몄슜) -->
+          <!-- 테스트 버튼 (개발/테스트용) -->
           <button 
             v-if="showTestButton"
             class="test-mode-btn"
             @click="toggleTestPanel"
             :class="{ active: isTestPanelOpen }"
           >
-            ?㎦
+            🧪
           </button>
           
           <div class="user-info">
@@ -36,14 +36,14 @@
             
             <div v-if="showUserDropdown" class="user-dropdown">
               <button @click="goToPremium" class="menu-item">
-                ?뭿 ?꾨━誘몄뾼 援щ룆
+                💎 프리미엄 구독
               </button>
               <button v-if="userStore.isLoggedIn" @click="handleDeleteAccount" class="menu-item danger">
-                ??? ?怨꾩젙 ??젣
+                🗑️ 계정 삭제
               </button>
               <div class="menu-divider"></div>
               <button @click="handleLogout" class="menu-item">
-                ?슞 濡쒓렇?꾩썐
+                🚪 로그아웃
               </button>
             </div>
           </div>
@@ -51,73 +51,73 @@
       </div>
     </header>
 
-    <!-- 硫붿씤 肄섑뀗痢?-->
+    <!-- 메인 콘텐츠 -->
     <main class="main-content">
       <div v-if="userStore.isLoading" class="loading-state">
         <div class="loading-spinner"></div>
-        <p>?濡?移대뱶瑜?以鍮꾪븯怨??덉뒿?덈떎...</p>
+        <p>타로 카드를 준비하고 있습니다...</p>
       </div>
       
       <div v-else class="app-content">
         <div class="welcome-section">
           <h2>{{ getGreetingMessage() }}</h2>
-          <p class="subtitle">?ㅻ뒛???댁꽭瑜??뺤씤?대낫?몄슂</p>
+          <p class="subtitle">오늘의 운세를 확인해보세요</p>
         </div>
         
-        <!-- 硫붿씤 硫붾돱 -->
+        <!-- 메인 메뉴 -->
         <div class="main-menu">
           <router-link to="/reading-select" class="menu-card">
-            <div class="menu-icon">?뵰</div>
+            <div class="menu-icon">🔮</div>
             <div class="menu-content">
-              <h3>?濡???蹂닿린</h3>
-              <p>移대뱶媛 ?꾪븯??硫붿떆吏瑜??ㅼ뼱蹂댁꽭??/p>
+              <h3>타로 점 보기</h3>
+              <p>카드가 전하는 메시지를 들어보세요</p>
             </div>
           </router-link>
 
           <div class="menu-card" @click="showDailyCard">
-            <div class="menu-icon">?截?/div>
+            <div class="menu-icon">☀️</div>
             <div class="menu-content">
-              <h3>?ㅻ뒛??移대뱶</h3>
-              <p>?ㅻ뒛 ?섎（瑜??꾪븳 ?밸퀎??硫붿떆吏</p>
+              <h3>오늘의 카드</h3>
+              <p>오늘 하루를 위한 특별한 메시지</p>
             </div>
           </div>
 
           <div class="menu-card" @click="showHistoryAlert">
-            <div class="menu-icon">?뱴</div>
+            <div class="menu-icon">📚</div>
             <div class="menu-content">
-              <h3>?먭킌 湲곕줉</h3>
-              <p>吏???먭킌?ㅼ쓣 ?ㅼ떆 ?뺤씤?대낫?몄슂</p>
+              <h3>점괘 기록</h3>
+              <p>지난 점괘들을 다시 확인해보세요</p>
             </div>
           </div>
 
           <router-link to="/board" class="menu-card">
-            <div class="menu-icon">?뙼</div>
+            <div class="menu-icon">🌿</div>
             <div class="menu-content">
-              <h3>鍮꾨????뺤썝</h3>
-              <p>?듬챸?쇰줈 ?뚰넻?섎뒗 而ㅻ??덊떚</p>
+              <h3>비밀의 정원</h3>
+              <p>익명으로 소통하는 커뮤니티</p>
             </div>
           </router-link>
 
           <router-link to="/events" class="menu-card">
-            <div class="menu-icon">?럦</div>
+            <div class="menu-icon">🎉</div>
             <div class="menu-content">
-              <h3>?대깽??/h3>
-              <p>吏꾪뻾 以묒씤 ?대깽?몄뿉 李몄뿬?섏꽭??/p>
+              <h3>이벤트</h3>
+              <p>진행 중인 이벤트에 참여하세요</p>
             </div>
           </router-link>
 
           <router-link v-if="!userStore.isPremium" to="/premium" class="menu-card premium-card">
-            <div class="menu-icon">?몣</div>
+            <div class="menu-icon">👑</div>
             <div class="menu-content">
-              <h3>?꾨━誘몄뾼 援щ룆</h3>
-              <p>愿묎퀬 ?놁씠 紐⑤뱺 湲곕뒫???댁슜?섏꽭??/p>
+              <h3>프리미엄 구독</h3>
+              <p>광고 없이 모든 기능을 이용하세요</p>
             </div>
           </router-link>
         </div>
       </div>
     </main>
     
-    <!-- 踰꾩쟾 ?뺣낫 ?쒖떆 (?섎떒 怨좎젙) -->
+    <!-- 버전 정보 표시 (하단 고정) -->
     <div class="version-info">
       v{{ appVersion }} (Build {{ buildVersion }})
     </div>
@@ -138,19 +138,20 @@ const userStore = useUserStore();
 const tarotStore = useTarotStore();
 const DELETE_ACCOUNT_URL = 'https://chetchet1.github.io/tarot-privacy-policy/delete-account.html';
 
-// UI ?곹깭
+// UI 상태
 const showUserDropdown = ref(false);
 const showTestButton = ref(import.meta.env.MODE !== 'production');
 const isTestPanelOpen = ref(false);
 const showTestMenu = ref(false);
 
-// 踰꾩쟾 ?뺣낫
+// 버전 정보
 const appVersion = ref(packageInfo.version || '1.0.0');
-const buildVersion = ref('06940001'); // Android 鍮뚮뱶 踰꾩쟾 - android/version.properties? ?숆린??
-// ?ㅻ줈媛湲?踰꾪듉 泥섎━
+const buildVersion = ref('06940001'); // Android 빌드 버전 - android/version.properties와 동기화
+
+// 뒤로가기 버튼 처리
 let lastBackPressTime = 0;
 
-// ?뚯뒪??怨꾩젙 ?뺤씤
+// 테스트 계정 확인
 const isTestAccount = computed(() => {
   return userStore.currentUser?.email === 'test@example.com' || 
          userStore.currentUser?.email === 'premium@example.com';
@@ -161,28 +162,29 @@ const toggleTestPanel = () => {
   window.dispatchEvent(new CustomEvent('toggle-test-panel'));
 };
 
-// ?ㅻ줈媛湲?踰꾪듉 ?몃뱾??const handleBackButton = async () => {
+// 뒤로가기 버튼 핸들러
+const handleBackButton = async () => {
   const currentTime = Date.now();
   
-  // 2珥??대궡???ㅼ떆 ?꾨Ⅴ硫???醫낅즺
+  // 2초 이내에 다시 누르면 앱 종료
   if (currentTime - lastBackPressTime < 2000) {
     await nativeUtils.exitApp();
   } else {
-    // 泥?踰덉㎏ ?꾨쫫 - ?좎뒪??硫붿떆吏 ?쒖떆
+    // 첫 번째 누름 - 토스트 메시지 표시
     lastBackPressTime = currentTime;
-    await nativeUtils.showToast('?쒕쾲 ???꾨Ⅴ硫??깆씠 醫낅즺?⑸땲??, 'short');
+    await nativeUtils.showToast('한번 더 누르면 앱이 종료됩니다', 'short');
   }
 };
 
 onMounted(async () => {
-  // 硫붿씤 ???섏씠吏 濡쒕뱶
+  // 메인 앱 페이지 로드
   
   if (userStore.currentUser && !userStore.isLoading) {
-    // ?ъ슜???대? 濡쒕뱶?? ?濡??곗씠??濡쒕뱶
+    // 사용자 이미 로드됨, 타로 데이터 로드
     tarotStore.loadReadings();
     tarotStore.loadDailyCard();
   } else if (!userStore.isLoading) {
-    // ?ъ슜???놁쓬, 珥덇린???쒕룄
+    // 사용자 없음, 초기화 시도
     await userStore.initializeUser();
     tarotStore.loadReadings();
     tarotStore.loadDailyCard();
@@ -190,35 +192,35 @@ onMounted(async () => {
   
   document.addEventListener('click', handleClickOutside);
   
-  // ?ㅼ씠?곕툕 ?깆씤 寃쎌슦 ?ㅻ줈媛湲?踰꾪듉 由ъ뒪???ㅼ젙
+  // 네이티브 앱인 경우 뒤로가기 버튼 리스너 설정
   nativeUtils.setupBackButtonListener(handleBackButton);
 });
 
 onUnmounted(() => {
-  // ?ㅻ줈媛湲?踰꾪듉 由ъ뒪???쒓굅
+  // 뒤로가기 버튼 리스너 제거
   nativeUtils.removeBackButtonListener();
   document.removeEventListener('click', handleClickOutside);
 });
 
 const getGreetingMessage = () => {
   const hour = new Date().getHours();
-  const name = userStore.currentUser?.name || '怨좉컼';
+  const name = userStore.currentUser?.name || '고객';
   
   if (hour < 12) {
-    return `醫뗭? ?꾩묠?댁뿉?? ${name}?? ?截?;
+    return `좋은 아침이에요, ${name}님! ☀️`;
   } else if (hour < 18) {
-    return `?덈뀞?섏꽭?? ${name}?? ?뙟截?;
+    return `안녕하세요, ${name}님! 🌤️`;
   } else {
-    return `醫뗭? ??곸씠?먯슂, ${name}?? ?뙔`;
+    return `좋은 저녁이에요, ${name}님! 🌙`;
   }
 };
 
 const showDailyCard = async () => {
-  console.log('?截??ㅻ뒛??移대뱶 ?대┃??');
-  console.log('?좊즺 ?щ?:', userStore.isPremium);
-  console.log('?ъ슜??', userStore.currentUser?.email);
+  console.log('☀️ 오늘의 카드 클릭됨!');
+  console.log('유료 여부:', userStore.isPremium);
+  console.log('사용자:', userStore.currentUser?.email);
   
-  // ?ㅻ뒛??移대뱶 ?섏씠吏濡??대룞
+  // 오늘의 카드 페이지로 이동
   router.push('/daily-card');
 };
 
@@ -242,29 +244,28 @@ const toggleUserMenu = (event: MouseEvent) => {
 };
 
 const handleLogout = async () => {
-  console.log('濡쒓렇?꾩썐 ?몃뱾???ㅽ뻾');
+  console.log('로그아웃 핸들러 실행');
   
   try {
-    // ?쒕∼?ㅼ슫 癒쇱? ?リ린
+    // 드롭다운 먼저 닫기
     showUserDropdown.value = false;
     
-    // 濡쒓렇?꾩썐 ?ㅽ뻾
+    // 로그아웃 실행
     await userStore.logout();
     
-    // ?쎄컙??吏?????섏씠吏 ?대룞 (?곹깭 ?낅뜲?댄듃 蹂댁옣)
+    // 약간의 지연 후 페이지 이동 (상태 업데이트 보장)
     setTimeout(() => {
-      console.log('濡쒓렇?꾩썐 ???덉쑝濡??대룞');
+      console.log('로그아웃 후 홈으로 이동');
       router.push('/');
     }, 100);
   } catch (error) {
-    console.error('濡쒓렇?꾩썐 ?ㅽ뙣:', error);
-    // ?먮윭媛 ?덉뼱???덉쑝濡??대룞
+    console.error('로그아웃 실패:', error);
+    // 에러가 있어도 홈으로 이동
     setTimeout(() => {
       router.push('/');
     }, 100);
   }
 };
-
 
 const openExternalUrl = (url: string) => {
   try {
@@ -277,17 +278,17 @@ const openExternalUrl = (url: string) => {
 const handleDeleteAccount = async () => {
   showUserDropdown.value = false;
   const confirmed = await showConfirm({
-    title: '?怨꾩젙 ??젣',
-    message: '?怨꾩젙 ??젣 ?붿껌 ?섏씠吏濡??대룞?⑸땲??.\n?붿껌 ?완료 ????蹂닿?媛 ?댁떎?쒗븯怨??뚯븘?댁삤기 어렵습니다.\n援щ룆 ?⑦뎅???ㅽ넗?? 정책에 따릅니다.\n계속하시겠습니까?',
-    confirmText: '?탈퇴',
-    cancelText: '?취소'
+    title: '계정 삭제',
+    message: '계정 삭제 요청 페이지로 이동합니다.\n요청 완료 후에는 복구가 어렵습니다.\n구독 환불은 스토어 정책에 따릅니다.\n계속하시겠습니까?',
+    confirmText: '탈퇴',
+    cancelText: '취소'
   });
 
   if (!confirmed) return;
 
   await showAlert({
-    title: '?삭제 요청',
-    message: '?삭제 요청 페이지로 이동합니다. 안내에 따라 요청을 완료해주세요.'
+    title: '삭제 요청',
+    message: '삭제 요청 페이지로 이동합니다. 안내에 따라 요청을 완료해주세요.'
   });
 
   openExternalUrl(DELETE_ACCOUNT_URL);
@@ -298,31 +299,33 @@ const handleDeleteAccount = async () => {
     router.push('/');
   }
 };
-const goToPremium = \(\) => \{
-  console.log('?꾨━誘몄뾼 援щ룆');
+
+
+const goToPremium = () => {
+  console.log('프리미엄 구독');
   showUserDropdown.value = false;
   router.push('/premium');
 };
 
 const showHistoryAlert = async () => {
-  // ?꾨━誘몄뾼 ?ъ슜??泥댄겕
+  // 프리미엄 사용자 체크
   if (!userStore.isPremium) {
     const confirmed = await showConfirm({
-      title: '?꾨━誘몄뾼 ?꾩슜 湲곕뒫',
-      message: '?먭킌 湲곕줉 蹂닿?? ?꾨━誘몄뾼 援щ룆?먮쭔 ?댁슜 媛?ν빀?덈떎.\n\n?꾨━誘몄뾼 援щ룆 ??1?꾧컙 ?먭킌瑜??덉쟾?섍쾶 蹂닿??????덉뒿?덈떎.',
-      confirmText: '?꾨━誘몄뾼 援щ룆?섍린',
-      cancelText: '?リ린'
+      title: '프리미엄 전용 기능',
+      message: '점괘 기록 보관은 프리미엄 구독자만 이용 가능합니다.\n\n프리미엄 구독 시 1년간 점괘를 안전하게 보관할 수 있습니다.',
+      confirmText: '프리미엄 구독하기',
+      cancelText: '닫기'
     });
     
-    // ?ъ슜?먭? '?꾨━誘몄뾼 援щ룆?섍린' 踰꾪듉???대┃??寃쎌슦
+    // 사용자가 '프리미엄 구독하기' 버튼을 클릭한 경우
     if (confirmed) {
-      console.log('?꾨━誘몄뾼 ?섏씠吏濡??대룞');
+      console.log('프리미엄 페이지로 이동');
       router.push('/premium');
     }
     return;
   }
   
-  // ?꾨━誘몄뾼 ?ъ슜?먮뒗 湲곕줉 ?섏씠吏濡??대룞
+  // 프리미엄 사용자는 기록 페이지로 이동
   router.push('/history');
 };
 
@@ -337,15 +340,15 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 };
 
-// ?뚯뒪??硫붾돱 ?좉?
+// 테스트 메뉴 토글
 const toggleTestMenu = () => {
   showTestMenu.value = !showTestMenu.value;
 };
 
-// 臾대즺濡?由ъ뀑
+// 무료로 리셋
 const resetToFree = async () => {
   try {
-    console.log('?㎦ ?뚯뒪??怨꾩젙 臾대즺 由ъ뀑');
+    console.log('🧪 테스트 계정 무료 리셋');
     const { profileService } = await import('../services/supabase');
     await profileService.updatePremiumStatus(
       userStore.currentUser?.id || '',
@@ -353,22 +356,23 @@ const resetToFree = async () => {
     );
     await userStore.refreshPremiumStatus();
     await showAlert({
-      title: '由ъ뀑 ?꾨즺',
-      message: '?뚯뒪??怨꾩젙??臾대즺 ?곹깭濡??섎룎?꾧컮?듬땲??'
+      title: '리셋 완료',
+      message: '테스트 계정이 무료 상태로 되돌아갔습니다.'
     });
     showTestMenu.value = false;
   } catch (error) {
-    console.error('由ъ뀑 ?ㅽ뙣:', error);
+    console.error('리셋 실패:', error);
     await showAlert({
-      title: '?ㅻ쪟',
-      message: '由ъ뀑 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.'
+      title: '오류',
+      message: '리셋 중 오류가 발생했습니다.'
     });
   }
 };
 
-// ?꾨━誘몄뾼?쇰줈 ?낃렇?덉씠??const upgradeToPremium = async () => {
+// 프리미엄으로 업그레이드
+const upgradeToPremium = async () => {
   try {
-    console.log('?㎦ ?뚯뒪??怨꾩젙 ?꾨━誘몄뾼 ?꾪솚');
+    console.log('🧪 테스트 계정 프리미엄 전환');
     const { profileService } = await import('../services/supabase');
     await profileService.updatePremiumStatus(
       userStore.currentUser?.id || '',
@@ -376,15 +380,15 @@ const resetToFree = async () => {
     );
     await userStore.refreshPremiumStatus();
     await showAlert({
-      title: '?꾪솚 ?꾨즺',
-      message: '?뚯뒪??怨꾩젙???꾨━誘몄뾼 ?곹깭媛 ?섏뿀?듬땲??'
+      title: '전환 완료',
+      message: '테스트 계정이 프리미엄 상태가 되었습니다.'
     });
     showTestMenu.value = false;
   } catch (error) {
-    console.error('?꾨━誘몄뾼 ?꾪솚 ?ㅽ뙣:', error);
+    console.error('프리미엄 전환 실패:', error);
     await showAlert({
-      title: '?ㅻ쪟',
-      message: '?꾪솚 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.'
+      title: '오류',
+      message: '전환 중 오류가 발생했습니다.'
     });
   }
 };
@@ -399,7 +403,7 @@ const resetToFree = async () => {
   padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
 }
 
-/* ?ㅻ뜑 */
+/* 헤더 */
 .app-header {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -456,7 +460,7 @@ const resetToFree = async () => {
   font-weight: 700;
 }
 
-/* ?뚯뒪??紐⑤뱶 踰꾪듉 */
+/* 테스트 모드 버튼 */
 .test-mode-btn {
   width: 40px;
   height: 40px;
@@ -549,7 +553,6 @@ const resetToFree = async () => {
   font-weight: 500;
 }
 
-
 .menu-item.danger {
   color: #b91c1c;
 }
@@ -557,6 +560,7 @@ const resetToFree = async () => {
 .menu-item.danger:hover {
   background: rgba(239, 68, 68, 0.15);
 }
+
 .menu-item:hover {
   background: rgba(168, 85, 247, 0.1);
 }
@@ -567,7 +571,7 @@ const resetToFree = async () => {
   margin: 4px 0;
 }
 
-/* 硫붿씤 肄섑뀗痢?*/
+/* 메인 콘텐츠 */
 .main-content {
   max-width: 1200px;
   margin: 0 auto;
@@ -623,7 +627,7 @@ const resetToFree = async () => {
   margin: 0;
 }
 
-/* 硫붿씤 硫붾돱 */
+/* 메인 메뉴 */
 .main-menu {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -688,7 +692,7 @@ const resetToFree = async () => {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(239, 68, 68, 0.15) 100%);
 }
 
-/* 諛섏쓳???붿옄??*/
+/* 반응형 디자인 */
 @media (max-width: 768px) {
   .header-content {
     padding: 0 16px;
@@ -771,7 +775,7 @@ const resetToFree = async () => {
   }
 }
 
-/* ?ㅽ겕紐⑤뱶 理쒖쟻??*/
+/* 다크모드 최적화 */
 @media (prefers-color-scheme: dark) {
   .user-dropdown {
     background: rgba(30, 30, 30, 0.95);
@@ -781,15 +785,7 @@ const resetToFree = async () => {
     color: white;
   }
   
-  
-.menu-item.danger {
-  color: #b91c1c;
-}
-
-.menu-item.danger:hover {
-  background: rgba(239, 68, 68, 0.15);
-}
-.menu-item:hover {
+  .menu-item:hover {
     background: rgba(255, 255, 255, 0.1);
   }
   
@@ -798,7 +794,7 @@ const resetToFree = async () => {
   }
 }
 
-/* ?묎렐??*/
+/* 접근성 */
 @media (prefers-reduced-motion: reduce) {
   .loading-spinner {
     animation: none;
@@ -809,14 +805,14 @@ const resetToFree = async () => {
   }
 }
 
-/* ?ъ빱???쒖떆 */
+/* 포커스 표시 */
 button:focus,
 .menu-card:focus {
   outline: 2px solid rgba(168, 85, 247, 0.8);
   outline-offset: 2px;
 }
 
-/* ?뚯뒪??怨꾩젙 ?뚮줈??踰꾪듉 */
+/* 테스트 계정 플로팅 버튼 */
 .test-floating-button {
   position: fixed;
   bottom: 20px;
@@ -840,7 +836,7 @@ button:focus,
   box-shadow: 0 6px 20px rgba(255, 165, 0, 0.5);
 }
 
-/* ?뚯뒪??硫붾돱 ?⑤꼸 */
+/* 테스트 메뉴 패널 */
 .test-menu-panel {
   position: fixed;
   bottom: 90px;
@@ -901,7 +897,7 @@ button:focus,
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
-/* 紐⑤컮??諛섏쓳??*/
+/* 모바일 반응형 */
 @media (max-width: 640px) {
   .test-floating-button {
     width: 50px;
@@ -919,7 +915,7 @@ button:focus,
   }
 }
 
-/* 踰꾩쟾 ?뺣낫 ?ㅽ???*/
+/* 버전 정보 스타일 */
 .version-info {
   position: fixed;
   bottom: max(4px, env(safe-area-inset-bottom));
@@ -933,4 +929,3 @@ button:focus,
   font-family: monospace;
 }
 </style>
-
