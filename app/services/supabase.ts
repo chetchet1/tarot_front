@@ -449,6 +449,16 @@ export const authService = {
       console.error('❌ 인증 이메일 재전송 실패:', error);
       throw error;
     }
+  },
+
+  // 계정 즉시 삭제 (Edge Function 호출)
+  async deleteAccount() {
+    const { data, error } = await supabase.functions.invoke('delete-account');
+    if (error) {
+      console.error('❌ 계정 삭제 실패:', error);
+      throw error;
+    }
+    return data;
   }
 };
 

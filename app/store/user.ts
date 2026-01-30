@@ -915,6 +915,22 @@ export const useUserStore = defineStore('user', () => {
     }
   };
 
+  const deleteAccount = async () => {
+    if (!currentUser.value || currentUser.value.isAnonymous) {
+      throw new Error('濡쒓렇???곹깭???먮쭔 ?닿??섏닔 ?덈떎.');
+    }
+
+    isLoading.value = true;
+    try {
+      await authService.deleteAccount();
+      currentUser.value = null;
+      isInitialized.value = false;
+      localStorage.removeItem('tarot_user');
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   return {
     currentUser,
     isLoggedIn,
@@ -937,6 +953,7 @@ export const useUserStore = defineStore('user', () => {
     cancelSubscription,
     resetPassword,
     resendVerificationEmail,
+    deleteAccount,
     incrementFreeReading,
     resetFreeReadings,
     upgradeToPremium,

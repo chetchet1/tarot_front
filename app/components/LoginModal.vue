@@ -671,13 +671,13 @@ export default {
   align-items: flex-start;
   justify-content: center;
   z-index: 1000;
-  padding: max(16px, env(safe-area-inset-top, 16px)) 16px max(16px, env(safe-area-inset-bottom, 16px));
+  padding: max(24px, env(safe-area-inset-top, 24px)) 16px max(24px, env(safe-area-inset-bottom, 24px));
 }
 
 .modal-container {
   position: relative;
   max-width: 100%;
-  max-height: calc(100dvh - max(16px, env(safe-area-inset-top, 16px)) - max(16px, env(safe-area-inset-bottom, 16px)));
+  max-height: calc(100dvh - max(24px, env(safe-area-inset-top, 24px)) - max(24px, env(safe-area-inset-bottom, 24px)));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1169,7 +1169,7 @@ export default {
     left: 0;
     right: 0;
     bottom: 0;
-    padding: max(12px, env(safe-area-inset-top, 12px)) 12px max(12px, env(safe-area-inset-bottom, 12px));
+    padding: max(20px, env(safe-area-inset-top, 20px)) 12px max(20px, env(safe-area-inset-bottom, 20px));
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -1180,7 +1180,7 @@ export default {
     position: relative;
     width: 100%;
     max-width: 480px;
-    max-height: calc(100dvh - max(12px, env(safe-area-inset-top, 12px)) - max(12px, env(safe-area-inset-bottom, 12px)));
+    max-height: calc(100dvh - max(20px, env(safe-area-inset-top, 20px)) - max(20px, env(safe-area-inset-bottom, 20px)));
     display: flex;
     align-items: center;
     justify-content: center;

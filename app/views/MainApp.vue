@@ -136,7 +136,6 @@ import packageInfo from '../../package.json';
 const router = useRouter();
 const userStore = useUserStore();
 const tarotStore = useTarotStore();
-const DELETE_ACCOUNT_URL = 'https://chetchet1.github.io/tarot-privacy-policy/delete-account.html';
 
 // UI 상태
 const showUserDropdown = ref(false);
@@ -267,37 +266,33 @@ const handleLogout = async () => {
   }
 };
 
-const openExternalUrl = (url: string) => {
-  try {
-    window.open(url, '_blank', 'noopener');
-  } catch (error) {
-    window.location.href = url;
-  }
-};
-
 const handleDeleteAccount = async () => {
   showUserDropdown.value = false;
   const confirmed = await showConfirm({
     title: '계정 삭제',
-    message: '계정 삭제 요청 페이지로 이동합니다.\n요청 완료 후에는 복구가 어렵습니다.\n구독 환불은 스토어 정책에 따릅니다.\n계속하시겠습니까?',
+    message: '계정을 즉시 삭제합니다.\n삭제 후에는 복구할 수 없습니다.\n계속하시겠습니까?',
     confirmText: '탈퇴',
     cancelText: '취소'
   });
 
   if (!confirmed) return;
 
-  await showAlert({
-    title: '삭제 요청',
-    message: '삭제 요청 페이지로 이동합니다. 안내에 따라 요청을 완료해주세요.'
-  });
-
-  openExternalUrl(DELETE_ACCOUNT_URL);
-
   try {
-    await userStore.logout();
-  } finally {
-    router.push('/');
+    await userStore.deleteAccount();
+    await showAlert({
+      title: '탈퇴 완료',
+      message: '계정이 삭제되었습니다.'
+    });
+  } catch (error) {
+    console.error('계정 삭제 실패:', error);
+    await showAlert({
+      title: '오류',
+      message: '계정 삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+    });
+    return;
   }
+
+  router.push('/');
 };
 
 
