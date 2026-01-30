@@ -452,8 +452,10 @@ export const authService = {
   },
 
   // 계정 즉시 삭제 (Edge Function 호출)
-  async deleteAccount() {
-    const { data, error } = await supabase.functions.invoke('delete-account');
+  async deleteAccount(payload?: { reason?: string; detail?: string }) {
+    const { data, error } = await supabase.functions.invoke('delete-account', {
+      body: payload ?? {}
+    });
     if (error) {
       console.error('❌ 계정 삭제 실패:', error);
       throw error;

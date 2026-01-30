@@ -38,7 +38,7 @@
               <button @click="goToPremium" class="menu-item">
                 💎 프리미엄 구독
               </button>
-              <button v-if="userStore.isLoggedIn" @click="handleDeleteAccount" class="menu-item danger">
+              <button v-if="userStore.isLoggedIn" @click="openDeleteModal" class="menu-item danger">
                 🗑️ 계정 삭제
               </button>
               <div class="menu-divider"></div>
@@ -117,6 +117,52 @@
       </div>
     </main>
     
+    <!-- 계정 삭제 사유 모달 -->
+    <Transition name="modal">
+      <div v-if="showDeleteModal" class="delete-modal-overlay" @click="closeDeleteModal">
+        <div class="delete-modal-container" @click.stop>
+          <div class="delete-modal-header">
+            <h2 class="delete-modal-title">계정 삭제</h2>
+          </div>
+          <div class="delete-modal-body">
+            <p class="delete-modal-description">
+              탈퇴 사유를 알려주시면 서비스 개선에 큰 도움이 됩니다.
+            </p>
+            <div class="delete-reason-list">
+              <label
+                v-for="option in deleteReasonOptions"
+                :key="option.value"
+                class="delete-reason-option"
+              >
+                <input
+                  type="radio"
+                  name="delete-reason"
+                  :value="option.value"
+                  v-model="selectedDeleteReason"
+                />
+                <span>{{ option.label }}</span>
+              </label>
+            </div>
+            <textarea
+              v-if="selectedDeleteReason === 'other'"
+              v-model="deleteReasonDetail"
+              class="delete-reason-detail"
+              rows="3"
+              placeholder="자세한 사유를 입력해주세요 (선택)"
+            ></textarea>
+          </div>
+          <div class="delete-modal-actions">
+            <button class="delete-btn cancel" :disabled="isDeleting" @click="closeDeleteModal">
+              취소
+            </button>
+            <button class="delete-btn danger" :disabled="isDeleting" @click="confirmDeleteAccount">
+              저장 후 탈퇴
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- 버전 정보 표시 (하단 고정) -->
     <div class="version-info">
       v{{ appVersion }} (Build {{ buildVersion }})
@@ -142,6 +188,19 @@ const showUserDropdown = ref(false);
 const showTestButton = ref(import.meta.env.MODE !== 'production');
 const isTestPanelOpen = ref(false);
 const showTestMenu = ref(false);
+const showDeleteModal = ref(false);
+const isDeleting = ref(false);
+const selectedDeleteReason = ref('');
+const deleteReasonDetail = ref('');
+
+const deleteReasonOptions = [
+  { value: 'not_using', label: '앱을 자주 사용하지 않아요' },
+  { value: 'missing_features', label: '필요한 기능이 부족해요' },
+  { value: 'too_many_errors', label: '오류/버그가 자주 발생해요' },
+  { value: 'ui_ux', label: '디자인/사용성이 불편해요' },
+  { value: 'privacy', label: '개인정보가 걱정돼요' },
+  { value: 'other', label: '기타' }
+];
 
 // 버전 정보
 const appVersion = ref(packageInfo.version || '1.0.0');
@@ -266,8 +325,35 @@ const handleLogout = async () => {
   }
 };
 
-const handleDeleteAccount = async () => {
+const openDeleteModal = () => {
   showUserDropdown.value = false;
+  selectedDeleteReason.value = '';
+  deleteReasonDetail.value = '';
+  showDeleteModal.value = true;
+};
+
+const closeDeleteModal = () => {
+  if (isDeleting.value) return;
+  showDeleteModal.value = false;
+};
+
+const confirmDeleteAccount = async () => {
+  if (!selectedDeleteReason.value) {
+    await showAlert({
+      title: '탈퇴 사유 선택',
+      message: '탈퇴 사유를 하나 선택해주세요.'
+    });
+    return;
+  }
+
+  if (selectedDeleteReason.value === 'other' && !deleteReasonDetail.value.trim()) {
+    await showAlert({
+      title: '사유 입력',
+      message: '기타 사유를 간단히 입력해주세요.'
+    });
+    return;
+  }
+
   const confirmed = await showConfirm({
     title: '계정 삭제',
     message: '계정을 즉시 삭제합니다.\n삭제 후에는 복구할 수 없습니다.\n계속하시겠습니까?',
@@ -277,8 +363,12 @@ const handleDeleteAccount = async () => {
 
   if (!confirmed) return;
 
+  isDeleting.value = true;
   try {
-    await userStore.deleteAccount();
+    const reason = selectedDeleteReason.value;
+    const detail = deleteReasonDetail.value.trim();
+    await userStore.deleteAccount({ reason, detail });
+    showDeleteModal.value = false;
     await showAlert({
       title: '탈퇴 완료',
       message: '계정이 삭제되었습니다.'
@@ -290,6 +380,8 @@ const handleDeleteAccount = async () => {
       message: '계정 삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
     });
     return;
+  } finally {
+    isDeleting.value = false;
   }
 
   router.push('/');
@@ -596,6 +688,107 @@ const upgradeToPremium = async () => {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* 계정 삭제 사유 모달 */
+.delete-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.delete-modal-container {
+  width: min(520px, 100%);
+  background: rgba(25, 22, 61, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.delete-modal-header {
+  margin-bottom: 8px;
+}
+
+.delete-modal-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.delete-modal-description {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.delete-reason-list {
+  display: grid;
+  gap: 10px;
+}
+
+.delete-reason-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.delete-reason-option input {
+  accent-color: #c084fc;
+}
+
+.delete-reason-option:hover {
+  border-color: rgba(192, 132, 252, 0.6);
+}
+
+.delete-reason-detail {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  resize: vertical;
+}
+
+.delete-reason-detail::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.delete-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.delete-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.delete-btn.cancel {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+}
+
+.delete-btn.danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
 }
 
 .app-content {

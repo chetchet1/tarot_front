@@ -33,6 +33,8 @@ serve(async (req) => {
     auth: { persistSession: false }
   });
 
+  const body = await req.json().catch(() => ({}));
+
   const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
   if (userError || !userData?.user) {
     return new Response(JSON.stringify({ error: 'Invalid user' }), {
@@ -42,6 +44,8 @@ serve(async (req) => {
   }
 
   const userId = userData.user.id;
+  const reason = typeof body?.reason === 'string' ? body.reason : null;
+  const detail = typeof body?.detail === 'string' ? body.detail : null;
 
   const tablesToDelete = [
     { table: 'readings', column: 'user_id' },
@@ -50,6 +54,24 @@ serve(async (req) => {
     { table: 'user_stats', column: 'user_id' },
     { table: 'profiles', column: 'id' }
   ];
+
+  try {
+    const { error: feedbackError } = await supabaseAdmin
+      .from('account_deletion_feedback')
+      .insert({
+        user_id: userId,
+        email: userData.user.email ?? null,
+        reason,
+        detail,
+        created_at: new Date().toISOString()
+      });
+
+    if (feedbackError) {
+      console.warn('Failed to save deletion feedback:', feedbackError.message);
+    }
+  } catch (error) {
+    console.warn('Failed to save deletion feedback:', error);
+  }
 
   await Promise.allSettled(
     tablesToDelete.map(({ table, column }) =>

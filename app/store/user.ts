@@ -915,14 +915,14 @@ export const useUserStore = defineStore('user', () => {
     }
   };
 
-  const deleteAccount = async () => {
+  const deleteAccount = async (payload?: { reason?: string; detail?: string }) => {
     if (!currentUser.value || currentUser.value.isAnonymous) {
       throw new Error('濡쒓렇???곹깭???먮쭔 ?닿??섏닔 ?덈떎.');
     }
 
     isLoading.value = true;
     try {
-      await authService.deleteAccount();
+      await authService.deleteAccount(payload);
       currentUser.value = null;
       isInitialized.value = false;
       localStorage.removeItem('tarot_user');
