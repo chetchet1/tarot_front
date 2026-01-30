@@ -166,7 +166,7 @@ export const authService = {
       }
       
       // 인증 완료 시 리다이렉트할 URL 설정
-      const redirectUrl = `${window.location.origin}/auth/callback`;
+      const redirectUrl = `${window.location.origin}/auth/email-verified`;
       
       console.log('🔄 회원가입 시도 with redirectTo:', redirectUrl);
       const { data, error } = await supabase.auth.signUp({

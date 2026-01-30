@@ -15,6 +15,7 @@ import OAuthBridge from '../views/OAuthBridge.vue';
 // 공유 페이지 컴포넌트 import
 import SharedReading from '../views/SharedReading.vue';
 import AppDownload from '../views/AppDownload.vue';
+import EmailVerified from '../views/EmailVerified.vue';
 
 // 게시판 관련 컴포넌트는 lazy loading으로 처리
 // import BoardMain from '../views/BoardMain.vue';
@@ -109,6 +110,12 @@ const routes = [
     component: AuthCallback,
   },
   {
+    path: '/auth/email-verified',
+    name: 'EmailVerified',
+    component: EmailVerified,
+    meta: { requiresAuth: false, isPublic: true }
+  },
+  {
     path: '/auth/reset-password',
     name: 'PasswordReset',
     component: () => import('../views/PasswordReset.vue'),
@@ -199,8 +206,8 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
   const isVercelProduction = window.location.hostname.includes('vercel.app');
   const isProduction = import.meta.env.MODE === 'production' || isVercelProduction;
   const isWeb = !platform.isCapacitor && !platform.isInApp;
-  const allowedPaths = ['/s/', '/download', '/auth/callback', '/auth/reset-password', '/oauth-bridge']; // 허용된 경로 패턴
-  const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback', 'PasswordReset', 'OAuthBridge']; // 허용된 라우트 이름
+  const allowedPaths = ['/s/', '/download', '/auth/callback', '/auth/email-verified', '/auth/reset-password', '/oauth-bridge']; // 허용된 경로 패턴
+  const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback', 'EmailVerified', 'PasswordReset', 'OAuthBridge']; // 허용된 라우트 이름
   
   // 경로 체크 (공유 페이지 등)
   const isAllowedPath = allowedPaths.some(path => to.path.startsWith(path));

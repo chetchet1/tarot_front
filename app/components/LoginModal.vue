@@ -668,16 +668,16 @@ export default {
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(4px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   z-index: 1000;
-  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  padding: max(16px, env(safe-area-inset-top, 16px)) 16px max(16px, env(safe-area-inset-bottom, 16px));
 }
 
 .modal-container {
   position: relative;
   max-width: 100%;
-  max-height: calc(100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)));
+  max-height: calc(100dvh - max(16px, env(safe-area-inset-top, 16px)) - max(16px, env(safe-area-inset-bottom, 16px)));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1169,9 +1169,9 @@ export default {
     left: 0;
     right: 0;
     bottom: 0;
-    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+    padding: max(12px, env(safe-area-inset-top, 12px)) 12px max(12px, env(safe-area-inset-bottom, 12px));
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     overflow: hidden;
   }
@@ -1180,7 +1180,7 @@ export default {
     position: relative;
     width: 100%;
     max-width: 480px;
-    max-height: calc(100dvh - max(12px, env(safe-area-inset-top)) - max(12px, env(safe-area-inset-bottom)));
+    max-height: calc(100dvh - max(12px, env(safe-area-inset-top, 12px)) - max(12px, env(safe-area-inset-bottom, 12px)));
     display: flex;
     align-items: center;
     justify-content: center;
