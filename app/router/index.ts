@@ -12,17 +12,17 @@ import History from '../views/History.vue';
 import TarotDictionary from '../views/TarotDictionary.vue';
 import AuthCallback from '../views/AuthCallback.vue';
 import OAuthBridge from '../views/OAuthBridge.vue';
-// 怨듭쑀 ?섏씠吏 而댄룷?뚰듃 import
+// Shared page components
 import SharedReading from '../views/SharedReading.vue';
 import AppDownload from '../views/AppDownload.vue';
 import EmailVerified from '../views/EmailVerified.vue';
 
-// 寃뚯떆??愿??而댄룷?뚰듃??lazy loading?쇰줈 泥섎━
+// Board-related components (lazy loading)
 // import BoardMain from '../views/BoardMain.vue';
 // import BoardPostDetail from '../views/BoardPostDetail.vue';
 // import BoardPostEditor from '../views/BoardPostEditor.vue';
 
-// ?뚮옯??媛먯?
+// Platform detection
 import { detectPlatform, shouldRedirectToAppStore } from '../utils/platformDetector';
 
 const routes = [
@@ -75,7 +75,8 @@ const routes = [
     name: 'SharedReading',
     component: SharedReading,
     meta: { 
-      requiresAuth: false,  // 濡쒓렇??遺덊븘??      isPublic: true        // 怨듦컻 ?섏씠吏
+      requiresAuth: false,
+      isPublic: true // public page
     }
   },
 
@@ -144,7 +145,7 @@ const routes = [
     component: () => import('../views/DailyCard.vue'),
     meta: { requiresAuth: true }
   },
-  // 寃뚯떆???쇱슦??(lazy loading)
+  // Board routes (lazy loading)
   {
     path: '/board',
     name: 'Board',
@@ -189,25 +190,26 @@ const router = createRouter({
   routes,
 });
 
-// ?ㅻ퉬寃뚯씠??媛??router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
-  console.log('?슌 [Router Guard] ?쇱슦???쒖옉:', from.path, '->', to.path);
-  console.log('?슌 [Router Guard] to ?뺣낫:', {
+// Navigation guard
+router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+  console.log('[Router Guard] Route start:', from.path, '->', to.path);
+  console.log('[Router Guard] To info:', {
     name: to.name,
     path: to.path,
     params: to.params,
     meta: to.meta
   });
   
-  // ???섍꼍?먯꽌 ???ъ슜 李⑤떒 (怨듭쑀 ?섏씠吏? ?ㅼ슫濡쒕뱶 ?섏씠吏 ?쒖쇅)
+  // Block web access in production (except allowlisted pages).
   const platform = detectPlatform();
-  // Vercel 諛고룷 ?섍꼍??媛먯? (?꾨찓??泥댄겕)
+  // Detect production hosting (Vercel).
   const isVercelProduction = window.location.hostname.includes('vercel.app');
   const isProduction = import.meta.env.MODE === 'production' || isVercelProduction;
   const isWeb = !platform.isCapacitor && !platform.isInApp;
-  const allowedPaths = ['/s/', '/download', '/auth/callback', '/auth/email-verified', '/auth/reset-password', '/oauth-bridge']; // ?덉슜??寃쎈줈 ?⑦꽩
-  const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback', 'EmailVerified', 'PasswordReset', 'OAuthBridge']; // ?덉슜???쇱슦???대쫫
+  const allowedPaths = ['/s/', '/download', '/auth/callback', '/auth/email-verified', '/auth/reset-password', '/oauth-bridge']; // allowlisted paths
+  const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback', 'EmailVerified', 'PasswordReset', 'OAuthBridge']; // allowlisted route names
   
-  // 寃쎈줈 泥댄겕 (怨듭쑀 ?섏씠吏 ??
+  // Allowlist checks
   const isAllowedPath = allowedPaths.some(path => to.path.startsWith(path));
   const isAllowedName = allowedNames.includes(to.name as string);
   const isEmailVerifyQuery = Boolean(
@@ -218,7 +220,7 @@ const router = createRouter({
     to.query?.refresh_token ||
     to.query?.code
   );  
-  // ???꾨줈?뺤뀡 ?섍꼍?먯꽌 ?덉슜?섏? ?딆? ?섏씠吏 李⑤떒 (localhost ?쒖쇅)
+  // Block web access in production (except localhost).
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   if (!isLocalhost && isProduction && isWeb && !isAllowedPath && !isAllowedName) {
     if (to.path === '/' && isEmailVerifyQuery) {
@@ -241,16 +243,16 @@ const router = createRouter({
     });
     return;
   }  
-  // 怨듭쑀 ?섏씠吏 ?묒냽 ?????ㅼ튂 ?좊룄 泥댄겕
-  // TODO: ???ㅽ넗???깅줉 ??二쇱꽍 ?댁젣
+  // Shared page deep-link check (currently disabled).
+  // TODO: review store gating for shared pages.
   /*
   if (to.name === 'SharedReading') {
     const platform = detectPlatform();
     
-    // ?밸툕?쇱슦??먯꽌 ?묒냽??寃쎌슦 (?깆씠 ?꾨땶 寃쎌슦)
+    // If opening from web (not in app), redirect to download page.
     if (!platform.isCapacitor && !platform.isInApp && shouldRedirectToAppStore()) {
-      console.log('?벑 [Router Guard] ??釉뚮씪?곗? ?묒냽 - ???ㅼ슫濡쒕뱶 ?섏씠吏濡?由щ떎?대젆??);
-      // 怨듭쑀 ID瑜?荑쇰━ ?뚮씪誘명꽣濡??꾨떖
+      console.log('[Router Guard] Web access - redirect to download page');
+      // pass share ID as query
       next({
         name: 'AppDownload',
         query: {
@@ -263,44 +265,45 @@ const router = createRouter({
   }
   */
   
-  // 怨듦컻 ?섏씠吏???몄쬆 泥섎━ 嫄대꼫?곌린
+  // Public pages: skip auth checks.
   if (to.meta.isPublic || to.meta.requiresAuth === false) {
-    console.log('?넃 [Router Guard] 怨듦컻 ?섏씠吏 - ?몄쬆 嫄대꼫?곌린');
+    console.log('[Router Guard] Public page - skip auth');
     next();
     return;
   }
   
   try {
-    // store瑜??숈쟻?쇰줈 import
+    // Import store lazily
     const { useUserStore } = await import('../store/user');
     const userStore = useUserStore();
     
-    // CardDrawing ?섏씠吏濡?媛??寃쎌슦 ?濡??ㅽ넗???곹깭 ?뺤씤
+    // For CardDrawing, ensure tarot state exists
     if (to.name === 'CardDrawing') {
-      console.log('?렣 [Router Guard] CardDrawing ?섏씠吏濡??대룞');
-      // ?濡??ㅽ넗???곹깭 ?뺤씤
+      console.log('[Router Guard] Navigating to CardDrawing');
+      // check tarot store state
       const { useTarotStore } = await import('../store/tarot');
       const tarotStore = useTarotStore();
       
-      console.log('?렣 [Router Guard] ?濡??ㅽ넗???곹깭:', {
+      console.log('[Router Guard] Tarot store state:', {
         selectedTopic: tarotStore.selectedTopic,
         selectedSpread: tarotStore.selectedSpread,
         hasData: !!(tarotStore.selectedTopic && tarotStore.selectedSpread)
       });
     }
     
-    // 珥덇린?붽? ???섏뿀?쇰㈃ 珥덇린???ㅽ뻾
+    // Initialize user store if needed
     if (!userStore.isInitialized) {
-      console.log('?봽 [Router Guard] userStore 珥덇린???꾩슂');
+      console.log('[Router Guard] userStore initialization required');
       await userStore.initializeUser();
     }
     
-    // ?몄쬆???꾩슂???섏씠吏
+    // Auth-required pages
     if (to.meta.requiresAuth) {
-      console.log('?뵍 [Router Guard] ?몄쬆 ?꾩슂 ?섏씠吏:', to.path);
+      console.log('[Router Guard] Auth-required page:', to.path);
       
-      // 濡쒕뵫 以묒씠硫??湲?      if (userStore.isLoading) {
-        console.log('??[Router Guard] 濡쒕뵫 ?湲?以?..');
+      // Wait while user state is loading.
+      if (userStore.isLoading) {
+        console.log('[Router Guard] Waiting for user state...');
         await new Promise(resolve => {
           const unwatch = userStore.$subscribe((mutation, state) => {
             if (!state.isLoading) {
@@ -310,31 +313,35 @@ const router = createRouter({
           });
         });
       }
-      
-      // 濡쒓렇???곹깭 ?뺤씤 (?듬챸 ?ъ슜??李⑤떒)
-      console.log('?뫀 [Router Guard] ?ъ슜???곹깭:', userStore.currentUser ? (
-        userStore.currentUser.isAnonymous ? '?듬챸' : '濡쒓렇??
-      ) : '?놁쓬');
-      
-      // ?ъ슜?먭? ?녾굅???듬챸 ?ъ슜?먮㈃ ?덉쑝濡?      if (!userStore.currentUser || userStore.currentUser.isAnonymous) {
-        console.log('??[Router Guard] 鍮꾨줈洹몄씤 ?곹깭 - ?덉쑝濡?由щ떎?대젆??);
+
+      // Check user status (block anonymous users).
+      console.log(
+        '[Router Guard] User status:',
+        userStore.currentUser
+          ? (userStore.currentUser.isAnonymous ? 'anonymous' : 'logged-in')
+          : 'none'
+      );
+
+      // If no user or anonymous user, redirect to Home.
+      if (!userStore.currentUser || userStore.currentUser.isAnonymous) {
+        console.log('[Router Guard] Not logged in - redirecting to Home');
         next({ name: 'Home' });
         return;
       }
     }
     
-    console.log('??[Router Guard] ?쇱슦???덉슜??);
+    console.log('[Router Guard] Route allowed');
     next();
   } catch (error) {
-    console.error('??[Router Guard] ?ㅻ쪟 諛쒖깮:', error);
-    next(false); // ?ㅻ퉬寃뚯씠??痍⑥냼
+    console.error('[Router Guard] Error:', error);
+    next(false); // cancel navigation
   }
 });
 
-// ?ㅻ퉬寃뚯씠????濡쒓렇
+// Navigation log
 router.afterEach((to, from) => {
-  console.log('?렞 [Router AfterEach] ?쇱슦???꾨즺:', from.path, '->', to.path);
-  console.log('?렞 [Router AfterEach] ?꾩옱 URL:', window.location.pathname);
+  console.log('[Router AfterEach] Route changed:', from.path, '->', to.path);
+  console.log('[Router AfterEach] Current URL:', window.location.pathname);
 });
 
 export default router;
