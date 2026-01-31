@@ -212,14 +212,22 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
   // Allowlist checks
   const isAllowedPath = allowedPaths.some(path => to.path.startsWith(path));
   const isAllowedName = allowedNames.includes(to.name as string);
+  // Supabase can return params either in query (?code=..., ?token_hash=...)
+  // or in hash (#access_token=...&refresh_token=...&type=signup).
+  const hash = String(to.hash || window.location.hash || '');
   const isEmailVerifyQuery = Boolean(
     (to.query?.type && String(to.query.type).toLowerCase() === 'signup') ||
     to.query?.token ||
     to.query?.token_hash ||
     to.query?.access_token ||
     to.query?.refresh_token ||
-    to.query?.code
-  );  
+    to.query?.code ||
+    /(^|[#&])type=signup(&|$)/i.test(hash) ||
+    /(^|[#&])access_token=/.test(hash) ||
+    /(^|[#&])refresh_token=/.test(hash) ||
+    /(^|[#&])token_hash=/.test(hash) ||
+    /(^|[#&])code=/.test(hash)
+  );
   // Block web access in production (except localhost).
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   if (!isLocalhost && isProduction && isWeb && !isAllowedPath && !isAllowedName) {
