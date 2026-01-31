@@ -229,8 +229,8 @@ const router = createRouter({
       });
       return;
     }
-    console.log('?슟 [Router Guard] ???꾨줈?뺤뀡 ?섍꼍 - ???ㅼ슫濡쒕뱶 ?섏씠吏濡?由щ떎?대젆??);
-    console.log('?슟 [Router Guard] 李⑤떒???섏씠吏:', to.name || to.path);
+    console.log('[Router Guard] Production web - redirect to AppDownload');
+    console.log('[Router Guard] Blocked page:', to.name || to.path);
     next({
       name: 'AppDownload', 
       query: {
