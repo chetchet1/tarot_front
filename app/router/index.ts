@@ -169,7 +169,8 @@ const routes = [
     component: () => import('../views/BoardPostEditor.vue'),
     meta: { requiresAuth: true }
   },
-  // ?대깽???쇱슦??  {
+  // 이벤트 라우트
+  {
     path: '/events',
     name: 'EventList',
     component: () => import('../views/EventList.vue'),
