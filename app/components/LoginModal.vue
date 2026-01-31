@@ -659,40 +659,42 @@ export default {
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  z-index: 1000;
-  padding: max(24px, env(safe-area-inset-top, 24px)) 16px max(24px, env(safe-area-inset-bottom, 24px));
-}
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    --modal-safe-top: max(24px, env(safe-area-inset-top, 24px));
+    --modal-safe-bottom: max(24px, env(safe-area-inset-bottom, 24px));
+    padding: var(--modal-safe-top) 16px var(--modal-safe-bottom);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 
-.modal-container {
-  position: relative;
-  max-width: 100%;
-  max-height: calc(100dvh - max(24px, env(safe-area-inset-top, 24px)) - max(24px, env(safe-area-inset-bottom, 24px)));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+  .modal-container {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    max-height: calc(100dvh - var(--modal-safe-top) - var(--modal-safe-bottom));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-.login-modal {
-  background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
-  border-radius: 20px;
-  width: 100%;
-  max-width: 480px;
-  max-height: 100%;
-  overflow-y: auto;
-  color: white;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
-}
+  .login-modal {
+    background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 520px;
+    max-height: calc(100dvh - var(--modal-safe-top) - var(--modal-safe-bottom) - 16px);
+    overflow-y: auto;
+    color: white;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+  }
 
 .modal-header {
   display: flex;
@@ -1164,34 +1166,33 @@ export default {
 /* 반응형 디자인 */
 @media (max-width: 640px) {
   .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding: max(20px, env(safe-area-inset-top, 20px)) 12px max(20px, env(safe-area-inset-bottom, 20px));
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    overflow: hidden;
-  }
+      position: fixed;
+      inset: 0;
+      --modal-safe-top: max(20px, env(safe-area-inset-top, 20px));
+      --modal-safe-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+      padding: var(--modal-safe-top) 12px var(--modal-safe-bottom);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-y: auto;
+    }
   
   .modal-container {
-    position: relative;
-    width: 100%;
-    max-width: 480px;
-    max-height: calc(100dvh - max(20px, env(safe-area-inset-top, 20px)) - max(20px, env(safe-area-inset-bottom, 20px)));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+      position: relative;
+      width: 100%;
+      max-width: 520px;
+      max-height: calc(100dvh - var(--modal-safe-top) - var(--modal-safe-bottom));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
   
   .login-modal {
-    width: 100%;
-    max-height: 100%;
-    overflow-y: auto;
-    margin: 0;
-  }
+      width: 100%;
+      max-height: calc(100dvh - var(--modal-safe-top) - var(--modal-safe-bottom) - 12px);
+      overflow-y: auto;
+      margin: 0;
+    }
   
   .modal-header,
   .social-login-section,
