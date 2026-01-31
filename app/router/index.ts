@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router';
+﻿import { createRouter, createWebHistory } from 'vue-router';
 import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
 
 // Views
@@ -12,17 +12,17 @@ import History from '../views/History.vue';
 import TarotDictionary from '../views/TarotDictionary.vue';
 import AuthCallback from '../views/AuthCallback.vue';
 import OAuthBridge from '../views/OAuthBridge.vue';
-// 공유 페이지 컴포넌트 import
+// 怨듭쑀 ?섏씠吏 而댄룷?뚰듃 import
 import SharedReading from '../views/SharedReading.vue';
 import AppDownload from '../views/AppDownload.vue';
 import EmailVerified from '../views/EmailVerified.vue';
 
-// 게시판 관련 컴포넌트는 lazy loading으로 처리
+// 寃뚯떆??愿??而댄룷?뚰듃??lazy loading?쇰줈 泥섎━
 // import BoardMain from '../views/BoardMain.vue';
 // import BoardPostDetail from '../views/BoardPostDetail.vue';
 // import BoardPostEditor from '../views/BoardPostEditor.vue';
 
-// 플랫폼 감지
+// ?뚮옯??媛먯?
 import { detectPlatform, shouldRedirectToAppStore } from '../utils/platformDetector';
 
 const routes = [
@@ -75,8 +75,7 @@ const routes = [
     name: 'SharedReading',
     component: SharedReading,
     meta: { 
-      requiresAuth: false,  // 로그인 불필요
-      isPublic: true        // 공개 페이지
+      requiresAuth: false,  // 濡쒓렇??遺덊븘??      isPublic: true        // 怨듦컻 ?섏씠吏
     }
   },
 
@@ -145,7 +144,7 @@ const routes = [
     component: () => import('../views/DailyCard.vue'),
     meta: { requiresAuth: true }
   },
-  // 게시판 라우트 (lazy loading)
+  // 寃뚯떆???쇱슦??(lazy loading)
   {
     path: '/board',
     name: 'Board',
@@ -170,8 +169,7 @@ const routes = [
     component: () => import('../views/BoardPostEditor.vue'),
     meta: { requiresAuth: true }
   },
-  // 이벤트 라우트
-  {
+  // ?대깽???쇱슦??  {
     path: '/events',
     name: 'EventList',
     component: () => import('../views/EventList.vue'),
@@ -190,48 +188,48 @@ const router = createRouter({
   routes,
 });
 
-// 네비게이션 가드
-router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
-  console.log('🚜 [Router Guard] 라우팅 시작:', from.path, '->', to.path);
-  console.log('🚜 [Router Guard] to 정보:', {
+// ?ㅻ퉬寃뚯씠??媛??router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+  console.log('?슌 [Router Guard] ?쇱슦???쒖옉:', from.path, '->', to.path);
+  console.log('?슌 [Router Guard] to ?뺣낫:', {
     name: to.name,
     path: to.path,
     params: to.params,
     meta: to.meta
   });
   
-  // 웹 환경에서 앱 사용 차단 (공유 페이지와 다운로드 페이지 제외)
+  // ???섍꼍?먯꽌 ???ъ슜 李⑤떒 (怨듭쑀 ?섏씠吏? ?ㅼ슫濡쒕뱶 ?섏씠吏 ?쒖쇅)
   const platform = detectPlatform();
-  // Vercel 배포 환경도 감지 (도메인 체크)
+  // Vercel 諛고룷 ?섍꼍??媛먯? (?꾨찓??泥댄겕)
   const isVercelProduction = window.location.hostname.includes('vercel.app');
   const isProduction = import.meta.env.MODE === 'production' || isVercelProduction;
   const isWeb = !platform.isCapacitor && !platform.isInApp;
-  const allowedPaths = ['/s/', '/download', '/auth/callback', '/auth/email-verified', '/auth/reset-password', '/oauth-bridge']; // 허용된 경로 패턴
-  const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback', 'EmailVerified', 'PasswordReset', 'OAuthBridge']; // 허용된 라우트 이름
+  const allowedPaths = ['/s/', '/download', '/auth/callback', '/auth/email-verified', '/auth/reset-password', '/oauth-bridge']; // ?덉슜??寃쎈줈 ?⑦꽩
+  const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback', 'EmailVerified', 'PasswordReset', 'OAuthBridge']; // ?덉슜???쇱슦???대쫫
   
-  // 경로 체크 (공유 페이지 등)
+  // 寃쎈줈 泥댄겕 (怨듭쑀 ?섏씠吏 ??
   const isAllowedPath = allowedPaths.some(path => to.path.startsWith(path));
   const isAllowedName = allowedNames.includes(to.name as string);
-  
-  console.log('🔍 [Router Guard] 플랫폼 체크:', {
-    hostname: window.location.hostname,
-    mode: import.meta.env.MODE,
-    isVercelProduction,
-    isProduction,
-    isWeb,
-    isCapacitor: platform.isCapacitor,
-    isInApp: platform.isInApp,
-    path: to.path,
-    name: to.name,
-    isAllowedPath,
-    isAllowedName
-  });
-  
-  // 웹 프로덕션 환경에서 허용되지 않은 페이지 차단 (localhost 제외)
+  const isEmailVerifyQuery = Boolean(
+    (to.query?.type && String(to.query.type).toLowerCase() === 'signup') ||
+    to.query?.token ||
+    to.query?.token_hash ||
+    to.query?.access_token ||
+    to.query?.refresh_token ||
+    to.query?.code
+  );  
+  // ???꾨줈?뺤뀡 ?섍꼍?먯꽌 ?덉슜?섏? ?딆? ?섏씠吏 李⑤떒 (localhost ?쒖쇅)
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   if (!isLocalhost && isProduction && isWeb && !isAllowedPath && !isAllowedName) {
-    console.log('🚫 [Router Guard] 웹 프로덕션 환경 - 앱 다운로드 페이지로 리다이렉트');
-    console.log('🚫 [Router Guard] 차단된 페이지:', to.name || to.path);
+    if (to.path === '/' && isEmailVerifyQuery) {
+      console.log('🔐 [Router Guard] 이메일 인증 쿼리 감지 - 인증 완료 페이지로 이동');
+      next({
+        name: 'EmailVerified',
+        query: to.query
+      });
+      return;
+    }
+    console.log('?슟 [Router Guard] ???꾨줈?뺤뀡 ?섍꼍 - ???ㅼ슫濡쒕뱶 ?섏씠吏濡?由щ떎?대젆??);
+    console.log('?슟 [Router Guard] 李⑤떒???섏씠吏:', to.name || to.path);
     next({
       name: 'AppDownload', 
       query: {
@@ -241,18 +239,17 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
       }
     });
     return;
-  }
-  
-  // 공유 페이지 접속 시 앱 설치 유도 체크
-  // TODO: 앱 스토어 등록 후 주석 해제
+  }  
+  // 怨듭쑀 ?섏씠吏 ?묒냽 ?????ㅼ튂 ?좊룄 泥댄겕
+  // TODO: ???ㅽ넗???깅줉 ??二쇱꽍 ?댁젣
   /*
   if (to.name === 'SharedReading') {
     const platform = detectPlatform();
     
-    // 웹브라우저에서 접속한 경우 (앱이 아닌 경우)
+    // ?밸툕?쇱슦??먯꽌 ?묒냽??寃쎌슦 (?깆씠 ?꾨땶 寃쎌슦)
     if (!platform.isCapacitor && !platform.isInApp && shouldRedirectToAppStore()) {
-      console.log('📱 [Router Guard] 웹 브라우저 접속 - 앱 다운로드 페이지로 리다이렉트');
-      // 공유 ID를 쿼리 파라미터로 전달
+      console.log('?벑 [Router Guard] ??釉뚮씪?곗? ?묒냽 - ???ㅼ슫濡쒕뱶 ?섏씠吏濡?由щ떎?대젆??);
+      // 怨듭쑀 ID瑜?荑쇰━ ?뚮씪誘명꽣濡??꾨떖
       next({
         name: 'AppDownload',
         query: {
@@ -265,45 +262,44 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
   }
   */
   
-  // 공개 페이지는 인증 처리 건너뛰기
+  // 怨듦컻 ?섏씠吏???몄쬆 泥섎━ 嫄대꼫?곌린
   if (to.meta.isPublic || to.meta.requiresAuth === false) {
-    console.log('🆓 [Router Guard] 공개 페이지 - 인증 건너뛰기');
+    console.log('?넃 [Router Guard] 怨듦컻 ?섏씠吏 - ?몄쬆 嫄대꼫?곌린');
     next();
     return;
   }
   
   try {
-    // store를 동적으로 import
+    // store瑜??숈쟻?쇰줈 import
     const { useUserStore } = await import('../store/user');
     const userStore = useUserStore();
     
-    // CardDrawing 페이지로 가는 경우 타로 스토어 상태 확인
+    // CardDrawing ?섏씠吏濡?媛??寃쎌슦 ?濡??ㅽ넗???곹깭 ?뺤씤
     if (to.name === 'CardDrawing') {
-      console.log('🎴 [Router Guard] CardDrawing 페이지로 이동');
-      // 타로 스토어 상태 확인
+      console.log('?렣 [Router Guard] CardDrawing ?섏씠吏濡??대룞');
+      // ?濡??ㅽ넗???곹깭 ?뺤씤
       const { useTarotStore } = await import('../store/tarot');
       const tarotStore = useTarotStore();
       
-      console.log('🎴 [Router Guard] 타로 스토어 상태:', {
+      console.log('?렣 [Router Guard] ?濡??ㅽ넗???곹깭:', {
         selectedTopic: tarotStore.selectedTopic,
         selectedSpread: tarotStore.selectedSpread,
         hasData: !!(tarotStore.selectedTopic && tarotStore.selectedSpread)
       });
     }
     
-    // 초기화가 안 되었으면 초기화 실행
+    // 珥덇린?붽? ???섏뿀?쇰㈃ 珥덇린???ㅽ뻾
     if (!userStore.isInitialized) {
-      console.log('🔄 [Router Guard] userStore 초기화 필요');
+      console.log('?봽 [Router Guard] userStore 珥덇린???꾩슂');
       await userStore.initializeUser();
     }
     
-    // 인증이 필요한 페이지
+    // ?몄쬆???꾩슂???섏씠吏
     if (to.meta.requiresAuth) {
-      console.log('🔐 [Router Guard] 인증 필요 페이지:', to.path);
+      console.log('?뵍 [Router Guard] ?몄쬆 ?꾩슂 ?섏씠吏:', to.path);
       
-      // 로딩 중이면 대기
-      if (userStore.isLoading) {
-        console.log('⏳ [Router Guard] 로딩 대기 중...');
+      // 濡쒕뵫 以묒씠硫??湲?      if (userStore.isLoading) {
+        console.log('??[Router Guard] 濡쒕뵫 ?湲?以?..');
         await new Promise(resolve => {
           const unwatch = userStore.$subscribe((mutation, state) => {
             if (!state.isLoading) {
@@ -314,31 +310,32 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
         });
       }
       
-      // 로그인 상태 확인 (익명 사용자 차단)
-      console.log('👤 [Router Guard] 사용자 상태:', userStore.currentUser ? (
-        userStore.currentUser.isAnonymous ? '익명' : '로그인'
-      ) : '없음');
+      // 濡쒓렇???곹깭 ?뺤씤 (?듬챸 ?ъ슜??李⑤떒)
+      console.log('?뫀 [Router Guard] ?ъ슜???곹깭:', userStore.currentUser ? (
+        userStore.currentUser.isAnonymous ? '?듬챸' : '濡쒓렇??
+      ) : '?놁쓬');
       
-      // 사용자가 없거나 익명 사용자면 홈으로
-      if (!userStore.currentUser || userStore.currentUser.isAnonymous) {
-        console.log('⛔ [Router Guard] 비로그인 상태 - 홈으로 리다이렉트');
+      // ?ъ슜?먭? ?녾굅???듬챸 ?ъ슜?먮㈃ ?덉쑝濡?      if (!userStore.currentUser || userStore.currentUser.isAnonymous) {
+        console.log('??[Router Guard] 鍮꾨줈洹몄씤 ?곹깭 - ?덉쑝濡?由щ떎?대젆??);
         next({ name: 'Home' });
         return;
       }
     }
     
-    console.log('✅ [Router Guard] 라우팅 허용됨');
+    console.log('??[Router Guard] ?쇱슦???덉슜??);
     next();
   } catch (error) {
-    console.error('❌ [Router Guard] 오류 발생:', error);
-    next(false); // 네비게이션 취소
+    console.error('??[Router Guard] ?ㅻ쪟 諛쒖깮:', error);
+    next(false); // ?ㅻ퉬寃뚯씠??痍⑥냼
   }
 });
 
-// 네비게이션 후 로그
+// ?ㅻ퉬寃뚯씠????濡쒓렇
 router.afterEach((to, from) => {
-  console.log('🎯 [Router AfterEach] 라우팅 완료:', from.path, '->', to.path);
-  console.log('🎯 [Router AfterEach] 현재 URL:', window.location.pathname);
+  console.log('?렞 [Router AfterEach] ?쇱슦???꾨즺:', from.path, '->', to.path);
+  console.log('?렞 [Router AfterEach] ?꾩옱 URL:', window.location.pathname);
 });
 
 export default router;
+
+

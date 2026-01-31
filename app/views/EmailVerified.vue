@@ -1,7 +1,7 @@
 <template>
   <div class="email-verified">
     <div class="card">
-      <div class="icon">✅</div>
+      <div class="icon">📧</div>
       <h1>이메일 인증 완료</h1>
       <p>이제 앱으로 돌아가 로그인할 수 있어요.</p>
       <div class="actions">
@@ -9,7 +9,7 @@
           앱 열기
         </button>
         <button class="btn btn-secondary" @click="goHome">
-          웹 홈으로 이동
+          홈으로 이동
         </button>
       </div>
     </div>
@@ -29,22 +29,27 @@ const goHome = () => {
 <style scoped>
 .email-verified {
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: linear-gradient(135deg, #1E1B4B 0%, #312E81 100%);
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
   color: white;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .card {
   width: min(420px, 100%);
+  max-width: 100%;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 18px;
   padding: 28px 24px;
   backdrop-filter: blur(10px);
+  box-sizing: border-box;
 }
 
 .icon {
@@ -67,5 +72,23 @@ p {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.btn {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  color: white;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
 }
 </style>

@@ -315,6 +315,8 @@ onUnmounted(() => {
   z-index: 1000;
   padding: 20px;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
   /* 안전 영역 확보 */
   padding-top: max(20px, env(safe-area-inset-top));
   padding-bottom: max(20px, env(safe-area-inset-bottom));
@@ -325,7 +327,7 @@ onUnmounted(() => {
 .modal-container {
   position: relative;
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
   /* 화면을 절대로 벗어나지 않도록 보장 */
   max-height: calc(100vh - 40px);
   margin: auto 0;
@@ -338,8 +340,10 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 16px;
   width: 100%;
+  max-width: 100%;
   max-height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
   color: white;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   /* 절대적 크기 제한 */
@@ -419,6 +423,9 @@ onUnmounted(() => {
 
 .modal-content {
   padding: 30px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .verification-info h3 {
@@ -444,6 +451,9 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.1);
   padding: 2px 8px;
   border-radius: 4px;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  display: inline-block;
 }
 
 .steps {
