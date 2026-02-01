@@ -11,8 +11,30 @@ import { setupDeepLinks } from './utils/deepLinks';
 import { adService } from './services/AdService';
 import { checkPlatform, getPlatformInfo } from './utils/platformCheck';
 
-// In-app error overlay for internal testing (enable via VITE_DEBUG_OVERLAY=true)
-const DEBUG_OVERLAY_ENABLED = import.meta.env.VITE_DEBUG_OVERLAY === 'true';
+// In-app error overlay for internal testing
+// - Build-time: VITE_DEBUG_OVERLAY=true
+// - Runtime: add ?debugOverlay=1 (or 0) to any URL
+const DEBUG_OVERLAY_ENABLED = (() => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const qp = params.get('debugOverlay');
+    if (qp != null) {
+      const normalized = String(qp).toLowerCase();
+      if (normalized === '1' || normalized === 'true' || normalized === 'on') {
+        localStorage.setItem('tarot_debug_overlay', 'true');
+      } else if (normalized === '0' || normalized === 'false' || normalized === 'off') {
+        localStorage.removeItem('tarot_debug_overlay');
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return (
+    import.meta.env.VITE_DEBUG_OVERLAY === 'true' ||
+    localStorage.getItem('tarot_debug_overlay') === 'true'
+  );
+})();
 let overlayEl: HTMLDivElement | null = null;
 const ensureOverlay = () => {
   if (!DEBUG_OVERLAY_ENABLED) return null;

@@ -118,8 +118,9 @@ const adjustModalSize = () => {
   const vv = window.visualViewport;
   const vw = Math.round(vv?.width || window.innerWidth);
   const vh = Math.round(vv?.height || window.innerHeight);
-  const offsetLeft = Math.round(vv?.offsetLeft || 0);
-  const offsetTop = Math.round(vv?.offsetTop || 0);
+  const isDebug =
+    import.meta.env.VITE_DEBUG_OVERLAY === 'true' ||
+    localStorage.getItem('tarot_debug_overlay') === 'true';
 
   if (vw <= 360) {
     modal.style.fontSize = '14px';
@@ -137,8 +138,37 @@ const adjustModalSize = () => {
 
   document.documentElement.style.setProperty('--viewport-width', `${vw}px`);
   document.documentElement.style.setProperty('--viewport-height', `${vh}px`);
-  document.documentElement.style.setProperty('--viewport-offset-left', `${offsetLeft}px`);
-  document.documentElement.style.setProperty('--viewport-offset-top', `${offsetTop}px`);
+
+  if (isDebug) {
+    const modalRect = modal.getBoundingClientRect();
+    const overlayRect = overlay.getBoundingClientRect();
+    console.log('[EmailVerificationModal] viewport', {
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      vvWidth: vv?.width,
+      vvHeight: vv?.height,
+      vvOffsetLeft: vv?.offsetLeft,
+      vvOffsetTop: vv?.offsetTop,
+      docClientWidth: document.documentElement.clientWidth,
+      docClientHeight: document.documentElement.clientHeight,
+      overlayRect: {
+        left: overlayRect.left,
+        top: overlayRect.top,
+        width: overlayRect.width,
+        height: overlayRect.height
+      },
+      modalRect: {
+        left: modalRect.left,
+        top: modalRect.top,
+        width: modalRect.width,
+        height: modalRect.height,
+        right: modalRect.right
+      }
+    });
+    modal.setAttribute('data-debug', '1');
+  } else {
+    modal.removeAttribute('data-debug');
+  }
 };
 
 const startCooldown = () => {
@@ -256,25 +286,17 @@ onUnmounted(() => {
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
   --viewport-width: 100vw;
   --viewport-height: 100vh;
-  --viewport-offset-left: 0px;
-  --viewport-offset-top: 0px;
 }
 
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: var(--viewport-width, 100vw);
-  height: var(--viewport-height, 100vh);
-  transform: translate(var(--viewport-offset-left, 0px), var(--viewport-offset-top, 0px));
+  inset: 0;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  width: 100%;
-  max-width: 100%;
   padding: 16px;
   padding-top: max(16px, env(safe-area-inset-top));
   padding-bottom: max(16px, env(safe-area-inset-bottom));
@@ -306,6 +328,11 @@ onUnmounted(() => {
   color: white;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   min-width: 0;
+}
+
+.verification-modal[data-debug='1'] {
+  outline: 2px solid rgba(255, 0, 0, 0.9);
+  outline-offset: 2px;
 }
 
 .modal-header {
