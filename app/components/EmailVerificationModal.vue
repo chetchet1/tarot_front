@@ -256,6 +256,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  width: 100vw;
+  max-width: 100%;
   padding: 16px;
   padding-top: max(16px, env(safe-area-inset-top));
   padding-bottom: max(16px, env(safe-area-inset-bottom));
@@ -267,11 +269,13 @@ onUnmounted(() => {
 
 .modal-container {
   width: 100%;
-  max-width: min(520px, 100%);
+  /* Avoid min() here: some WebViews can behave oddly and cause horizontal clipping. */
+  max-width: 520px;
   max-height: calc(100vh - 32px);
   margin: auto;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .verification-modal {
@@ -501,6 +505,8 @@ onUnmounted(() => {
   }
 
   .modal-container {
+    /* Hard width cap so the modal never exceeds the visual viewport. */
+    max-width: calc(100vw - 20px);
     max-height: calc(100vh - 20px);
   }
 
