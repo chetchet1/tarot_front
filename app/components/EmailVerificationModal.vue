@@ -1,8 +1,9 @@
 ﻿<template>
-  <Transition name="modal">
-    <div v-if="isVisible" class="modal-overlay" @click="handleOverlayClick">
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="isVisible" ref="overlayRef" class="modal-overlay" @click="handleOverlayClick">
       <div class="modal-container" @click.stop>
-        <div class="verification-modal">
+        <div ref="modalRef" class="verification-modal">
           <div class="modal-header">
             <div class="icon-container">
               <div class="email-icon">메일</div>
@@ -77,7 +78,8 @@
         </div>
       </div>
     </div>
-  </Transition>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
@@ -102,11 +104,13 @@ const isResending = ref(false);
 const resendCooldown = ref(0);
 const resendSuccess = ref(false);
 const errorMessage = ref('');
+const overlayRef = ref(null);
+const modalRef = ref(null);
 let cooldownTimer = null;
 
 const adjustModalSize = () => {
-  const modal = document.querySelector('.verification-modal');
-  const overlay = document.querySelector('.modal-overlay');
+  const modal = modalRef.value;
+  const overlay = overlayRef.value;
   if (!modal || !overlay) return;
 
   // Use visualViewport when available: on mobile WebViews, 100vw/innerWidth can differ
