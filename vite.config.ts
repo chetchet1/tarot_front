@@ -1,6 +1,18 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
+import { execSync } from 'child_process';
+
+const buildTime = new Date().toISOString();
+const vercelSha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_GITHUB_COMMIT_SHA || process.env.GITHUB_SHA;
+let buildSha = vercelSha ? String(vercelSha).slice(0, 7) : '';
+if (!buildSha) {
+  try {
+    buildSha = execSync('git rev-parse --short HEAD').toString().trim();
+  } catch {
+    buildSha = 'unknown';
+  }
+}
 
 export default defineConfig({
   plugins: [
@@ -111,5 +123,7 @@ export default defineConfig({
   define: {
     __VUE_OPTIONS_API__: true,
     __VUE_PROD_DEVTOOLS__: false,
+    __BUILD_TIME__: JSON.stringify(buildTime),
+    __BUILD_SHA__: JSON.stringify(buildSha),
   },
 });

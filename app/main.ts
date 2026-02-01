@@ -71,6 +71,7 @@ const appendOverlay = (label: string, value: unknown) => {
 if (DEBUG_OVERLAY_ENABLED) {
   ensureOverlay();
   appendOverlay('App boot', 'Debug overlay active');
+  appendOverlay('build', `${__BUILD_SHA__} ${__BUILD_TIME__} mode=${import.meta.env.MODE}`);
   // Mirror console logs into the overlay for device-only debugging
   const origLog = console.log.bind(console);
   const origWarn = console.warn.bind(console);
