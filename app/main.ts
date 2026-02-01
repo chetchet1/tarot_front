@@ -35,6 +35,56 @@ const DEBUG_OVERLAY_ENABLED = (() => {
     localStorage.getItem('tarot_debug_overlay') === 'true'
   );
 })();
+
+// Runtime toggle for native app (no URL bar):
+// tap the top-left corner 7 times quickly to toggle the overlay, then reload.
+const installDebugOverlayToggle = () => {
+  let tapCount = 0;
+  let timer: number | null = null;
+
+  const reset = () => {
+    tapCount = 0;
+    if (timer != null) {
+      window.clearTimeout(timer);
+      timer = null;
+    }
+  };
+
+  const toggle = () => {
+    const key = 'tarot_debug_overlay';
+    const enabled = localStorage.getItem(key) === 'true';
+    if (enabled) {
+      localStorage.removeItem(key);
+      window.alert('Debug overlay OFF (reloading)');
+    } else {
+      localStorage.setItem(key, 'true');
+      window.alert('Debug overlay ON (reloading)');
+    }
+    window.location.reload();
+  };
+
+  window.addEventListener(
+    'pointerdown',
+    (event) => {
+      const x = (event as PointerEvent).clientX;
+      const y = (event as PointerEvent).clientY;
+      const hotspot = x <= 56 && y <= 56;
+      if (!hotspot) return;
+
+      tapCount += 1;
+      if (tapCount === 1) {
+        timer = window.setTimeout(reset, 1600);
+      }
+
+      if (tapCount >= 7) {
+        reset();
+        toggle();
+      }
+    },
+    { passive: true }
+  );
+};
+installDebugOverlayToggle();
 let overlayEl: HTMLDivElement | null = null;
 const ensureOverlay = () => {
   if (!DEBUG_OVERLAY_ENABLED) return null;
