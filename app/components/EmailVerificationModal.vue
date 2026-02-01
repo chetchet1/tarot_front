@@ -109,8 +109,11 @@ const adjustModalSize = () => {
   const overlay = document.querySelector('.modal-overlay');
   if (!modal || !overlay) return;
 
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
+  // Use visualViewport when available: on mobile WebViews, 100vw/innerWidth can differ
+  // from the actually visible viewport, which can cause horizontal clipping.
+  const vv = window.visualViewport;
+  const vw = Math.round(vv?.width || window.innerWidth);
+  const vh = Math.round(vv?.height || window.innerHeight);
 
   if (vw <= 360) {
     modal.style.fontSize = '14px';
@@ -256,7 +259,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  width: 100vw;
+  width: 100%;
   max-width: 100%;
   padding: 16px;
   padding-top: max(16px, env(safe-area-inset-top));
@@ -271,7 +274,7 @@ onUnmounted(() => {
   width: 100%;
   /* Avoid min() here: some WebViews can behave oddly and cause horizontal clipping. */
   max-width: 520px;
-  max-height: calc(100vh - 32px);
+  max-height: calc(var(--viewport-height, 100vh) - 32px);
   margin: auto;
   display: flex;
   flex-direction: column;
@@ -506,8 +509,8 @@ onUnmounted(() => {
 
   .modal-container {
     /* Hard width cap so the modal never exceeds the visual viewport. */
-    max-width: calc(100vw - 20px);
-    max-height: calc(100vh - 20px);
+    max-width: calc(var(--viewport-width, 100vw) - 20px);
+    max-height: calc(var(--viewport-height, 100vh) - 20px);
   }
 
   .modal-header {

@@ -166,7 +166,8 @@ export const authService = {
       }
       
       // 인증 완료 시 리다이렉트할 URL 설정
-      const redirectUrl = `${window.location.origin}/auth/email-verified`;
+      const baseUrl = String(import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, '');
+      const redirectUrl = `${baseUrl}/auth/email-verified`;
       
       console.log('🔄 회원가입 시도 with redirectTo:', redirectUrl);
       const { data, error } = await supabase.auth.signUp({
@@ -439,9 +440,15 @@ export const authService = {
   // 이메일 확인 재전송
   async resendConfirmation(email: string) {
     try {
+      const baseUrl = String(import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, '');
+      const redirectUrl = `${baseUrl}/auth/email-verified`;
+
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email: email
+        email: email,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
       });
       if (error) throw error;
       console.log('✅ 인증 이메일 재전송');
