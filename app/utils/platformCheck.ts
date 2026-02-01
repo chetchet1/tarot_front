@@ -30,7 +30,8 @@ function getPlatformCheckConfig(): PlatformCheckConfig {
  */
 function isAllowedPath(allowedPaths: string[] = []): boolean {
   const currentPath = window.location.pathname;
-  return allowedPaths.some(path => currentPath.startsWith(path));
+  const alwaysAllowedPaths = ['/auth/email-verified', '/auth/reset-password', '/oauth-bridge'];
+  return [...allowedPaths, ...alwaysAllowedPaths].some(path => currentPath.startsWith(path));
 }
 
 /**

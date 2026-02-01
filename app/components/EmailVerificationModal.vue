@@ -114,6 +114,8 @@ const adjustModalSize = () => {
   const vv = window.visualViewport;
   const vw = Math.round(vv?.width || window.innerWidth);
   const vh = Math.round(vv?.height || window.innerHeight);
+  const offsetLeft = Math.round(vv?.offsetLeft || 0);
+  const offsetTop = Math.round(vv?.offsetTop || 0);
 
   if (vw <= 360) {
     modal.style.fontSize = '14px';
@@ -131,6 +133,8 @@ const adjustModalSize = () => {
 
   document.documentElement.style.setProperty('--viewport-width', `${vw}px`);
   document.documentElement.style.setProperty('--viewport-height', `${vh}px`);
+  document.documentElement.style.setProperty('--viewport-offset-left', `${offsetLeft}px`);
+  document.documentElement.style.setProperty('--viewport-offset-top', `${offsetTop}px`);
 };
 
 const startCooldown = () => {
@@ -248,11 +252,17 @@ onUnmounted(() => {
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
   --viewport-width: 100vw;
   --viewport-height: 100vh;
+  --viewport-offset-left: 0px;
+  --viewport-offset-top: 0px;
 }
 
 .modal-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: var(--viewport-width, 100vw);
+  height: var(--viewport-height, 100vh);
+  transform: translate(var(--viewport-offset-left, 0px), var(--viewport-offset-top, 0px));
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(4px);
   display: flex;
