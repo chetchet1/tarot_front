@@ -374,8 +374,8 @@ export const authService = {
       let redirectUrl = '';
       
       // 프로덕션 Vercel URL
-      const PRODUCTION_URL = 'https://tarot-app-psi-eight.vercel.app';
       const APP_RESET_SCHEME = 'com.tarotgarden.app://auth/reset-password';
+      const baseUrl = String(import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, '');
       
       // 로컬 브라우저 테스트용 (앱이 아닐 때만)
       if (window.location.hostname === 'localhost' && !Capacitor.isNativePlatform()) {
@@ -386,7 +386,7 @@ export const authService = {
         console.log('📱 앱에서 실행 중 - 앱 딥링크로 이메일 전송');
       } else {
         // 웹 프로덕션 환경
-        redirectUrl = `${PRODUCTION_URL}/auth/reset-password`;
+        redirectUrl = `${baseUrl}/auth/reset-password`;
         
         console.log('🌐 웹 환경 - Vercel URL 사용');
       }
