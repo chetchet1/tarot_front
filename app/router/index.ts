@@ -215,29 +215,45 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
   // Supabase can return params either in query (?code=..., ?token_hash=...)
   // or in hash (#access_token=...&refresh_token=...&type=signup).
   const hash = String(to.hash || window.location.hash || '');
-  const isEmailVerifyQuery = Boolean(
-    (to.query?.type && String(to.query.type).toLowerCase() === 'signup') ||
+  const typeFromQuery = String(to.query?.type || '').toLowerCase();
+  const typeFromHash = (() => {
+    const m = /(^|[#&])type=([^&]+)/i.exec(hash);
+    return m ? decodeURIComponent(m[2]).toLowerCase() : '';
+  })();
+  const authType = typeFromQuery || typeFromHash;
+  const hasAuthTokens = Boolean(
     to.query?.token ||
-    to.query?.token_hash ||
-    to.query?.access_token ||
-    to.query?.refresh_token ||
-    to.query?.code ||
-    /(^|[#&])type=signup(&|$)/i.test(hash) ||
-    /(^|[#&])access_token=/.test(hash) ||
-    /(^|[#&])refresh_token=/.test(hash) ||
-    /(^|[#&])token_hash=/.test(hash) ||
-    /(^|[#&])code=/.test(hash)
+      to.query?.token_hash ||
+      to.query?.access_token ||
+      to.query?.refresh_token ||
+      to.query?.code ||
+      /(^|[#&])access_token=/.test(hash) ||
+      /(^|[#&])refresh_token=/.test(hash) ||
+      /(^|[#&])token_hash=/.test(hash) ||
+      /(^|[#&])code=/.test(hash)
   );
   // Block web access in production (except localhost).
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   if (!isLocalhost && isProduction && isWeb && !isAllowedPath && !isAllowedName) {
-    if (to.path === '/' && isEmailVerifyQuery) {
-      console.log('🔐 [Router Guard] 이메일 인증 쿼리 감지 - 인증 완료 페이지로 이동');
-      next({
-        name: 'EmailVerified',
-        query: to.query
-      });
-      return;
+    if (to.path === '/' && hasAuthTokens) {
+      if (authType === 'recovery') {
+        console.log('🔐 [Router Guard] 비밀번호 재설정 토큰 감지 - 비밀번호 재설정 페이지로 이동');
+        next({
+          name: 'PasswordReset',
+          query: to.query,
+          hash
+        });
+        return;
+      }
+      if (authType === 'signup') {
+        console.log('🔐 [Router Guard] 이메일 인증 토큰 감지 - 인증 완료 페이지로 이동');
+        next({
+          name: 'EmailVerified',
+          query: to.query,
+          hash
+        });
+        return;
+      }
     }
     console.log('[Router Guard] Production web - redirect to AppDownload');
     console.log('[Router Guard] Blocked page:', to.name || to.path);

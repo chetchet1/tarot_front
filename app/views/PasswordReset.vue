@@ -202,8 +202,14 @@ onMounted(async () => {
   try {
     // URL에서 토큰 추출
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const access_token = hashParams.get('access_token');
-    const type = hashParams.get('type');
+    const getQueryValue = (key: string) => {
+      const v = (route.query as Record<string, unknown>)[key];
+      if (typeof v === 'string') return v;
+      if (Array.isArray(v) && typeof v[0] === 'string') return v[0];
+      return null;
+    };
+    const access_token = hashParams.get('access_token') || getQueryValue('access_token');
+    const type = (hashParams.get('type') || getQueryValue('type') || '').toLowerCase();
     
     console.log('📍 URL 파라미터:', {
       hash: window.location.hash,
@@ -212,6 +218,19 @@ onMounted(async () => {
     });
     
     if (type === 'recovery' && access_token) {
+      // Mobile web: try to open the native app for password reset (fallback to web UI if not installed).
+      const isMobileWeb =
+        !Capacitor.isNativePlatform() && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobileWeb) {
+        const triedKey = 'tarot_reset_deeplink_tried';
+        const alreadyTried = sessionStorage.getItem(triedKey) === '1';
+        if (!alreadyTried) {
+          sessionStorage.setItem(triedKey, '1');
+          const deepLink = `com.tarotgarden.app://auth/reset-password${window.location.hash || ''}`;
+          console.log('📱 모바일 웹 - 앱 딥링크 시도:', deepLink);
+          window.location.href = deepLink;
+        }
+      }
       console.log('✅ 유효한 재설정 토큰 확인됨');
       isLoading.value = false;
       hasError.value = false;
@@ -316,7 +335,7 @@ const openApp = () => {
   console.log('🚀 앱 열기 시도');
   
   // 딥링크로 앱 열기 시도
-  const appScheme = 'com.tarotgarden.app://';
+  const appScheme = `com.tarotgarden.app://auth/reset-password${window.location.hash || ''}`;
   const fallbackUrl = 'https://play.google.com/store/apps/details?id=com.tarotgarden.app';
   
   // 앱 열기 시도

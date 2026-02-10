@@ -31,6 +31,21 @@ function getPlatformCheckConfig(): PlatformCheckConfig {
 function isAllowedPath(allowedPaths: string[] = []): boolean {
   const currentPath = window.location.pathname;
   const alwaysAllowedPaths = ['/auth/email-verified', '/auth/reset-password', '/oauth-bridge'];
+
+  // Supabase Auth can redirect to the Site URL root (`/`) and put tokens in query/hash.
+  // If we block at this stage, the router can't redirect to the proper page.
+  if (currentPath === '/') {
+    const hay = `${window.location.search || ''}${window.location.hash || ''}`;
+    const hasAuthTokens =
+      /(^|[?#&])type=recovery(&|$)/i.test(hay) ||
+      /(^|[?#&])type=signup(&|$)/i.test(hay) ||
+      /(^|[#&])access_token=/.test(hay) ||
+      /(^|[#&])refresh_token=/.test(hay) ||
+      /(^|[?#&])token_hash=/.test(hay) ||
+      /(^|[?#&])code=/.test(hay);
+    if (hasAuthTokens) return true;
+  }
+
   return [...allowedPaths, ...alwaysAllowedPaths].some(path => currentPath.startsWith(path));
 }
 
