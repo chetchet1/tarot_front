@@ -19,7 +19,7 @@
         </div>
 
         <!-- 비밀번호 입력 폼 -->
-        <form v-if="!isComplete && !isLoading" @submit.prevent="handlePasswordReset" class="reset-form">
+        <form v-if="!isComplete && !isLoading && !hasError" @submit.prevent="handlePasswordReset" class="reset-form">
           <div class="form-group">
             <label for="password">새 비밀번호</label>
             <div class="password-input-wrapper">

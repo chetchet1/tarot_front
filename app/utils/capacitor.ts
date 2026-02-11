@@ -10,6 +10,7 @@ import { App } from '@capacitor/app';
  * 플랫폼 및 네이티브 기능 유틸리티
  */
 export class NativeUtils {
+  private static backButtonHandle: any | null = null;
   /**
    * 현재 플랫폼이 네이티브인지 확인
    */
@@ -214,7 +215,12 @@ export class NativeUtils {
   static setupBackButtonListener(callback: () => void): void {
     if (!this.isNative) return;
 
-    App.addListener('backButton', callback);
+    try {
+      this.backButtonHandle?.remove?.();
+    } catch {
+      // ignore
+    }
+    this.backButtonHandle = App.addListener('backButton', callback);
   }
 
   /**
@@ -222,6 +228,13 @@ export class NativeUtils {
    */
   static removeBackButtonListener(): void {
     if (!this.isNative) return;
+
+    try {
+      this.backButtonHandle?.remove?.();
+    } catch {
+      // ignore
+    }
+    this.backButtonHandle = null;
 
     // removeAllListeners를 사용하면 OAuth 리스너도 제거되므로
     // backButton 리스너만 제거해야 함

@@ -201,6 +201,38 @@ NativeUtils.initializeApp();
 // 딥링크 설정 (모바일에서 OAuth 콜백 처리)
 setupDeepLinks();
 
+// Android hardware back button behavior:
+// - On main screen: double-press to exit
+// - On other screens: go back in router history
+if (NativeUtils.isNative) {
+  let lastBackPressTime = 0;
+  NativeUtils.setupBackButtonListener(async () => {
+    const route = router.currentRoute.value;
+    const name = String(route.name || '');
+    const path = String(route.path || '');
+
+    const isMainScreen = name === 'App' || name === 'Home' || path === '/app' || path === '/';
+    if (!isMainScreen) {
+      const historyState = (router.options.history as any)?.state;
+      const canGoBack = Boolean(historyState?.back);
+      if (canGoBack) {
+        router.back();
+      } else {
+        router.replace('/app');
+      }
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastBackPressTime < 2000) {
+      await NativeUtils.exitApp();
+    } else {
+      lastBackPressTime = now;
+      await NativeUtils.showToast('한번 더 누르면 앱이 종료됩니다', 'short');
+    }
+  });
+}
+
 const pinia = createPinia();
 const app = createApp(App);
 

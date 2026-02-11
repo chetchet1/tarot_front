@@ -13,7 +13,10 @@ export const setupDeepLinks = () => {
       // URL 파싱
       const url = new URL(data.url);
       
-      const hasResetPassword = url.pathname.includes('auth/reset-password') || data.url.includes('type=recovery');
+      // IMPORTANT:
+      // `auth/confirm` deep-links also include `type=recovery` in the query string.
+      // Do not treat that as a reset-password link, otherwise we skip OTP verification and the reset page becomes invalid.
+      const hasResetPassword = url.pathname.includes('auth/reset-password');
       const hasAuthCallback = url.pathname.includes('auth/callback') || url.href.includes('#access_token');
       const hasAuthConfirm = url.pathname.includes('auth/confirm') || url.href.includes('auth/confirm');
       
