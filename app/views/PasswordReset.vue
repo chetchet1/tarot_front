@@ -240,6 +240,14 @@ onMounted(async () => {
       console.log('세션 상태:', session ? '있음' : '없음');
       
     } else {
+      // confirm-flow: token_hash was verified on our domain, so there may be no hash tokens here.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (type === 'recovery' && session) {
+        console.log('✅ recovery 세션 확인됨 (confirm-flow)');
+        isLoading.value = false;
+        hasError.value = false;
+        return;
+      }
       console.error('❌ 재설정 토큰이 없거나 유효하지 않음');
       hasError.value = true;
       isLoading.value = false;

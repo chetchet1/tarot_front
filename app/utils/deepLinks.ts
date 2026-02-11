@@ -15,6 +15,7 @@ export const setupDeepLinks = () => {
       
       const hasResetPassword = url.pathname.includes('auth/reset-password') || data.url.includes('type=recovery');
       const hasAuthCallback = url.pathname.includes('auth/callback') || url.href.includes('#access_token');
+      const hasAuthConfirm = url.pathname.includes('auth/confirm') || url.href.includes('auth/confirm');
       
       // URL에서 토큰 추출 (hash 또는 fragment에서)
       let access_token = null;
@@ -62,6 +63,41 @@ export const setupDeepLinks = () => {
         } catch (err) {
           console.error('❌ Password reset deep link error:', err);
           router.replace('/auth/reset-password');
+          return;
+        }
+      }
+
+      if (hasAuthConfirm) {
+        try {
+          const token_hash = url.searchParams.get('token_hash') || url.searchParams.get('tokenHash');
+          const confirmType = String(url.searchParams.get('type') || '').toLowerCase();
+
+          if (token_hash && confirmType) {
+            const { error } = await supabase.auth.verifyOtp({
+              token_hash,
+              type: confirmType as any
+            });
+            if (error) {
+              console.error('❌ Auth confirm verifyOtp error:', error);
+            }
+
+            if (confirmType === 'recovery') {
+              router.replace({ path: '/auth/reset-password', query: { type: 'recovery' } });
+              return;
+            }
+            if (confirmType === 'email' || confirmType === 'signup') {
+              router.replace({ path: '/auth/email-verified', query: { type: 'signup' } });
+              return;
+            }
+          } else {
+            console.error('❌ Auth confirm missing token_hash/type');
+          }
+
+          router.replace('/');
+          return;
+        } catch (err) {
+          console.error('❌ Auth confirm deep link error:', err);
+          router.replace('/');
           return;
         }
       }

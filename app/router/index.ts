@@ -16,6 +16,7 @@ import OAuthBridge from '../views/OAuthBridge.vue';
 import SharedReading from '../views/SharedReading.vue';
 import AppDownload from '../views/AppDownload.vue';
 import EmailVerified from '../views/EmailVerified.vue';
+import AuthConfirm from '../views/AuthConfirm.vue';
 
 // Board-related components (lazy loading)
 // import BoardMain from '../views/BoardMain.vue';
@@ -122,6 +123,12 @@ const routes = [
     meta: { requiresAuth: false, isPublic: true }
   },
   {
+    path: '/auth/confirm',
+    name: 'AuthConfirm',
+    component: AuthConfirm,
+    meta: { requiresAuth: false, isPublic: true }
+  },
+  {
     path: '/oauth-bridge',
     name: 'OAuthBridge',
     component: OAuthBridge,
@@ -206,8 +213,8 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
   const isVercelProduction = window.location.hostname.includes('vercel.app');
   const isProduction = import.meta.env.MODE === 'production' || isVercelProduction;
   const isWeb = !platform.isCapacitor && !platform.isInApp;
-  const allowedPaths = ['/s/', '/download', '/auth/callback', '/auth/email-verified', '/auth/reset-password', '/oauth-bridge']; // allowlisted paths
-  const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback', 'EmailVerified', 'PasswordReset', 'OAuthBridge']; // allowlisted route names
+  const allowedPaths = ['/s/', '/download', '/auth/callback', '/auth/email-verified', '/auth/reset-password', '/auth/confirm', '/oauth-bridge']; // allowlisted paths
+  const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback', 'EmailVerified', 'PasswordReset', 'AuthConfirm', 'OAuthBridge']; // allowlisted route names
   
   // Allowlist checks
   const isAllowedPath = allowedPaths.some(path => to.path.startsWith(path));
