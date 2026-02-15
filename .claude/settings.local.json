@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:memoryhub.tistory.com)",
+      "Bash(ls:*)",
+      "Bash(# setup-guides/를 setup/으로 통합 mv /e/tarot-app/docs/setup-guides/google-analytics-guide.md /e/tarot-app/docs/setup/ mv /e/tarot-app/docs/setup-guides/sentry-error-tracking-guide.md /e/tarot-app/docs/setup/ rmdir /e/tarot-app/docs/setup-guides # login/ → archive mv /e/tarot-app/docs/login/PC_LOGIN_ROADMAP.md /e/tarot-app/docs/archive/root-cleanup/ rmdir /e/tarot-app/docs/login # fixes/ → archive mv /e/tarot-app/docs/fixes/fix-seven-star-duplicate-api-calls.md /e/tarot-app/docs/archive/root-cleanup/ rmdir /e/tarot-app/docs/fixes # 기존 setup/ 폴더의 중복 DAILY_CARDS_SETUP 정리 ls /e/tarot-app/docs/setup/)",
+      "Bash(# 최종 docs 구조 확인 echo \"\"=== 프로젝트 루트 ===\"\" ls /e/tarot-app/*.md echo \"\"\"\" echo \"\"=== docs/ 루트 ===\"\" ls /e/tarot-app/docs/*.md || echo \"\"\\(clean\\)\"\" echo \"\"\"\" echo \"\"=== docs/ 폴더 구조 ===\"\" ls -d /e/tarot-app/docs/*/ echo \"\"\"\" echo \"\"=== docs/planning/ ===\"\" ls /e/tarot-app/docs/planning/)",
+      "Bash(wc -l echo \"files\" echo \"\" echo \"=== docs/setup/ ===\" ls /e/tarot-app/docs/setup/ echo \"\" echo \"=== docs/guides/ ===\" ls /e/tarot-app/docs/guides/ echo \"\" echo \"=== docs/features/ ===\" ls /e/tarot-app/docs/features/ echo \"\" echo \"=== docs/deployment/ ===\" ls /e/tarot-app/docs/deployment/ echo \"\" echo \"=== docs/archive/ ===\" ls -d /e/tarot-app/docs/archive/*/ echo \"\" echo \"=== frontend/docs/ ===\" ls -d /e/tarot-app/frontend/docs/*/)",
+      "Bash(git add:*)"
+    ],
+    "deny": [
+      "Edit(**/.env)",
+      "Edit(**/.env.*)",
+      "Write(**/.env)",
+      "Write(**/.env.*)",
+      "Edit(**/google-services.json)",
+      "Write(**/google-services.json)",
+      "Edit(**/*.keystore)",
+      "Write(**/*.keystore)"
+    ]
+  }
+}
