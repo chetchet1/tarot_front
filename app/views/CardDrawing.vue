@@ -1,9 +1,10 @@
 ﻿<template>
-  <div class="card-drawing" :class="{ 
+  <div class="card-drawing" :class="{
   'celtic-cross-mode': isCelticCross,
   'seven-star-mode': isSevenStar,
   'cup-relationship-mode': isCupOfRelationship,
-  'special-layout-mode': hasSpecialLayout
+  'special-layout-mode': hasSpecialLayout,
+  'scrollable': isComplete && !hasSpecialLayout
 }" @click="debugClick">
     <header class="page-header">
       <div class="header-top">
@@ -1482,6 +1483,13 @@ const checkFreeReadingStatus = () => {
   -webkit-overflow-scrolling: touch;
   /* 바운스 효과 방지 */
   overscroll-behavior: none;
+}
+
+/* 일반 배열(3장) 결과 화면에서 스크롤 허용 */
+.card-drawing.scrollable {
+  overflow-y: auto;
+  height: auto;
+  min-height: 100dvh;
 }
 
 .page-header {
