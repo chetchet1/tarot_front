@@ -14,5 +14,8 @@ public class MainActivity extends BridgeActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
 
         super.onCreate(savedInstanceState);
+
+        // 시스템 폰트 확대 설정 무시 - WebView 레이아웃 깨짐 방지
+        getBridge().getWebView().getSettings().setTextZoom(100);
     }
 }
