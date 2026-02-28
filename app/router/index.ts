@@ -31,7 +31,16 @@ const routes = [
     path: '/download',
     name: 'AppDownload',
     component: AppDownload,
-    meta: { 
+    meta: {
+      requiresAuth: false,
+      isPublic: true
+    }
+  },
+  {
+    path: '/account-delete',
+    name: 'AccountDelete',
+    component: () => import('../views/AccountDelete.vue'),
+    meta: {
       requiresAuth: false,
       isPublic: true
     }
@@ -213,8 +222,8 @@ router.beforeEach(async (to: RouteLocationNormalized, from: RouteLocationNormali
   const isVercelProduction = window.location.hostname.includes('vercel.app');
   const isProduction = import.meta.env.MODE === 'production' || isVercelProduction;
   const isWeb = !platform.isCapacitor && !platform.isInApp;
-  const allowedPaths = ['/s/', '/download', '/auth/callback', '/auth/email-verified', '/auth/reset-password', '/auth/confirm', '/oauth-bridge']; // allowlisted paths
-  const allowedNames = ['SharedReading', 'AppDownload', 'AuthCallback', 'EmailVerified', 'PasswordReset', 'AuthConfirm', 'OAuthBridge']; // allowlisted route names
+  const allowedPaths = ['/s/', '/download', '/account-delete', '/auth/callback', '/auth/email-verified', '/auth/reset-password', '/auth/confirm', '/oauth-bridge']; // allowlisted paths
+  const allowedNames = ['SharedReading', 'AppDownload', 'AccountDelete', 'AuthCallback', 'EmailVerified', 'PasswordReset', 'AuthConfirm', 'OAuthBridge']; // allowlisted route names
   
   // Allowlist checks
   const isAllowedPath = allowedPaths.some(path => to.path.startsWith(path));
