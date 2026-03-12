@@ -9,17 +9,17 @@ class AdService {
   private maxInitRetries = 3; // 최대 재시도 횟수
   private isTestMode = TEST_MODE; // 환경변수에서 테스트 모드 설정
   
-  // 광고 ID (나중에 실제 ID로 교체)
+  // 광고 ID (실제 AdMob ID)
   private adIds = {
     android: {
-      interstitial: 'ca-app-pub-3940256099942544/1033173712', // 테스트 ID
-      rewarded: 'ca-app-pub-3940256099942544/5224354917', // 테스트 ID
-      banner: 'ca-app-pub-3940256099942544/6300978111' // 테스트 ID
+      interstitial: 'ca-app-pub-2235114588891951/8801597247',
+      rewarded: 'ca-app-pub-2235114588891951/3895774984',
+      banner: 'ca-app-pub-2235114588891951/4358809412'
     },
     ios: {
-      interstitial: 'ca-app-pub-3940256099942544/4411468910', // 테스트 ID
-      rewarded: 'ca-app-pub-3940256099942544/1712485313', // 테스트 ID
-      banner: 'ca-app-pub-3940256099942544/2934735716' // 테스트 ID
+      interstitial: 'ca-app-pub-3940256099942544/4411468910', // iOS 미사용 (테스트 ID 유지)
+      rewarded: 'ca-app-pub-3940256099942544/1712485313', // iOS 미사용 (테스트 ID 유지)
+      banner: 'ca-app-pub-3940256099942544/2934735716' // iOS 미사용 (테스트 ID 유지)
     }
   };
   
@@ -74,10 +74,6 @@ class AdService {
         // 초기화 시도 (타임아웃 설정)
         const initPromise = AdMob.initialize({
           requestTrackingAuthorization: true,
-          testingDevices: this.isTestMode ? [
-            'YOUR_TEST_DEVICE_ID',
-            '2077ef9a63d2b398840261c8221a0c9b' // 예시 테스트 ID
-          ] : [],
           initializeForTesting: this.isTestMode,
         });
         

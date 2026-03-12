@@ -2,15 +2,15 @@
 import { AdMob, AdOptions, RewardAdOptions, AdLoadInfo, InterstitialAdPluginEvents, RewardAdPluginEvents, AdMobRewardItem } from '@capacitor-community/admob';
 import { Capacitor } from '@capacitor/core';
 
-// 광고 ID 설정 (테스트용)
+// 광고 ID 설정 (실제 AdMob ID)
 const AD_IDS = {
-  // Android 테스트 ID
+  // Android 실제 ID
   android: {
-    banner: 'ca-app-pub-3940256099942544/6300978111',
-    interstitial: 'ca-app-pub-3940256099942544/1033173712',
-    rewarded: 'ca-app-pub-3940256099942544/5224354917'
+    banner: 'ca-app-pub-2235114588891951/4358809412',
+    interstitial: 'ca-app-pub-2235114588891951/8801597247',
+    rewarded: 'ca-app-pub-2235114588891951/3895774984'
   },
-  // iOS 테스트 ID
+  // iOS (미사용 - 테스트 ID 유지)
   ios: {
     banner: 'ca-app-pub-3940256099942544/2934735716',
     interstitial: 'ca-app-pub-3940256099942544/4411468910',
@@ -37,8 +37,8 @@ export const initializeAdMob = async (): Promise<void> => {
     }
 
     await AdMob.initialize({
-      testingDevices: ['YOUR_DEVICE_ID'], // 테스트 기기 ID (선택사항)
-      initializeForTesting: true, // 테스트 모드
+      requestTrackingAuthorization: true,
+      initializeForTesting: false,
     });
 
     console.log('✅ AdMob 초기화 완료');

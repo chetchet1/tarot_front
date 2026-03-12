@@ -1,6 +1,5 @@
 // 환경 설정
-// 실제 광고 ID가 없으므로 항상 테스트 모드 사용
-export const TEST_MODE = true; // 항상 테스트 모드
+export const TEST_MODE = false; // 실제 광고 모드
 export const __DEV__ = import.meta.env.MODE !== 'production'; // 개발 모드
 
 // 플랫폼 확인
@@ -17,11 +16,11 @@ export const SUPABASE_CONFIG = {
 
 // AdMob 환경 변수
 export const ADMOB_CONFIG = {
-  androidAppId: import.meta.env.VITE_ADMOB_ANDROID_APP_ID || 'ca-app-pub-3940256099942544~3347511713',
+  androidAppId: import.meta.env.VITE_ADMOB_ANDROID_APP_ID || 'ca-app-pub-2235114588891951~7392166864',
   iosAppId: import.meta.env.VITE_ADMOB_IOS_APP_ID || 'ca-app-pub-3940256099942544~1458002511',
-  androidBannerId: import.meta.env.VITE_ADMOB_ANDROID_BANNER_ID || 'ca-app-pub-3940256099942544/6300978111',
+  androidBannerId: import.meta.env.VITE_ADMOB_ANDROID_BANNER_ID || 'ca-app-pub-2235114588891951/4358809412',
   iosBannerId: import.meta.env.VITE_ADMOB_IOS_BANNER_ID || 'ca-app-pub-3940256099942544/2934735716',
-  androidInterstitialId: import.meta.env.VITE_ADMOB_ANDROID_INTERSTITIAL_ID || 'ca-app-pub-3940256099942544/1033173712',
+  androidInterstitialId: import.meta.env.VITE_ADMOB_ANDROID_INTERSTITIAL_ID || 'ca-app-pub-2235114588891951/8801597247',
   iosInterstitialId: import.meta.env.VITE_ADMOB_IOS_INTERSTITIAL_ID || 'ca-app-pub-3940256099942544/4411468910'
 };
 

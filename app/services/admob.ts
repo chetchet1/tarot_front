@@ -20,14 +20,13 @@ interface AdMobService {
   shouldShowAds(): boolean;
 }
 
-// AdMob 설정
-// 프로덕션에서도 테스트 ID 사용 (실제 광고 ID가 없기 때문)
+// AdMob 설정 (실제 AdMob ID)
 const adMobConfig: AdMobConfig = {
-  appId: 'ca-app-pub-3940256099942544~3347511713', // 항상 테스트 ID
-  bannerAdId: 'ca-app-pub-3940256099942544/6300978111', // 항상 테스트 ID
-  interstitialAdId: 'ca-app-pub-3940256099942544/1033173712', // 항상 테스트 ID
-  rewardedAdId: 'ca-app-pub-3940256099942544/5224354917', // 항상 테스트 ID
-  testMode: true // 항상 테스트 모드
+  appId: 'ca-app-pub-2235114588891951~7392166864',
+  bannerAdId: 'ca-app-pub-2235114588891951/4358809412',
+  interstitialAdId: 'ca-app-pub-2235114588891951/8801597247',
+  rewardedAdId: 'ca-app-pub-2235114588891951/3895774984',
+  testMode: false
 };
 
 // 웹용 모킹 클래스
@@ -258,7 +257,6 @@ class RealAdMobService implements AdMobService {
       
       await AdMob.initialize({
         requestTrackingAuthorization: true,
-        testingDevices: adMobConfig.testMode ? ['YOUR_TEST_DEVICE_ID'] : [],
         initializeForTesting: adMobConfig.testMode
       });
 
