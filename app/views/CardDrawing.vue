@@ -80,19 +80,17 @@
           </div>
         </div>
         
-        <!-- 78장 카드 스프레드 -->
-        <div class="card-spread-container">
-          <div class="spread-background"></div>
-          <div class="card-spread">
-            <div 
-              v-for="(card, index) in shuffledDeck" 
+        <!-- 78장 카드 그리드 -->
+        <div class="card-grid-container">
+          <div class="card-grid">
+            <div
+              v-for="(card, index) in shuffledDeck"
               :key="index"
-              class="spread-card"
-              :class="{ 
+              class="grid-card"
+              :class="{
                 'selected': isCardSelected(card),
                 'disabled': manualSelectedCards.length >= getCardCount() && !isCardSelected(card)
               }"
-              :style="getCardSpreadStyle(index)"
               @click="selectManualCard(card)"
             >
               <div class="card-back-small">🃏</div>
@@ -594,41 +592,6 @@ const shuffleDeck = () => {
 };
 
 // 카드 스프레드 스타일 (둥근 부채꼴 형태)
-const getCardSpreadStyle = (index: number) => {
-  const totalCards = 78;
-  const centerX = 50; // 중심점 X (퍼센트)
-  const centerY = 75; // 중심점 Y (퍼센트) - 더 위로 올림
-  
-  // 부채꼴 각도 계산 - 더 촘촘하게
-  const totalAngle = 240; // 전체 펼침 각도 (240도로 증가)
-  const startAngle = -120; // 시작 각도
-  const angleStep = totalAngle / (totalCards - 1);
-  const angle = startAngle + (index * angleStep);
-  
-  // 라디안으로 변환
-  const radian = (angle * Math.PI) / 180;
-  
-  // 타원형 배치를 위한 반지름 계산
-  // 가로 반지름을 세로보다 크게 하여 타원형으로 만듦
-  const radiusX = 45; // 가로 반지름 (퍼센트)
-  const radiusY = 30; // 세로 반지름 (퍼센트) - 더 줄임
-  
-  // 카드 위치 계산 (타원 공식 사용)
-  const x = centerX + radiusX * Math.sin(radian);
-  const y = centerY - radiusY * Math.cos(radian);
-  
-  // 카드가 겹쳐 보이도록 z-index 조정
-  const zIndex = 78 - Math.abs(index - 39); // 중앙이 위로
-  
-  return {
-    position: 'absolute',
-    left: `${x}%`,
-    top: `${y}%`,
-    transform: `translate(-50%, -50%) rotate(${angle * 0.7}deg)`, // 회전 각도를 줄임
-    transformOrigin: 'center center',
-    zIndex: zIndex
-  };
-};
 
 // 카드 선택 확인
 const isCardSelected = (card: any) => {
@@ -1962,70 +1925,58 @@ const checkFreeReadingStatus = () => {
   font-size: 16px;
 }
 
-.card-spread-container {
+.card-grid-container {
   width: 100%;
   max-width: 100%;
-  height: 250px; /* 높이 더 줄임 */
-  margin: 10px 0; /* 여백 줄임 */
-  position: relative;
-  overflow: hidden;
+  max-height: 50vh;
+  margin: 10px 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 10px;
 }
 
-.spread-background {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 200%;
-  height: 200px;
-  background: radial-gradient(ellipse at center bottom, rgba(168, 85, 247, 0.1) 0%, transparent 70%);
-  pointer-events: none;
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  justify-items: center;
 }
 
-.card-spread {
-  position: relative;
+.grid-card {
   width: 100%;
-  height: 100%;
-}
-
-.spread-card {
-  width: 40px; /* 크기 더 줄임 */
-  height: 60px;
+  aspect-ratio: 2 / 3;
+  max-width: 60px;
   background: linear-gradient(135deg, #4C1D95 0%, #7C3AED 100%);
-  border: 1px solid rgba(255, 255, 255, 0.2); /* 테두리 두께 줄임 */
-  border-radius: 4px; /* 둥근 모서리 더 작게 */
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-.spread-card:hover:not(.disabled) {
-  transform: translate(-50%, -50%) translateY(-20px) scale(1.2) !important;
+.grid-card:hover:not(.disabled) {
+  transform: scale(1.1);
   border-color: rgba(255, 255, 255, 0.5);
-  z-index: 1000 !important;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 }
 
-.spread-card.selected {
+.grid-card.selected {
   border-color: #FFD700;
-  border-width: 2px; /* 선택된 카드도 테두리 줄임 */
   box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
   background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
 }
 
-.spread-card.selected .card-back-small {
-  color: #4C1D95; /* 선택된 카드의 아이콘 색 변경 */
+.grid-card.selected .card-back-small {
+  color: #4C1D95;
 }
 
-.spread-card.selected:hover {
-  transform: translate(-50%, -50%) translateY(-20px) scale(1.2) !important;
-}
-
-.spread-card.disabled {
-  opacity: 0.5;
+.grid-card.disabled {
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
@@ -2074,13 +2025,13 @@ const checkFreeReadingStatus = () => {
     align-items: center;
   }
   
-  .card-spread-container {
-    height: 220px; /* 모바일에서 더 줄임 */
+  .card-grid-container {
+    max-height: 45vh;
+    padding: 8px;
   }
-  
-  .spread-card {
-    width: 30px; /* 모바일에서 더 작게 */
-    height: 45px;
+
+  .card-grid {
+    gap: 6px;
   }
   
   .manual-selection-container {
