@@ -20,16 +20,10 @@ export const initializeRevenueCat = async () => {
 // 구독 상품 정보
 export const SUBSCRIPTION_PRODUCTS = {
   monthly: {
-    id: 'tarot_premium_monthly',
+    id: 'tarot_sub',
     price: 2900,
     currency: 'KRW',
     period: 'monthly'
-  },
-  yearly: {
-    id: 'tarot_premium_yearly', 
-    price: 29900,
-    currency: 'KRW',
-    period: 'yearly'
   }
 };
 

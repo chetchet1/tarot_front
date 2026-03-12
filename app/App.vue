@@ -140,14 +140,12 @@ onMounted(async () => {
         // Update check failed
       });
       
-      // RevenueCat 초기화 비활성화 (API 키 없음)
-      // TODO: 프로덕션 배포 시 RevenueCat API 키 설정 후 활성화
-      // try {
-      //   await revenueCatService.initialize();
-      //   console.log('✅ RevenueCat initialized');
-      // } catch (error) {
-      //   console.error('⚠️ RevenueCat initialization failed:', error);
-      // }
+      // RevenueCat 초기화
+      try {
+        await revenueCatService.initialize();
+      } catch (error) {
+        // RevenueCat 초기화 실패해도 앱은 계속 동작
+      }
     }
     
     // 사용자 초기화 (공유 페이지가 아닌 경우만)

@@ -294,7 +294,7 @@ const goToHelp = async (): Promise<void> => {
 
 const sendFeedback = async (): Promise<void> => {
   await NativeUtils.buttonTapHaptic();
-  window.location.href = 'mailto:support@tarot-garden.com?subject=타로의 정원 피드백';
+  window.location.href = 'mailto:chetchet28@gmail.com?subject=타로의 정원 피드백';
 };
 
 const rateApp = async (): Promise<void> => {

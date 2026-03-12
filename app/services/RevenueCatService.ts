@@ -36,14 +36,13 @@ class RevenueCatService {
   
   // RevenueCat API Keys
   private readonly API_KEYS = {
-    android: import.meta.env.VITE_REVENUECAT_ANDROID_KEY || '',
+    android: import.meta.env.VITE_REVENUECAT_ANDROID_KEY || 'goog_AgtlorzFIaDlSjLdhfuDBbUUQNL',
     ios: import.meta.env.VITE_REVENUECAT_IOS_KEY || ''
   };
 
-  // 상품 ID 정의 (RevenueCat에서 설정한 ID와 일치해야 함)
+  // 상품 ID 정의 (Google Play Console에 등록한 ID와 일치해야 함)
   public readonly PRODUCTS = {
-    MONTHLY: 'monthly_premium',
-    YEARLY: 'yearly_premium'
+    MONTHLY: 'tarot_sub'
   };
 
   constructor() {}

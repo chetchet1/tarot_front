@@ -27,6 +27,6 @@ export const ADMOB_CONFIG = {
 
 // RevenueCat 환경 변수
 export const REVENUECAT_CONFIG = {
-  androidKey: import.meta.env.VITE_REVENUECAT_ANDROID_KEY || 'your_revenuecat_android_key',
-  iosKey: import.meta.env.VITE_REVENUECAT_IOS_KEY || 'your_revenuecat_ios_key'
+  androidKey: import.meta.env.VITE_REVENUECAT_ANDROID_KEY || 'goog_AgtlorzFIaDlSjLdhfuDBbUUQNL',
+  iosKey: import.meta.env.VITE_REVENUECAT_IOS_KEY || ''
 };

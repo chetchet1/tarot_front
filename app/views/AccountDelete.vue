@@ -42,7 +42,7 @@
         <div class="info-card">
           <h2>문의</h2>
           <p>계정 삭제와 관련하여 문의 사항이 있으시면 아래 이메일로 연락해 주세요.</p>
-          <p class="contact-email">📧 chetchet1@gmail.com</p>
+          <p class="contact-email">📧 chetchet28@gmail.com</p>
         </div>
 
         <div class="download-section">
