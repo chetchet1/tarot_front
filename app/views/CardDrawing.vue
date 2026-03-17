@@ -401,7 +401,9 @@ const debugClick = () => {
 const isProcessingResult = ref(false);
 
 const allowPageScroll = computed(() => {
-  return tarotStore.selectedSpread?.spreadId === 'three_card_timeline';
+  // 일반 배열(1장, 3장)에서 카드 뽑기 완료 후 스크롤 허용
+  const isSimple = !hasSpecialLayout.value;
+  return isSimple && isComplete.value;
 });
 
 const setNoScroll = (enabled: boolean) => {
