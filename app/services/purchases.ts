@@ -1,6 +1,7 @@
 import { Purchases, PurchasesOffering, PurchasesPackage } from '@revenuecat/purchases-capacitor';
 import { useUserStore } from '../store/user';
 import { subscriptionService } from './supabase';
+import { MONETIZATION_DISABLED } from '../config/env';
 
 // RevenueCat 초기화
 export const initializeRevenueCat = async () => {
@@ -40,9 +41,12 @@ export const getOfferings = async (): Promise<PurchasesOffering[]> => {
 
 // 구독 구매
 export const purchaseSubscription = async (packageToPurchase: PurchasesPackage) => {
+  if (MONETIZATION_DISABLED) {
+    throw new Error('현재 구독 서비스가 일시 중지되었습니다.');
+  }
   try {
     const userStore = useUserStore();
-    
+
     // 구매 진행
     const purchaseResult = await Purchases.purchasePackage(packageToPurchase);
     

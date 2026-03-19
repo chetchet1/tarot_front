@@ -2,6 +2,7 @@
 import { Platform } from '../utils/platform';
 import { useUserStore } from '../store/user';
 import { subscriptionService } from './supabase';
+import { MONETIZATION_DISABLED } from '../config/env';
 
 // 구독 상품 정보
 export const SUBSCRIPTION_PRODUCTS = {
@@ -391,8 +392,12 @@ const subscriptionServiceInstance = createSubscriptionService();
 
 // 외부 노출 함수들
 export const initializeSubscription = () => subscriptionServiceInstance.initialize();
-export const purchaseSubscription = (productId: string, paymentMethod?: string) => 
-  subscriptionServiceInstance.purchaseSubscription(productId, paymentMethod);
+export const purchaseSubscription = (productId: string, paymentMethod?: string) => {
+  if (MONETIZATION_DISABLED) {
+    return Promise.reject(new Error('현재 구독 서비스가 일시 중지되었습니다.'));
+  }
+  return subscriptionServiceInstance.purchaseSubscription(productId, paymentMethod);
+};
 export const restoreSubscription = () => subscriptionServiceInstance.restoreSubscription();
 export const cancelSubscription = () => subscriptionServiceInstance.cancelSubscription();
 export const checkSubscriptionStatus = () => subscriptionServiceInstance.checkSubscriptionStatus();

@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { TEST_MODE } from '../config/env';
+import { TEST_MODE, MONETIZATION_DISABLED } from '../config/env';
 import { logger } from './debugLogger';
 
 class AdService {
@@ -371,6 +371,7 @@ class AdService {
   }
   
   async showInterstitialAd(): Promise<boolean> {
+    if (MONETIZATION_DISABLED) return true;
     try {
       const platform = this.getPlatform();
       
@@ -482,6 +483,7 @@ class AdService {
   }
   
   async showRewardedAd(): Promise<boolean> {
+    if (MONETIZATION_DISABLED) return true;
     try {
       const platform = this.getPlatform();
       
@@ -542,6 +544,7 @@ class AdService {
   }
   
   async showBannerAd(position: 'top' | 'bottom' = 'bottom'): Promise<void> {
+    if (MONETIZATION_DISABLED) return;
     try {
       const platform = this.getPlatform();
       

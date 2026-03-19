@@ -2,6 +2,10 @@
 export const TEST_MODE = false; // 실제 광고 모드
 export const __DEV__ = import.meta.env.MODE !== 'production'; // 개발 모드
 
+// 수익 비활성화 플래그 (사업자 휴업 기간 동안 광고/결제 차단)
+// 다시 활성화하려면 false로 변경
+export const MONETIZATION_DISABLED = true;
+
 // 플랫폼 확인
 export const global = {
   isIOS: false, // iOS 테스트시 true로 변경

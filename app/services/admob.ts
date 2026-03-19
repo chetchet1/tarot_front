@@ -1,6 +1,6 @@
 // AdMob 서비스 - 실제 광고 구현
 import { Platform } from '@/utils/platform';
-import { TEST_MODE } from '../config/env';
+import { TEST_MODE, MONETIZATION_DISABLED } from '../config/env';
 import { logger } from './debugLogger';
 
 // 타입 정의
@@ -272,6 +272,10 @@ class RealAdMobService implements AdMobService {
   }
 
   async showInterstitialAd(): Promise<boolean> {
+    if (MONETIZATION_DISABLED) {
+      logger.log('수익 비활성화 - 전면 광고 스킵');
+      return true;
+    }
     try {
       if (!this.isInitialized) {
         await this.initializeAdMob();
@@ -364,6 +368,10 @@ class RealAdMobService implements AdMobService {
   }
 
   async showRewardedAd(): Promise<boolean> {
+    if (MONETIZATION_DISABLED) {
+      logger.log('수익 비활성화 - 리워드 광고 스킵');
+      return true;
+    }
     try {
       if (!this.isInitialized) {
         await this.initializeAdMob();
@@ -461,6 +469,7 @@ class RealAdMobService implements AdMobService {
   }
 
   async createBannerAd(position: 'top' | 'bottom'): Promise<void> {
+    if (MONETIZATION_DISABLED) return;
     try {
       if (!this.isInitialized) {
         await this.initializeAdMob();

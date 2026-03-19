@@ -3,6 +3,7 @@ import { Purchases, CustomerInfo, PurchasesOffering, PurchasesPackage } from '@r
 import { supabase } from './supabase';
 import { useUserStore } from '../store/user';
 import { Capacitor } from '@capacitor/core';
+import { MONETIZATION_DISABLED } from '../config/env';
 
 export interface Subscription {
   id: string;
@@ -175,6 +176,9 @@ class RevenueCatService {
    * 구독 구매
    */
   async purchase(productId: string): Promise<void> {
+    if (MONETIZATION_DISABLED) {
+      throw new Error('현재 구독 서비스가 일시 중지되었습니다.');
+    }
     if (!this.initialized) {
       throw new Error('RevenueCat not initialized');
     }
