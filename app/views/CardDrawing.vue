@@ -1453,6 +1453,7 @@ const checkFreeReadingStatus = () => {
 /* 일반 배열(3장) 결과 화면에서 스크롤 허용 */
 .card-drawing.scrollable {
   overflow-y: auto;
+  padding-bottom: calc(80px + var(--app-safe-bottom));
 }
 
 .page-header {

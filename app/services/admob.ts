@@ -1,6 +1,7 @@
 // AdMob 서비스 - 실제 광고 구현
 import { Platform } from '@/utils/platform';
 import { TEST_MODE } from '../config/env';
+import { logger } from './debugLogger';
 
 // 타입 정의
 interface AdMobConfig {
@@ -261,8 +262,10 @@ class RealAdMobService implements AdMobService {
       });
 
       this.isInitialized = true;
+      logger.log(`admob.ts 초기화 완료 testMode:${adMobConfig.testMode}`);
       console.log('📱 [Mobile] AdMob 초기화 완료');
-    } catch (error) {
+    } catch (error: any) {
+      logger.log(`admob.ts 초기화 실패: ${error.message || error}`);
       console.error('📱 [Mobile] AdMob 초기화 실패:', error);
       throw error;
     }
@@ -284,6 +287,7 @@ class RealAdMobService implements AdMobService {
       this.removeAllListeners();
       
       // 광고 로드
+      logger.log(`전면광고 로드 adId:${adMobConfig.interstitialAdId} testMode:${adMobConfig.testMode}`);
       await AdMob.prepareInterstitial({
         adId: adMobConfig.interstitialAdId,
         isTesting: adMobConfig.testMode
@@ -292,11 +296,12 @@ class RealAdMobService implements AdMobService {
       // 광고 표시
       return new Promise((resolve) => {
         let resolved = false;
-        
+
         // 광고 닫힘 이벤트 리스너
         const dismissedListener = AdMob.addListener(InterstitialAdPluginEvents.Dismissed, () => {
           if (!resolved) {
             resolved = true;
+            logger.log(`전면광고 #${this.adShowCount} 닫힘 (성공)`);
             console.log(`📱 [Mobile] 전면 광고 #${this.adShowCount} 닫힘`);
             this.removeAllListeners();
             resolve(true);
@@ -305,9 +310,10 @@ class RealAdMobService implements AdMobService {
         this.listenerMap.set('dismissed', dismissedListener);
 
         // 광고 실패 이벤트 리스너
-        const failedListener = AdMob.addListener(InterstitialAdPluginEvents.FailedToLoad, (error) => {
+        const failedListener = AdMob.addListener(InterstitialAdPluginEvents.FailedToLoad, (error: any) => {
           if (!resolved) {
             resolved = true;
+            logger.log(`전면광고 #${this.adShowCount} 로드실패 code:${error?.code} msg:${error?.message}`);
             console.error(`📱 [Mobile] 전면 광고 #${this.adShowCount} 로드 실패:`, error);
             this.removeAllListeners();
             resolve(false);
@@ -316,9 +322,10 @@ class RealAdMobService implements AdMobService {
         this.listenerMap.set('failed', failedListener);
 
         // 광고 표시
-        AdMob.showInterstitial().catch((error) => {
+        AdMob.showInterstitial().catch((error: any) => {
           if (!resolved) {
             resolved = true;
+            logger.log(`전면광고 #${this.adShowCount} 표시실패: ${error?.message || error}`);
             console.error(`📱 [Mobile] 전면 광고 #${this.adShowCount} 표시 실패:`, error);
             this.removeAllListeners();
             resolve(false);
@@ -335,7 +342,8 @@ class RealAdMobService implements AdMobService {
           }
         }, 30000);
       });
-    } catch (error) {
+    } catch (error: any) {
+      logger.log(`전면광고 예외: ${error?.message || error}`);
       console.error(`📱 [Mobile] 전면 광고 #${this.adShowCount} 표시 실패:`, error);
       this.removeAllListeners();
       return false;
@@ -370,10 +378,12 @@ class RealAdMobService implements AdMobService {
       this.removeAllListeners();
       
       // 광고 로드
+      logger.log(`리워드광고 로드 adId:${adMobConfig.rewardedAdId} testMode:${adMobConfig.testMode}`);
       await AdMob.prepareRewardVideoAd({
         adId: adMobConfig.rewardedAdId,
         isTesting: adMobConfig.testMode
       });
+      logger.log('리워드광고 로드 성공, 표시 시도');
 
       // 광고 표시
       return new Promise((resolve) => {
@@ -381,7 +391,8 @@ class RealAdMobService implements AdMobService {
         let resolved = false;
 
         // 리워드 획득 이벤트 (사용자가 광고를 끝까지 시청)
-        const rewardedListener = AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward) => {
+        const rewardedListener = AdMob.addListener(RewardAdPluginEvents.Rewarded, (reward: any) => {
+          logger.log(`리워드 보상 획득: ${JSON.stringify(reward)}`);
           console.log('📱 [Mobile] 리워드 광고 보상 획득:', reward);
           console.log('📱 [Mobile] 15초 강제 시청 완료');
           rewardEarned = true;
@@ -392,6 +403,7 @@ class RealAdMobService implements AdMobService {
         const dismissedListener = AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
           if (!resolved) {
             resolved = true;
+            logger.log(`리워드광고 닫힘 보상획득:${rewardEarned}`);
             console.log('📱 [Mobile] 리워드 광고 닫힘');
             console.log('📱 [Mobile] 보상 획득 여부:', rewardEarned);
             this.removeAllListeners();
@@ -401,9 +413,10 @@ class RealAdMobService implements AdMobService {
         this.listenerMap.set('dismissed', dismissedListener);
 
         // 광고 실패 이벤트
-        const failedListener = AdMob.addListener(RewardAdPluginEvents.FailedToLoad, (error) => {
+        const failedListener = AdMob.addListener(RewardAdPluginEvents.FailedToLoad, (error: any) => {
           if (!resolved) {
             resolved = true;
+            logger.log(`리워드광고 로드실패 code:${error?.code} msg:${error?.message}`);
             console.error('📱 [Mobile] 리워드 광고 로드 실패:', error);
             this.removeAllListeners();
             resolve(false);
@@ -413,14 +426,16 @@ class RealAdMobService implements AdMobService {
 
         // 광고 표시 시작 이벤트
         const showedListener = AdMob.addListener(RewardAdPluginEvents.Showed, () => {
+          logger.log('리워드광고 표시 시작');
           console.log('📱 [Mobile] 리워드 광고 표시 시작 (15초 강제 시청)');
         });
         this.listenerMap.set('showed', showedListener);
 
         // 광고 표시
-        AdMob.showRewardVideoAd().catch((error) => {
+        AdMob.showRewardVideoAd().catch((error: any) => {
           if (!resolved) {
             resolved = true;
+            logger.log(`리워드광고 표시실패: ${error?.message || error}`);
             console.error('📱 [Mobile] 리워드 광고 표시 실패:', error);
             this.removeAllListeners();
             resolve(false);
@@ -437,7 +452,8 @@ class RealAdMobService implements AdMobService {
           }
         }, 60000);
       });
-    } catch (error) {
+    } catch (error: any) {
+      logger.log(`리워드광고 예외: ${error?.message || error}`);
       console.error('📱 [Mobile] 리워드 광고 표시 실패:', error);
       this.removeAllListeners();
       return false;
