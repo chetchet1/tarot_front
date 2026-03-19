@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { TEST_MODE } from '../config/env';
+import { logger } from './debugLogger';
 
 class AdService {
   private initialized = false;
@@ -85,6 +86,7 @@ class AdService {
         
         await Promise.race([initPromise, timeoutPromise]);
         
+        logger.log(`AdMob 초기화 완료 - testMode:${this.isTestMode}, platform:${platform}`);
         console.log('🎯 AdMob 초기화 - 테스트 모드:', this.isTestMode);
         console.log('🎯 빌드 모드:', import.meta.env.MODE);
         console.log('🎯 플랫폼:', platform);
@@ -104,6 +106,7 @@ class AdService {
       return false;
       
     } catch (error: any) {
+      logger.log(`AdMob 초기화 실패: ${error.message || error}`);
       console.error('AdMob 초기화 실패:', error);
       this.initializing = false;
       
@@ -136,6 +139,7 @@ class AdService {
       });
       
       AdMob.addListener('onAdFailedToLoad', (error: any) => {
+        logger.log(`광고 로드 실패 code:${error.code} msg:${error.message}`);
         console.error('전면 광고 로드 실패:', error);
         console.error('광고 로드 실패 상세:', {
           code: error.code,
@@ -285,6 +289,7 @@ class AdService {
           isTesting: this.isTestMode
         };
         
+        logger.log(`광고 로드 시도 adId:${options.adId} isTesting:${options.isTesting}`);
         console.log('📡 광고 로드 옵션:', {
           ...options,
           buildMode: import.meta.env.MODE,
@@ -352,6 +357,7 @@ class AdService {
       return false;
       
     } catch (error: any) {
+      logger.log(`전면 광고 로드 예외: ${error.message || error}`);
       console.error('전면 광고 로드 실패:', error.message || error);
       this.isLoading.value = false;
       
@@ -503,6 +509,7 @@ class AdService {
           isTesting: this.isTestMode
         };
         
+        logger.log(`리워드 광고 로드 adId:${options.adId} isTesting:${options.isTesting}`);
         console.log('📺 리워드 광고 옵션:', {
           ...options,
           buildMode: import.meta.env.MODE,
@@ -522,6 +529,7 @@ class AdService {
       return true; // 시뮬레이션 모드에서도 true 반환
       
     } catch (error: any) {
+      logger.log(`리워드 광고 실패 code:${error.code} msg:${error.message}`);
       console.error('리워드 광고 실패:', error);
       console.error('리워드 광고 실패 상세:', {
         code: error.code,
