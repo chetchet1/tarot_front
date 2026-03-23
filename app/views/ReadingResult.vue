@@ -1574,20 +1574,13 @@ onMounted(async () => {
   if (reading.value && !hasInterpretation) {
     const isPremiumSpread = ['celtic_cross', 'seven_star', 'cup_of_relationship'].includes(reading.value.spreadId);
     
-    // ⚠️ 중요: 프리미엄 배열법은 절대 여기서 생성하지 않음!
-    // CardDrawing.vue의 goToResult에서 이미 생성됨
+    // 프리미엄 배열법: goToResult에서 생성 실패 시 여기서 재시도
     if (isPremiumSpread) {
-      console.log('🚫 [ReadingResult] 프리미엄 배열법 - AI 해석 생성 건너뜀 (중복 방지)');
-      console.log('🚫 [ReadingResult] spreadId:', reading.value.spreadId);
-      console.log('🚫 [ReadingResult] enhancedInterpretation:', !!reading.value.enhancedInterpretation);
-      console.log('🚫 [ReadingResult] aiInterpretation:', !!reading.value.aiInterpretation);
-      console.log('🚫 [ReadingResult] 해석 상태:', {
-        hasAI: !!reading.value.aiInterpretation,
-        hasEnhanced: !!reading.value.enhancedInterpretation,
-        interpretationText: getAIInterpretationText()?.substring(0, 100)
-      });
-      // 프리미엄 배열법은 절대 여기서 생성하지 않음
-      return; // 더 이상 처리하지 않음 - 중복 호출 방지
+      // 프리미엄 배열법인데 해석이 없는 경우 (Edge Function 실패 등)
+      // 자동으로 재생성 시도
+      console.log('🔮 [ReadingResult] 프리미엄 배열법 - 해석 없음, 자동 생성 시도');
+      await generatePremiumAIInterpretation();
+      return;
     } else if (customQuestion.value && userStore.isPremium) {
       // 커스텀 질문은 프리미엄만 (1장, 3장 배열에서만)
       console.log('🎴 [ReadingResult] 커스텀 질문 - AI 해석 생성');
