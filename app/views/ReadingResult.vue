@@ -1595,7 +1595,10 @@ onMounted(async () => {
   // AI 해석 생성 여부 결정
   // enhancedInterpretation이나 aiInterpretation이 이미 있는지 확인
   const hasInterpretation = !!(reading.value?.aiInterpretation || reading.value?.enhancedInterpretation);
-  
+  logger.log('ReadingResult onMounted - spreadId=' + reading.value?.spreadId);
+  logger.log('hasInterpretation=' + hasInterpretation + ', aiInterp=' + !!reading.value?.aiInterpretation + ', enhanced=' + !!reading.value?.enhancedInterpretation);
+  logger.log('getAIInterpretationText=' + (getAIInterpretationText()?.substring(0, 80) || 'null'));
+
   if (reading.value && !hasInterpretation) {
     const isPremiumSpread = ['celtic_cross', 'seven_star', 'cup_of_relationship'].includes(reading.value.spreadId);
     

@@ -21,6 +21,7 @@ import { CelticCrossAIInterpreter } from '../services/interpretation/CelticCross
 import { SevenStarInterpreter } from '../services/interpretation/SevenStarInterpreter';
 import { CupOfRelationshipInterpreter } from '../services/interpretation/CupOfRelationshipInterpreter';
 import { eventService } from '../services/EventService';
+import { logger } from '../services/debugLogger';
 
 interface DailyCard {
   date: string;
@@ -653,9 +654,11 @@ export const useTarotStore = defineStore('tarot', () => {
           cupInterpreter.setRelationshipStatus(relationshipStatus.value);
         }
         const cupResult = await cupInterpreter.generateInterpretation(userStore.currentUser?.id);
-        
+        logger.log('cupResult.success=' + cupResult.success + ', type=' + typeof cupResult.interpretation);
         if (cupResult.success && typeof cupResult.interpretation === 'object') {
           const cupInterpretation = cupResult.interpretation;
+          logger.log('aiInterpretation길이=' + (cupInterpretation.aiInterpretation?.length || 0));
+          logger.log('summary길이=' + (cupInterpretation.summary?.length || 0));
           interpretation = {
             cards: cardsWithPositions.map((card, index) => ({
               ...card,
@@ -876,6 +879,10 @@ export const useTarotStore = defineStore('tarot', () => {
         improvedInterpretation: improvedInterpretation.value
       };
 
+      logger.log('reading 생성완료: enhancedInterpretation=' + !!reading.enhancedInterpretation + ', aiInterpretation=' + !!reading.aiInterpretation);
+      if (reading.enhancedInterpretation) {
+        logger.log('enhanced.aiInterpretation길이=' + (reading.enhancedInterpretation.aiInterpretation?.length || 0));
+      }
       console.log('생성된 점괘:', reading);
       console.log('개선된 해석 저장 상태:', {
         improvedInterpretationFromRef: improvedInterpretation.value,
