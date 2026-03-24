@@ -470,8 +470,8 @@
           <p>{{ getAIInterpretationText() }}</p>
         </div>
         
-        <!-- 무료 사용자용 AI 해석 버튼 (해석이 없는 경우) -->
-        <div v-else-if="!reading.aiInterpretation && !reading.enhancedInterpretation && !reading.improvedInterpretation" class="ai-interpretation-cta">
+        <!-- AI 해석 버튼 (해석이 없고 프리미엄 배열이 아닌 경우만) -->
+        <div v-else-if="!isPremiumSpreadComputed && !reading.aiInterpretation && !reading.enhancedInterpretation && !reading.improvedInterpretation" class="ai-interpretation-cta">
           <button 
             class="crystal-ball-button" 
             @click="generatePremiumAIInterpretation()"
@@ -579,6 +579,11 @@ const reading = computed(() => {
 // 커스텀 질문 가져오기
 const customQuestion = computed(() => {
   return tarotStore.getCustomQuestion();
+});
+
+// 프리미엄 배열법 여부
+const isPremiumSpreadComputed = computed(() => {
+  return reading.value ? ['celtic_cross', 'seven_star', 'cup_of_relationship'].includes(reading.value.spreadId) : false;
 });
 
 // 테마와 서브테마 가져오기
@@ -1594,12 +1599,12 @@ onMounted(async () => {
   if (reading.value && !hasInterpretation) {
     const isPremiumSpread = ['celtic_cross', 'seven_star', 'cup_of_relationship'].includes(reading.value.spreadId);
     
-    // 프리미엄 배열법: goToResult에서 생성 실패 시 여기서 재시도
     if (isPremiumSpread) {
-      // 프리미엄 배열법인데 해석이 없는 경우 (Edge Function 실패 등)
-      // 자동으로 재생성 시도
-      console.log('🔮 [ReadingResult] 프리미엄 배열법 - 해석 없음, 자동 생성 시도');
-      await generatePremiumAIInterpretation();
+      // 프리미엄 배열법은 CardDrawing.vue goToResult에서 이미 호출됨
+      // 여기서 재호출하면 중복 호출 발생
+      // enhancedInterpretation이 아직 computed에 반영 안 됐을 수 있으므로 대기하지 않음
+      console.log('🔮 [ReadingResult] 프리미엄 배열법 - 중복 호출 방지, 건너뜀');
+      logger.log('프리미엄 배열 중복 호출 방지 - enhancedInterpretation: ' + !!reading.value?.enhancedInterpretation);
       return;
     } else if (customQuestion.value && userStore.isPremium) {
       // 커스텀 질문은 프리미엄만 (1장, 3장 배열에서만)
