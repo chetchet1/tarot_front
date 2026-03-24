@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { logger } from '../debugLogger';
 
 export interface AIInterpretationRequest {
   card?: any;
@@ -462,8 +463,19 @@ ${message.ending}`;
       });
       
       console.log('🚀 [generateInterpretation] Edge Function 결과:', { data, error });
-      
-      if (error) throw error;
+
+      if (error) {
+        // Edge Function 에러 시 응답 본문에서 상세 원인 추출
+        let errorDetail = error.message || String(error);
+        try {
+          if ((error as any).context) {
+            const errBody = await (error as any).context.json();
+            errorDetail = errBody?.error || errorDetail;
+          }
+        } catch (_) { /* 본문 파싱 실패 무시 */ }
+        logger.log('Edge Function 에러 상세: ' + errorDetail);
+        throw new Error(errorDetail);
+      }
       
       // 마크다운 헤더(#, ##, ### 등) 모두 제거
       const interpretation = data.interpretation.replace(/#{1,6}\s*/g, '');
