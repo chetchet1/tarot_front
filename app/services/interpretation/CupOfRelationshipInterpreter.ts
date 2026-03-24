@@ -259,13 +259,18 @@ export class CupOfRelationshipInterpreter {
       
       if (error) {
         let errorDetail = error.message || String(error);
+        let debugResponse = '';
         try {
           if ((error as any).context) {
             const errBody = await (error as any).context.json();
             errorDetail = errBody?.error || errorDetail;
+            debugResponse = errBody?.debug_response || '';
           }
         } catch (_) {}
         logger.log('[CupRelationship] Edge Function 오류: ' + errorDetail);
+        if (debugResponse) {
+          logger.log('[CupRelationship] OpenAI 응답 구조: ' + debugResponse);
+        }
         throw new Error(errorDetail);
       }
       
