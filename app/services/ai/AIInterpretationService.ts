@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
 import { logger } from '../debugLogger';
+import { fetchInterpretationStream } from './streamingEdgeFetch';
 
 export interface AIInterpretationRequest {
   card?: any;
@@ -47,37 +48,22 @@ export class AIInterpretationService {
     }
     
     try {
-      // Supabase Edge Function 호출
-      console.log('🚀 [generateInterpretation] Edge Function 호출 시작:', {
-        cardsCount: cards.length,
+      const raw = await fetchInterpretationStream({
+        card,
+        position,
         topic,
         spreadType,
-        isPremium: this.isPremium
-      });
-      
-      const { data, error } = await supabase.functions.invoke('generate-interpretation', {
-        body: {
-          card,
-          position,
-          topic,
-          spreadType,
-          allCards,
-          userId: (await supabase.auth.getUser()).data.user?.id,
-          isPremium: this.isPremium,
-          interpretationType: 'single'
-        }
-      });
-      
-      if (error) throw error;
-      
-      // 마크다운 헤더(#, ##, ### 등) 모두 제거
-      const interpretation = data.interpretation.replace(/#{1,6}\s*/g, '');
+        allCards,
+        userId: (await supabase.auth.getUser()).data.user?.id,
+        isPremium: this.isPremium,
+        interpretationType: 'single'
+      }, 'SingleCard');
+
+      const interpretation = raw.replace(/#{1,6}\s*/g, '');
       this.setCache(cacheKey, interpretation);
-      
       return interpretation;
     } catch (error) {
       console.error('AI 해석 실패:', error);
-      // 폴백: 템플릿 해석 반환
       return this.getTemplateInterpretation(card, position, topic);
     }
   }
@@ -107,28 +93,20 @@ export class AIInterpretationService {
     }
     
     try {
-      // Supabase Edge Function 호출
-      const { data, error } = await supabase.functions.invoke('generate-interpretation', {
-        body: {
-          allCards: cards,
-          topic,
-          spreadType,
-          userId: (await supabase.auth.getUser()).data.user?.id,
-          isPremium: this.isPremium,
-          interpretationType: 'overall'
-        }
-      });
-      
-      if (error) throw error;
-      
-      // 마크다운 헤더(#, ##, ### 등) 모두 제거
-      const interpretation = data.interpretation.replace(/#{1,6}\s*/g, '');
+      const raw = await fetchInterpretationStream({
+        allCards: cards,
+        topic,
+        spreadType,
+        userId: (await supabase.auth.getUser()).data.user?.id,
+        isPremium: this.isPremium,
+        interpretationType: 'overall'
+      }, 'Overall');
+
+      const interpretation = raw.replace(/#{1,6}\s*/g, '');
       this.setCache(cacheKey, interpretation);
-      
       return interpretation;
     } catch (error) {
       console.error('AI 전체 해석 실패:', error);
-      // 폴백: 템플릿 해석 반환
       return this.getTemplateOverallInterpretation(cards, topic, spreadType);
     }
   }
@@ -143,40 +121,19 @@ export class AIInterpretationService {
     spreadType: string
   ): Promise<{ text: string; interpretationId?: string }> {
     try {
-      console.log('🤖 [generateInterpretationWithPrompt] 시작');
-      console.log('🤖 spreadType:', spreadType);
-      console.log('🤖 cards count:', cards.length);
-      
-      // Supabase Edge Function 호출
-      const { data, error } = await supabase.functions.invoke('generate-interpretation', {
-        body: {
-          customPrompt: structuredPrompt,  // customPrompt로 변경
-          cards: cards,  // allCards 대신 cards 사용
-          topic,
-          spreadType,
-          userId: (await supabase.auth.getUser()).data.user?.id,
-          isPremium: this.isPremium
-        }
-      });
-      
-      if (error) {
-        console.error('🤖 Edge Function 오류:', error);
-        throw error;
-      }
-      
-      console.log('🤖 Edge Function 응답:', data);
-      
-      // 마크다운 헤더 제거
-      const interpretation = data.interpretation?.replace(/#{1,6}\s*/g, '') || data.text || '';
-      
-      return {
-        text: interpretation,
-        interpretationId: data.interpretationId
-      };
+      const raw = await fetchInterpretationStream({
+        customPrompt: structuredPrompt,
+        cards: cards,
+        topic,
+        spreadType,
+        userId: (await supabase.auth.getUser()).data.user?.id,
+        isPremium: this.isPremium
+      }, 'WithPrompt');
+
+      const interpretation = raw.replace(/#{1,6}\s*/g, '');
+      return { text: interpretation };
     } catch (error) {
-      console.error('🤖 AI 해석 생성 실패:', error);
-      
-      // 폴백: 기본 해석 반환
+      console.error('AI 해석 생성 실패:', error);
       return {
         text: this.getTemplateOverallInterpretation(cards, topic, spreadType),
         interpretationId: undefined
@@ -271,7 +228,6 @@ export class AIInterpretationService {
     }
     
     try {
-      // Edge Function에 맞는 형식으로 카드 데이터 변환
       const formattedCards = cards.map((card, index) => ({
         id: index,
         name_kr: card.cardName,
@@ -282,25 +238,18 @@ export class AIInterpretationService {
           name: card.position
         }
       }));
-      
-      // Supabase Edge Function 호출
-      const { data, error } = await supabase.functions.invoke('generate-interpretation', {
-        body: {
-          cards: formattedCards,
-          topic,
-          spreadType: 'celtic_cross',
-          userId: (await supabase.auth.getUser()).data.user?.id,
-          isPremium: this.isPremium
-        }
-      });
-      
-      if (error) throw error;
-      
-      // 마크다운 헤더(#, ##, ### 등) 모두 제거
-      return data.interpretation.replace(/#{1,6}\s*/g, '');
+
+      const raw = await fetchInterpretationStream({
+        cards: formattedCards,
+        topic,
+        spreadType: 'celtic_cross',
+        userId: (await supabase.auth.getUser()).data.user?.id,
+        isPremium: this.isPremium
+      }, 'CelticCrossAIS');
+
+      return raw.replace(/#{1,6}\s*/g, '');
     } catch (error) {
       console.error('AI 켈틱 크로스 해석 실패:', error);
-      // 폴백: 템플릿 해석 반환
       return this.getCelticCrossTemplateInterpretation(cards, topic);
     }
   }
@@ -423,7 +372,6 @@ ${message.ending}`;
     spreadType: string
   ): Promise<{ text: string; interpretationId?: string }> {
     try {
-      // 캐시 확인
       const cacheKey = this.generateCacheKey({
         allCards: cards,
         topic,
@@ -436,72 +384,17 @@ ${message.ending}`;
         return { text: cached };
       }
 
-      logger.log(`Edge Function 스트리밍 호출: cards=${cards.length}, topic=${topic}, spread=${spreadType}`);
+      const raw = await fetchInterpretationStream({
+        cards,
+        topic,
+        spreadType,
+        userId: (await supabase.auth.getUser()).data.user?.id,
+        isPremium: this.isPremium
+      }, 'GenerateAI');
 
-      // 스트리밍 fetch 호출 (180초 타임아웃)
-      const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://yxywzsmggvxxujuplyly.supabase.co';
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4eXd6c21nZ3Z4eHVqdXBseWx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1NTk2ODUsImV4cCI6MjA2OTEzNTY4NX0.8w3JYOmbmJKdzz9H0_GfgspIfb0SfjjOvkyxPNvFVSM';
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 180000);
-
-      try {
-        const response = await fetch(
-          `${supabaseUrl}/functions/v1/generate-interpretation`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`,
-              'apikey': supabaseKey
-            },
-            body: JSON.stringify({
-              cards,
-              topic,
-              spreadType,
-              userId: (await supabase.auth.getUser()).data.user?.id,
-              isPremium: this.isPremium
-            }),
-            signal: controller.signal
-          }
-        );
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          logger.log('Edge Function HTTP 에러: ' + response.status);
-          throw new Error('Edge Function 오류: ' + response.status);
-        }
-
-        // 스트리밍 응답 수신
-        const reader = response.body!.getReader();
-        const decoder = new TextDecoder();
-        let interpretation = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          const cleanChunk = chunk.replace(/\n?\[DONE\]\n?/g, '');
-          if (cleanChunk) {
-            interpretation += cleanChunk;
-          }
-        }
-
-        logger.log('스트리밍 수신 완료: ' + interpretation.length + '자');
-
-        // 마크다운 헤더(#, ##, ### 등) 모두 제거
-        interpretation = interpretation.replace(/#{1,6}\s*/g, '');
-        this.setCache(cacheKey, interpretation);
-
-        return { text: interpretation };
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        throw fetchError;
-      }
+      const interpretation = raw.replace(/#{1,6}\s*/g, '');
+      this.setCache(cacheKey, interpretation);
+      return { text: interpretation };
     } catch (error) {
       console.error('AI 해석 생성 실패:', error);
       const premiumSpreads = ['celtic_cross', 'seven_star', 'cup_of_relationship'];

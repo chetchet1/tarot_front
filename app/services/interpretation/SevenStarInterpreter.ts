@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/services/supabase';
+import { fetchInterpretationStream } from '@/services/ai/streamingEdgeFetch';
 
 export interface CardData {
   id: string;
@@ -213,9 +214,6 @@ export class SevenStarInterpreter {
    */
   private async requestAIInterpretation(userId?: string): Promise<{ success: boolean; interpretation?: string }> {
     try {
-      console.log('[SevenStar] Edge Function 호출 시작');
-      
-      // 카드 데이터를 Edge Function이 기대하는 형식으로 변환
       const cardsForAPI = this.cards.map((card, index) => ({
         ...card,
         name_kr: card.nameKr,
@@ -224,42 +222,24 @@ export class SevenStarInterpreter {
           description: this.positions[index].description
         }
       }));
-      
-      console.log('[SevenStar] API용 카드 데이터:', cardsForAPI);
-      
-      // 프롬프트 생성
+
       const customPrompt = this.generateAIPrompt();
-      
-      // Supabase Edge Function 호출
-      const { data, error } = await supabase.functions.invoke('generate-interpretation', {
-        body: {
-          cards: cardsForAPI,
-          topic: this.topic,
-          spreadType: 'seven_star',
-          userId,
-          isPremium: true, // 광고를 본 무료 사용자도 AI 해석 접근 가능
-          customQuestion: this.customQuestion,
-          customPrompt: customPrompt,  // 커스텀 프롬프트 추가
-          relationshipStatus: this.relationshipStatus  // 연애 상태 추가
-        }
-      });
-      
-      if (error) {
-        console.error('[SevenStar] Edge Function 오류:', error);
-        throw error;
-      }
-      
-      console.log('[SevenStar] Edge Function 응답:', data);
-      
-      return {
-        success: true,
-        interpretation: data.interpretation
-      };
+
+      const interpretation = await fetchInterpretationStream({
+        cards: cardsForAPI,
+        topic: this.topic,
+        spreadType: 'seven_star',
+        userId,
+        isPremium: true,
+        customQuestion: this.customQuestion,
+        customPrompt: customPrompt,
+        relationshipStatus: this.relationshipStatus
+      }, 'SevenStar');
+
+      return { success: true, interpretation };
     } catch (error) {
       console.error('[SevenStar] AI 해석 요청 실패:', error);
-      return {
-        success: false
-      };
+      return { success: false };
     }
   }
 
