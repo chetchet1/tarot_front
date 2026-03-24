@@ -16,18 +16,14 @@ export const supabase = createClient(
     },
     global: {
       fetch: (url, options = {}) => {
-        // Edge Function 호출인 경우 타임아웃을 60초로 설정
+        // Edge Function 호출인 경우 타임아웃을 늘림
         const isEdgeFunction = url.includes('/functions/v1/');
-        const timeout = isEdgeFunction ? 60000 : 15000; // Edge Function: 60초, 일반: 15초
-        
+        const timeout = isEdgeFunction ? 180000 : 15000; // Edge Function: 180초(3분), 일반: 15초
+
         // 타임아웃 설정
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
-        
-        if (isEdgeFunction) {
-          console.log('🔵 Edge Function 호출 감지, 타임아웃 60초로 설정');
-        }
-        
+
         return fetch(url, {
           ...options,
           signal: controller.signal

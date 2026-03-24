@@ -228,7 +228,7 @@ export class CupOfRelationshipInterpreter {
   private async requestAIInterpretation(userId?: string): Promise<{ success: boolean; interpretation?: string }> {
     try {
       console.log('[CupRelationship] AI 해석 요청 시작');
-      
+
       // 카드 데이터를 Edge Function이 기대하는 형식으로 변환
       const cardsForAPI = this.cards.map((card, index) => ({
         ...card,
@@ -238,53 +238,82 @@ export class CupOfRelationshipInterpreter {
           description: this.positions[index].description
         }
       }));
-      
-      console.log('[CupRelationship] API용 카드 데이터:', cardsForAPI);
-      
-      // 프롬프트 생성 - requestAIInterpretation 내부로 이동
-      const customPrompt = this.generateAIPrompt();
-      
-      // Supabase Edge Function 호출 - generate-interpretation 사용
-      const { data, error } = await supabase.functions.invoke('generate-interpretation', {
-        body: {
-          cards: cardsForAPI,
-          topic: this.topic === '연애' ? 'love' : this.topic,
-          spreadType: 'cup_of_relationship',
-          userId,
-          isPremium: true,
-          customQuestion: this.customQuestion,
-          customPrompt: customPrompt  // 커스텀 프롬프트 추가
-        }
-      });
-      
-      if (error) {
-        let errorDetail = error.message || String(error);
-        let debugResponse = '';
-        try {
-          if ((error as any).context) {
-            const errBody = await (error as any).context.json();
-            errorDetail = errBody?.error || errorDetail;
-            debugResponse = errBody?.debug_response || '';
-          }
-        } catch (_) {}
-        logger.log('[CupRelationship] Edge Function 오류: ' + errorDetail);
-        if (debugResponse) {
-          logger.log('[CupRelationship] OpenAI 응답 구조: ' + debugResponse);
-        }
-        throw new Error(errorDetail);
-      }
-      
-      logger.log('[CupRelationship] Edge Function 응답: ' + (data?.interpretation?.length || 0) + '자');
 
-      return {
-        success: true,
-        interpretation: data.interpretation
-      };
+      const customPrompt = this.generateAIPrompt();
+
+      // Edge Function 스트리밍 호출 (직접 fetch - 타임아웃 180초)
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://yxywzsmggvxxujuplyly.supabase.co';
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4eXd6c21nZ3Z4eHVqdXBseWx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1NTk2ODUsImV4cCI6MjA2OTEzNTY4NX0.8w3JYOmbmJKdzz9H0_GfgspIfb0SfjjOvkyxPNvFVSM';
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 180000);
+
+      logger.log('[CupRelationship] Edge Function 스트리밍 호출 시작');
+
+      try {
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/generate-interpretation`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+              'apikey': supabaseKey
+            },
+            body: JSON.stringify({
+              cards: cardsForAPI,
+              topic: this.topic === '연애' ? 'love' : this.topic,
+              spreadType: 'cup_of_relationship',
+              userId,
+              isPremium: true,
+              customQuestion: this.customQuestion,
+              customPrompt: customPrompt
+            }),
+            signal: controller.signal
+          }
+        );
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          logger.log('[CupRelationship] Edge Function HTTP 에러: ' + response.status);
+          throw new Error('Edge Function 오류: ' + response.status);
+        }
+
+        // 스트리밍 응답 수신
+        const reader = response.body!.getReader();
+        const decoder = new TextDecoder();
+        let interpretation = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const cleanChunk = chunk.replace(/\n?\[DONE\]\n?/g, '');
+          if (cleanChunk) {
+            interpretation += cleanChunk;
+          }
+        }
+
+        logger.log('[CupRelationship] 스트리밍 수신 완료: ' + interpretation.length + '자');
+
+        if (!interpretation || interpretation.length === 0) {
+          throw new Error('빈 해석 응답');
+        }
+
+        return { success: true, interpretation };
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
+      }
     } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      logger.log('[CupRelationship] AI 해석 요청 실패: ' + errMsg);
       console.error('[CupRelationship] AI 해석 요청 실패:', error);
-      return {
-        success: false
-      };
+      return { success: false };
     }
   }
 

@@ -416,20 +416,12 @@ ${message.ending}`;
   }
 
   
-  // AI 해석 생성 메서드 (켈틱 크로스 전용)
+  // AI 해석 생성 메서드 (스트리밍 방식)
   async generateInterpretation(
     cards: any[],
     topic: string,
     spreadType: string
   ): Promise<{ text: string; interpretationId?: string }> {
-    // 무료 사용자도 광고 시청 후 API 호출 가능
-    // if (!this.isPremium) {
-    //   // 무료 사용자는 템플릿 해석
-    //   return {
-    //     text: this.getTemplateOverallInterpretation(cards, topic, spreadType)
-    //   };
-    // }
-    
     try {
       // 캐시 확인
       const cacheKey = this.generateCacheKey({
@@ -438,56 +430,84 @@ ${message.ending}`;
         spreadType,
         interpretationType: 'overall'
       });
-      
+
       const cached = this.getFromCache(cacheKey);
       if (cached) {
         return { text: cached };
       }
-      
-      // Supabase Edge Function 호출
-      logger.log(`Edge Function 호출: cards=${cards.length}, topic=${topic}, spread=${spreadType}`);
 
-      const { data, error } = await supabase.functions.invoke('generate-interpretation', {
-        body: {
-          cards,
-          topic,
-          spreadType,
-          userId: (await supabase.auth.getUser()).data.user?.id,
-          isPremium: this.isPremium
-        }
-      });
+      logger.log(`Edge Function 스트리밍 호출: cards=${cards.length}, topic=${topic}, spread=${spreadType}`);
 
-      logger.log('Edge Function 응답: ' + (error ? 'ERROR' : 'OK') + ', data=' + JSON.stringify(data)?.substring(0, 200));
+      // 스트리밍 fetch 호출 (180초 타임아웃)
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://yxywzsmggvxxujuplyly.supabase.co';
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4eXd6c21nZ3Z4eHVqdXBseWx5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1NTk2ODUsImV4cCI6MjA2OTEzNTY4NX0.8w3JYOmbmJKdzz9H0_GfgspIfb0SfjjOvkyxPNvFVSM';
 
-      if (error) {
-        // Edge Function 에러 시 응답 본문에서 상세 원인 추출
-        let errorDetail = error.message || String(error);
-        try {
-          if ((error as any).context) {
-            const errBody = await (error as any).context.json();
-            errorDetail = errBody?.error || errorDetail;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 180000);
+
+      try {
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/generate-interpretation`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+              'apikey': supabaseKey
+            },
+            body: JSON.stringify({
+              cards,
+              topic,
+              spreadType,
+              userId: (await supabase.auth.getUser()).data.user?.id,
+              isPremium: this.isPremium
+            }),
+            signal: controller.signal
           }
-        } catch (_) { /* 본문 파싱 실패 무시 */ }
-        logger.log('Edge Function 에러 상세: ' + errorDetail);
-        throw new Error(errorDetail);
+        );
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          logger.log('Edge Function HTTP 에러: ' + response.status);
+          throw new Error('Edge Function 오류: ' + response.status);
+        }
+
+        // 스트리밍 응답 수신
+        const reader = response.body!.getReader();
+        const decoder = new TextDecoder();
+        let interpretation = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const cleanChunk = chunk.replace(/\n?\[DONE\]\n?/g, '');
+          if (cleanChunk) {
+            interpretation += cleanChunk;
+          }
+        }
+
+        logger.log('스트리밍 수신 완료: ' + interpretation.length + '자');
+
+        // 마크다운 헤더(#, ##, ### 등) 모두 제거
+        interpretation = interpretation.replace(/#{1,6}\s*/g, '');
+        this.setCache(cacheKey, interpretation);
+
+        return { text: interpretation };
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
       }
-      
-      // 마크다운 헤더(#, ##, ### 등) 모두 제거
-      const interpretation = data.interpretation.replace(/#{1,6}\s*/g, '');
-      this.setCache(cacheKey, interpretation);
-      
-      return {
-        text: interpretation,
-        interpretationId: data.interpretationId
-      };
     } catch (error) {
       console.error('AI 해석 생성 실패:', error);
-      // 프리미엄 배열은 폴백 없이 에러 전파 (2줄짜리 템플릿이 유료 해석으로 나가면 안 됨)
       const premiumSpreads = ['celtic_cross', 'seven_star', 'cup_of_relationship'];
       if (premiumSpreads.includes(spreadType)) {
         throw error;
       }
-      // 무료 배열만 폴백: 템플릿 해석 반환
       return {
         text: this.getTemplateOverallInterpretation(cards, topic, spreadType)
       };
