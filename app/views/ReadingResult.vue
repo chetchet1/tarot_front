@@ -1358,29 +1358,42 @@ const generatePremiumAIInterpretation = async () => {
   }, 500);
   
   try {
-    console.log('🔮 AI 해석 생성 요청 시작');
-    
-    const interpretationResult = await generateAI({
-      reading: reading.value,
-      customQuestion: customQuestion.value,
-      isPremium: true, // 프리미엄 배열법은 항상 프리미엄 모드
-      getPositionName,
-      userId: userStore.currentUser?.id
-    });
-    
-    console.log('🔮 AI 해석 결과:', interpretationResult);
-    
+    console.log('🔮 AI 해석 생성 요청 시작 - AIInterpretationService 직접 호출');
+
+    // aiInterpretationHelper는 seven_star/cup_of_relationship을 차단하므로
+    // AIInterpretationService를 직접 사용
+    const aiService = new AIInterpretationService(true);
+    const cardsForAI = reading.value.cards.map((card: any, index: number) => ({
+      id: card.id,
+      name: card.name || card.nameEn || '',
+      name_kr: card.nameKr || card.name_kr || card.name || '',
+      nameKr: card.nameKr || card.name_kr || card.name || '',
+      orientation: card.orientation || 'upright',
+      position: {
+        position: index + 1,
+        name: card.position?.name || getPositionName(reading.value!.spreadId, index)
+      }
+    }));
+
+    const result = await aiService.generateInterpretation(
+      cardsForAI,
+      reading.value.topic || 'general',
+      reading.value.spreadId
+    );
+
+    console.log('🔮 AI 해석 결과:', result);
+
     // 프로그레스 완료
     clearInterval(progressInterval);
     interpretationProgress.value = 100;
-    
-    if (interpretationResult.success && interpretationResult.interpretation) {
+
+    if (result && result.text) {
       console.log('🔮 AI 해석 저장 시작');
-      reading.value.aiInterpretation = interpretationResult.interpretation;
-      reading.value.aiInterpretationId = interpretationResult.interpretationId || null;
+      reading.value.aiInterpretation = result.text;
+      reading.value.aiInterpretationId = result.interpretationId || null;
       tarotStore.updateReading(reading.value);
       console.log('🔮 AI 해석 저장 완료');
-      
+
       // DB에도 업데이트
       if (userStore.isPremium) {
         await saveReadingToDB();
