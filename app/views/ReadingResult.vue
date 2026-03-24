@@ -1404,10 +1404,11 @@ const generatePremiumAIInterpretation = async () => {
     
   } catch (error) {
     clearInterval(progressInterval);
-    console.error('🔮 AI 해석 생성 오류:', error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error('🔮 AI 해석 생성 오류:', errMsg, error);
     await showConfirm({
       title: '오류',
-      message: 'AI 해석을 생성하는 중 오류가 발생했습니다. 다시 시도해주세요.',
+      message: `AI 해석 생성 실패: ${errMsg}`,
       confirmText: '확인',
       showCancel: false
     });

@@ -475,7 +475,12 @@ ${message.ending}`;
       };
     } catch (error) {
       console.error('AI 해석 생성 실패:', error);
-      // 폴백: 템플릿 해석 반환
+      // 프리미엄 배열은 폴백 없이 에러 전파 (2줄짜리 템플릿이 유료 해석으로 나가면 안 됨)
+      const premiumSpreads = ['celtic_cross', 'seven_star', 'cup_of_relationship'];
+      if (premiumSpreads.includes(spreadType)) {
+        throw error;
+      }
+      // 무료 배열만 폴백: 템플릿 해석 반환
       return {
         text: this.getTemplateOverallInterpretation(cards, topic, spreadType)
       };
