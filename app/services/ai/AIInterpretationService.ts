@@ -445,13 +445,8 @@ ${message.ending}`;
       }
       
       // Supabase Edge Function 호출
-      console.log('🚀 [generateInterpretation] Edge Function 호출 시작:', {
-        cardsCount: cards.length,
-        topic,
-        spreadType,
-        isPremium: this.isPremium
-      });
-      
+      logger.log(`Edge Function 호출: cards=${cards.length}, topic=${topic}, spread=${spreadType}`);
+
       const { data, error } = await supabase.functions.invoke('generate-interpretation', {
         body: {
           cards,
@@ -461,8 +456,8 @@ ${message.ending}`;
           isPremium: this.isPremium
         }
       });
-      
-      console.log('🚀 [generateInterpretation] Edge Function 결과:', { data, error });
+
+      logger.log('Edge Function 응답: ' + (error ? 'ERROR' : 'OK') + ', data=' + JSON.stringify(data)?.substring(0, 200));
 
       if (error) {
         // Edge Function 에러 시 응답 본문에서 상세 원인 추출

@@ -3,8 +3,8 @@ import { supabase } from './supabase';
 
 class DebugLogger {
   private logs: string[] = [];
-  private isDebugMode = false; // 배포 버전은 디버깅 비활성화
-  private showPanelOnScreen = false; // 화면 표시는 비활성화
+  private isDebugMode = true; // 수정 완료까지 디버깅 활성화 유지
+  private showPanelOnScreen = true; // 화면 표시 활성화 유지
   
   log(message: string, data?: any) {
     if (!this.isDebugMode) return;

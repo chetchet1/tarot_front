@@ -1359,7 +1359,9 @@ const generatePremiumAIInterpretation = async () => {
   }, 500);
   
   try {
-    console.log('🔮 AI 해석 생성 요청 시작 - AIInterpretationService 직접 호출');
+    logger.log('AI 해석 생성 요청 시작 - AIInterpretationService 직접 호출');
+    logger.log('spreadId: ' + reading.value.spreadId + ', topic: ' + (reading.value.topic || 'general'));
+    logger.log('cards count: ' + reading.value.cards.length);
 
     // aiInterpretationHelper는 seven_star/cup_of_relationship을 차단하므로
     // AIInterpretationService를 직접 사용
@@ -1376,12 +1378,14 @@ const generatePremiumAIInterpretation = async () => {
       }
     }));
 
+    logger.log('cardsForAI 생성 완료, Edge Function 호출 시작');
     const result = await aiService.generateInterpretation(
       cardsForAI,
       reading.value.topic || 'general',
       reading.value.spreadId
     );
 
+    logger.log('AI 해석 결과: ' + (result ? 'text길이=' + (result.text?.length || 0) : 'null'));
     console.log('🔮 AI 해석 결과:', result);
 
     // 프로그레스 완료
