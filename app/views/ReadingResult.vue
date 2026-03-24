@@ -536,6 +536,7 @@ import { adService } from '../services/AdService';
 import { getUnifiedCardImagePath, handleUnifiedImageError } from '../utils/unifiedCardImage';
 import { useSubscriptionStatus } from '../composables/useSubscriptionStatus';
 import { AIInterpretationService } from '../services/ai/AIInterpretationService';
+import { logger } from '../services/debugLogger';
 // 공유 기능을 위한 import
 import { supabase } from '../services/supabase';
 import TarotLoadingScreen from '../components/loading/TarotLoadingScreen.vue';
@@ -1406,9 +1407,10 @@ const generatePremiumAIInterpretation = async () => {
     clearInterval(progressInterval);
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error('🔮 AI 해석 생성 오류:', errMsg, error);
+    logger.log('AI 해석 생성 오류 상세: ' + errMsg);
     await showConfirm({
       title: '오류',
-      message: `AI 해석 생성 실패: ${errMsg}`,
+      message: 'AI 해석을 생성하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
       confirmText: '확인',
       showCancel: false
     });
