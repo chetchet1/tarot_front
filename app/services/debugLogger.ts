@@ -40,7 +40,7 @@ class DebugLogger {
       panel.id = 'debug-panel';
       panel.style.cssText = `
         position: fixed;
-        top: 0;
+        top: env(safe-area-inset-top, 30px);
         left: 0;
         right: 0;
         background: rgba(0, 0, 0, 0.92);

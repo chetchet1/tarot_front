@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/services/supabase';
+import { logger } from '@/services/debugLogger';
 
 export interface CardData {
   id: string;
@@ -132,8 +133,10 @@ export class CupOfRelationshipInterpreter {
         interpretation
       };
     } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      logger.log('[CupRelationship] 해석 생성 오류: ' + errMsg);
       console.error('컵 릴레이션쉽 해석 생성 오류:', error);
-      
+
       // 에러 시 기본 해석 반환
       return {
         success: false,
@@ -255,12 +258,19 @@ export class CupOfRelationshipInterpreter {
       });
       
       if (error) {
-        console.error('[CupRelationship] Edge Function 오류:', error);
-        throw error;
+        let errorDetail = error.message || String(error);
+        try {
+          if ((error as any).context) {
+            const errBody = await (error as any).context.json();
+            errorDetail = errBody?.error || errorDetail;
+          }
+        } catch (_) {}
+        logger.log('[CupRelationship] Edge Function 오류: ' + errorDetail);
+        throw new Error(errorDetail);
       }
       
-      console.log('[CupRelationship] Edge Function 응답:', data);
-      
+      logger.log('[CupRelationship] Edge Function 응답: ' + (data?.interpretation?.length || 0) + '자');
+
       return {
         success: true,
         interpretation: data.interpretation
